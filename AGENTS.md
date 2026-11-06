@@ -182,7 +182,8 @@ release-please cuts releases (`.github/workflows/release-please.yml`,
   real routes; frontend ones stay above the `:username` route.
 - **Mirrored lists** must stay in step: `schemaContentHash` (frontend and
   backend `utils/schema-hash.ts`, same golden hash), the background preset
-  ids (`background-presets.ts` ↔ `BACKGROUND_PRESET_IDS`) and the rule for new
+  ids (`background-presets.ts` ↔ `BACKGROUND_PRESET_IDS`), the tag icons and
+  colours (tag editor dialog ↔ MCP `tag-store.ts`) and the rule for new
   usernames (backend `schemas/auth.schemas.ts` ↔ frontend
   `utils/username-rules.ts`; `backend/AGENTS.md`).
 - **Project archive format changes** bump `ARCHIVE_VERSION`

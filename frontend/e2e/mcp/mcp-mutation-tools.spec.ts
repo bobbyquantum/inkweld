@@ -258,100 +258,85 @@ test.describe('sort_elements', () => {
   });
 });
 
-test.describe('tag_element', () => {
-  test('should add tags to an element', async ({ mcpContext, apiRequest }) => {
-    // Create element
-    const createResult = await mcpCallTool(
-      apiRequest,
-      mcpContext.mcpToken,
-      'create_element',
-      {
-        project: mcpContext.projectKey,
-        name: 'Tagged Element',
-        type: 'ITEM',
-      }
-    );
-    expect(createResult.error).toBeUndefined();
+test.describe('tags', () => {
+  interface ToolResult {
+    content: Array<{ type: string; text: string }>;
+    isError?: boolean;
+    structuredContent?: Record<string, unknown>;
+  }
 
-    const createText = (
-      createResult.result as {
-        content: Array<{ type: string; text: string }>;
-      }
-    ).content
-      .map(c => c.text)
-      .join('\n');
-    const idMatch = createText.match(
-      /["\s]id["\s]*[:\s]+["\s]*([a-zA-Z0-9_-]+)/
-    );
+  async function callTool(
+    apiRequest: Parameters<typeof mcpCallTool>[0],
+    token: string,
+    name: string,
+    args: Record<string, unknown>
+  ): Promise<ToolResult> {
+    const response = await mcpCallTool(apiRequest, token, name, args);
+    expect(response.error).toBeUndefined();
+    return response.result as ToolResult;
+  }
 
-    if (idMatch) {
-      const result = await mcpCallTool(
-        apiRequest,
-        mcpContext.mcpToken,
-        'tag_element',
-        {
-          project: mcpContext.projectKey,
-          elementId: idMatch[1],
-          action: 'add',
-          tags: ['important', 'draft'],
-        }
-      );
-
-      expect(result.error).toBeUndefined();
-    }
-  });
-
-  test('should set tags (replacing existing)', async ({
+  test('creates a tag, puts it on an element and lists it', async ({
     mcpContext,
     apiRequest,
   }) => {
-    const createResult = await mcpCallTool(
-      apiRequest,
-      mcpContext.mcpToken,
-      'create_element',
-      {
-        project: mcpContext.projectKey,
-        name: 'Set Tags Element',
-        type: 'ITEM',
-      }
-    );
-    expect(createResult.error).toBeUndefined();
+    const { mcpToken: token, projectKey: project } = mcpContext;
+    const created = await callTool(apiRequest, token, 'create_element', {
+      project,
+      name: 'Tagged Element',
+      type: 'ITEM',
+    });
+    const elementId = (created.structuredContent?.['element'] as { id: string })
+      .id;
 
-    const createText = (
-      createResult.result as {
-        content: Array<{ type: string; text: string }>;
-      }
-    ).content
-      .map(c => c.text)
-      .join('\n');
-    const idMatch = createText.match(
-      /["\s]id["\s]*[:\s]+["\s]*([a-zA-Z0-9_-]+)/
-    );
+    const tag = await callTool(apiRequest, token, 'create_tag', {
+      project,
+      name: 'Needs revision',
+      icon: 'edit_note',
+      color: '#FF8C00',
+    });
+    expect(tag.isError).toBeUndefined();
 
-    if (idMatch) {
-      // Add tags first
-      await mcpCallTool(apiRequest, mcpContext.mcpToken, 'tag_element', {
-        project: mcpContext.projectKey,
-        elementId: idMatch[1],
-        action: 'add',
-        tags: ['old-tag'],
-      });
+    const tagged = await callTool(apiRequest, token, 'tag_element', {
+      project,
+      elementId,
+      add: ['needs revision'],
+    });
+    expect(tagged.isError).toBeUndefined();
 
-      // Set (replace) tags
-      const result = await mcpCallTool(
-        apiRequest,
-        mcpContext.mcpToken,
-        'tag_element',
-        {
-          project: mcpContext.projectKey,
-          elementId: idMatch[1],
-          action: 'set',
-          tags: ['new-tag-1', 'new-tag-2'],
-        }
-      );
+    const listed = await callTool(apiRequest, token, 'list_tags', {
+      project,
+      elementId,
+    });
+    expect(listed.structuredContent?.['tags']).toEqual([
+      expect.objectContaining({
+        name: 'Needs revision',
+        icon: 'edit_note',
+        color: '#FF8C00',
+      }),
+    ]);
+  });
 
-      expect(result.error).toBeUndefined();
-    }
+  test('refuses a tag that does not exist in the project', async ({
+    mcpContext,
+    apiRequest,
+  }) => {
+    const { mcpToken: token, projectKey: project } = mcpContext;
+    const created = await callTool(apiRequest, token, 'create_element', {
+      project,
+      name: 'Untagged Element',
+      type: 'ITEM',
+    });
+    const elementId = (created.structuredContent?.['element'] as { id: string })
+      .id;
+
+    const result = await callTool(apiRequest, token, 'tag_element', {
+      project,
+      elementId,
+      add: ['no-such-tag'],
+    });
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain('create_tag');
   });
 });
 

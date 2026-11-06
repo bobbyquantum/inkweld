@@ -38,6 +38,7 @@ import {
   getRelationships as runtimeGetRelationships,
   replaceAllRelationships as runtimeReplaceAllRelationships,
   addRelationship as runtimeAddRelationship,
+  removeTagsOfElements as runtimeRemoveTagsOfElements,
   getSchemas as runtimeGetSchemas,
   getElementSchema as runtimeGetElementSchema,
   type Relationship,
@@ -774,6 +775,19 @@ this element in the array at deeper levels).`,
       const updatedElements = removeElement(currentElements, elementId);
 
       await runtimeReplaceAllElements(ctx, username, slug, updatedElements, { allowEmpty: true });
+
+      // Take the deleted elements' tags off too, so they stop counting towards
+      // the tag. Best effort: the elements are already gone.
+      try {
+        await runtimeRemoveTagsOfElements(
+          ctx,
+          username,
+          slug,
+          subtree.map((e) => e.id)
+        );
+      } catch (err) {
+        mcpMutLog.warn('Could not remove tags of deleted elements', { error: err });
+      }
 
       await activityService.record(db, {
         projectId: result.project.projectId,
@@ -1819,151 +1833,6 @@ registerTool({
       mcpMutLog.error('Error deleting relationship', err);
       return {
         content: [{ type: 'text', text: `Error deleting relationship: ${err}` }],
-        isError: true,
-      };
-    }
-  },
-});
-
-// ============================================
-// tag_element tool
-// ============================================
-
-registerTool({
-  tool: {
-    name: 'tag_element',
-    title: 'Tag Element',
-    description:
-      'Add or remove tags on an element. Tags are stored in element metadata and can be used for filtering and organization.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        project: projectPropertySchema,
-        elementId: {
-          type: 'string',
-          description: 'The ID of the element to tag',
-        },
-        action: {
-          type: 'string',
-          enum: ['add', 'remove', 'set'],
-          description:
-            'Action to perform: "add" to add tags, "remove" to remove tags, "set" to replace all tags',
-        },
-        tags: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Tags to add, remove, or set',
-        },
-      },
-      required: ['project', 'elementId', 'action', 'tags'],
-    },
-  },
-  requiredPermissions: [MCP_PERMISSIONS.WRITE_ELEMENTS],
-  async execute(
-    ctx: McpContext,
-    db: DatabaseInstance,
-    args: Record<string, unknown>
-  ): Promise<McpToolResult> {
-    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_ELEMENTS);
-    if ('error' in result) return result.error;
-    const { username, slug } = result.project;
-
-    const elementId = typeof args.elementId === 'string' ? args.elementId : '';
-    const action = (typeof args.action === 'string' ? args.action : 'add') as
-      'add' | 'remove' | 'set';
-    const tags = (args.tags as string[]) ?? [];
-
-    if (!elementId) {
-      return {
-        content: [{ type: 'text', text: 'Error: elementId is required' }],
-        isError: true,
-      };
-    }
-
-    if (!['add', 'remove', 'set'].includes(action)) {
-      return {
-        content: [{ type: 'text', text: 'Error: action must be "add", "remove", or "set"' }],
-        isError: true,
-      };
-    }
-
-    try {
-      const elements = await runtimeGetElements(ctx, username, slug);
-      const index = elements.findIndex((e) => e.id === elementId);
-
-      if (index === -1) {
-        return {
-          content: [{ type: 'text', text: `Error: element "${elementId}" not found` }],
-          isError: true,
-        };
-      }
-
-      const element = elements[index];
-      // Tags are stored as JSON string in metadata since metadata is Record<string, string>
-      let currentTags: string[] = [];
-      try {
-        currentTags = element.metadata?.tags ? JSON.parse(element.metadata.tags) : [];
-      } catch {
-        currentTags = [];
-      }
-
-      let newTags: string[];
-      switch (action) {
-        case 'add':
-          newTags = [...new Set([...currentTags, ...tags])];
-          break;
-        case 'remove':
-          newTags = currentTags.filter((t) => !tags.includes(t));
-          break;
-        case 'set':
-          newTags = [...new Set(tags)];
-          break;
-      }
-
-      // Update element with new tags (stored as JSON string)
-      const updatedElements = [...elements];
-      updatedElements[index] = {
-        ...element,
-        metadata: {
-          ...element.metadata,
-          tags: JSON.stringify(newTags),
-        },
-      };
-
-      await runtimeReplaceAllElements(ctx, username, slug, updatedElements);
-
-      await activityService.record(db, {
-        projectId: result.project.projectId,
-        ...mcpActor(ctx),
-        eventType: 'element_tagged',
-        entityId: elementId,
-        entityName: element.name,
-        metadata: {
-          action,
-          previousTags: currentTags,
-          newTags,
-        },
-      });
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Updated tags for "${element.name}": ${newTags.length > 0 ? newTags.join(', ') : '(no tags)'}`,
-          },
-        ],
-        structuredContent: {
-          success: true,
-          elementId,
-          elementName: element.name,
-          previousTags: currentTags,
-          newTags,
-        },
-      };
-    } catch (err) {
-      mcpMutLog.error('Error updating element tags', err);
-      return {
-        content: [{ type: 'text', text: `Error updating tags: ${err}` }],
         isError: true,
       };
     }
