@@ -824,13 +824,9 @@ async function fetchElementTags(
   slug: string,
   elementId: string
 ): Promise<Array<Record<string, unknown>>> {
-  try {
-    const { definitions, assignments } = await runtimeGetProjectTags(ctx, username, slug);
-    return tagsForElement(definitions, assignments, elementId).map(presentTag);
-  } catch (err) {
-    rethrowDocumentReadError(err);
-    return [];
-  }
+  // A failed read fails the call: an empty list would claim the element has no tags.
+  const { definitions, assignments } = await runtimeGetProjectTags(ctx, username, slug);
+  return tagsForElement(definitions, assignments, elementId).map(presentTag);
 }
 
 function buildElementPath(

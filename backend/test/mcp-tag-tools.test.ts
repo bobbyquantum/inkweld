@@ -342,6 +342,24 @@ describe('tag_element', () => {
     expect(project.assignments()).toHaveLength(0);
   });
 
+  it('keeps existing tags when set or remove/add names a missing tag', async () => {
+    const existing = [
+      { id: 'a1', elementId: 'el-1', tagId: 'tag-hero', createdAt: 'x' },
+      { id: 'a2', elementId: 'el-1', tagId: 'tag-draft', createdAt: 'x' },
+    ];
+    const project = seedProject({ assignments: existing });
+    const badSet = await call('tag_element', { elementId: 'el-1', set: ['Draft', 'missing'] });
+    expect(badSet.result?.isError).toBe(true);
+    expect(project.assignments()).toEqual(existing);
+    const badMix = await call('tag_element', {
+      elementId: 'el-1',
+      remove: ['Protagonist'],
+      add: ['missing'],
+    });
+    expect(badMix.result?.isError).toBe(true);
+    expect(project.assignments()).toEqual(existing);
+  });
+
   it('removes tags', async () => {
     const project = seedProject({
       assignments: [
@@ -398,6 +416,26 @@ describe('get_element_full', () => {
   });
 });
 
+describe('get_element_full when tags cannot be read', () => {
+  it('fails instead of reporting no tags', async () => {
+    const doc = new Y.Doc();
+    doc
+      .getArray('elements')
+      .push([{ id: 'el-1', name: 'Mara', type: 'ITEM', parentId: null, level: 0, order: 0 }]);
+    // The element list reads fine; opening the doc for its tags fails.
+    spies.push(
+      spyOn(yjsService, 'getDocument').mockImplementation((() =>
+        Promise.reject(new Error('read failed'))) as never)
+    );
+    spies.push(
+      spyOn(yjsService, 'getElements').mockImplementation((() =>
+        Promise.resolve(doc.getArray('elements').toJSON())) as never)
+    );
+    const json = await call('get_element_full', { elementId: 'el-1' }, READ);
+    expect(json.result?.isError ?? !!json.error).toBe(true);
+  });
+});
+
 describe('delete_element', () => {
   it('takes the deleted elements off their tags', async () => {
     const project = seedProject({
@@ -409,6 +447,67 @@ describe('delete_element', () => {
     const json = await call('delete_element', { elementId: 'el-1' });
     expect(json.result?.isError).toBeUndefined();
     expect(project.assignments().map((a) => a.elementId)).toEqual(['el-2']);
+  });
+});
+
+describe('replace_all_elements', () => {
+  it('takes elements it leaves out off their tags, and keeps the rest', async () => {
+    const project = seedProject({
+      assignments: [
+        { id: 'a1', elementId: 'el-1', tagId: 'tag-hero', createdAt: 'x' },
+        { id: 'a2', elementId: 'el-2', tagId: 'tag-hero', createdAt: 'x' },
+      ],
+    });
+    const json = await call('replace_all_elements', {
+      elements: [{ id: 'el-2', name: 'Chapter 1', type: 'ITEM', level: 0 }],
+    });
+    expect(json.result?.isError).toBeUndefined();
+    expect(project.assignments().map((a) => a.elementId)).toEqual(['el-2']);
+  });
+});
+
+describe('duplicates from merged copies', () => {
+  const twinAssignments = [
+    { id: 'a1', elementId: 'el-1', tagId: 'tag-hero', createdAt: 'x' },
+    { id: 'a2', elementId: 'el-1', tagId: 'tag-hero', createdAt: 'y' },
+  ];
+
+  it('counts and lists an element once per tag', async () => {
+    seedProject({ assignments: twinAssignments });
+    const all = await call('list_tags', {}, READ);
+    const tags = all.result?.structuredContent?.tags as Array<Row & { count: number }>;
+    expect(tags[0].count).toBe(1);
+    const one = await call('list_tags', { tagId: 'tag-hero' }, READ);
+    expect(one.result?.structuredContent?.elements).toEqual([{ id: 'el-1', name: 'Mara' }]);
+  });
+
+  it('reads one definition per tag id, the first', async () => {
+    seedProject({ tags: [hero, { ...hero, name: 'Lead', color: '#228B22' }, draft] });
+    const json = await call('list_tags', {}, READ);
+    const tags = json.result?.structuredContent?.tags as Row[];
+    expect(tags.map((t) => [t.id, t.name])).toEqual([
+      ['tag-hero', 'Protagonist'],
+      ['tag-draft', 'Draft'],
+    ]);
+  });
+
+  it('cleans them up on the next tag write', async () => {
+    const project = seedProject({
+      tags: [hero, { ...hero, name: 'Lead' }, draft],
+      assignments: twinAssignments,
+    });
+    await call('tag_element', { elementId: 'el-2', add: ['Draft'] });
+    expect(project.tags().map((t) => t.id)).toEqual(['tag-hero', 'tag-draft']);
+    expect(project.assignments().map((a) => [a.elementId, a.tagId])).toEqual([
+      ['el-1', 'tag-hero'],
+      ['el-2', 'tag-draft'],
+    ]);
+  });
+
+  it('leaves them alone when a write is refused', async () => {
+    const project = seedProject({ assignments: twinAssignments });
+    await call('tag_element', { elementId: 'el-1', add: ['missing'] });
+    expect(project.assignments()).toHaveLength(2);
   });
 });
 

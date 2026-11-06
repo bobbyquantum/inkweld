@@ -58,6 +58,25 @@ function mcpActor(ctx: McpContext): { userId: string } {
 }
 
 /**
+ * Take removed elements off their tags, so they stop counting towards a tag
+ * and an element given the same id later doesn't inherit them. Best effort:
+ * the elements are already gone, so a failure is only logged.
+ */
+async function clearTagsOfRemovedElements(
+  ctx: McpContext,
+  username: string,
+  slug: string,
+  elementIds: string[]
+): Promise<void> {
+  if (elementIds.length === 0) return;
+  try {
+    await runtimeRemoveTagsOfElements(ctx, username, slug, elementIds);
+  } catch (err) {
+    mcpMutLog.warn('Could not remove tags of removed elements', { error: err });
+  }
+}
+
+/**
  * Read the pre-update word count for a document so the activity event
  * can record a real `wordsDelta` instead of always 0. Best-effort: on
  * failure (e.g. the document doesn't exist yet on this runtime), the
@@ -547,7 +566,18 @@ WARNING: This will delete all existing elements and replace them.`,
       const newElements = normalizeElements(rawElements);
 
       // Replace all elements
+      const previousIds = (await runtimeGetElements(ctx, username, slug)).map((e) => e.id);
       await runtimeReplaceAllElements(ctx, username, slug, newElements);
+
+      // Elements left out are gone: take their tags off, or an element given
+      // the same id later would inherit them. Elements kept keep their tags.
+      const keptIds = new Set(newElements.map((e) => e.id));
+      await clearTagsOfRemovedElements(
+        ctx,
+        username,
+        slug,
+        previousIds.filter((id) => !keptIds.has(id))
+      );
 
       await activityService.record(db, {
         projectId: result.project.projectId,
@@ -781,18 +811,12 @@ this element in the array at deeper levels).`,
 
       await runtimeReplaceAllElements(ctx, username, slug, updatedElements, { allowEmpty: true });
 
-      // Take the deleted elements' tags off too, so they stop counting towards
-      // the tag. Best effort: the elements are already gone.
-      try {
-        await runtimeRemoveTagsOfElements(
-          ctx,
-          username,
-          slug,
-          subtree.map((e) => e.id)
-        );
-      } catch (err) {
-        mcpMutLog.warn('Could not remove tags of deleted elements', { error: err });
-      }
+      await clearTagsOfRemovedElements(
+        ctx,
+        username,
+        slug,
+        subtree.map((e) => e.id)
+      );
 
       await activityService.record(db, {
         projectId: result.project.projectId,

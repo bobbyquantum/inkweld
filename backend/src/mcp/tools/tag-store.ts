@@ -125,12 +125,63 @@ function isElementTag(value: unknown): value is ElementTag {
   );
 }
 
-export function readTagDefinitions(doc: Y.Doc): TagDefinition[] {
-  return doc.getArray<unknown>('customTags').toArray().filter(isTagDefinition);
+/** Key of an assignment: an element carries each tag at most once. */
+function assignmentKey(a: ElementTag): string {
+  return `${a.elementId}\u0000${a.tagId}`;
 }
 
+/**
+ * The tag definitions, one per id (the first wins). Copies of the document
+ * edited apart (a Worker's copy, another client) can merge into two entries
+ * with one id; readers must not see both.
+ */
+export function readTagDefinitions(doc: Y.Doc): TagDefinition[] {
+  const seen = new Set<string>();
+  return doc
+    .getArray<unknown>('customTags')
+    .toArray()
+    .filter((t): t is TagDefinition => {
+      if (!isTagDefinition(t) || seen.has(t.id)) return false;
+      seen.add(t.id);
+      return true;
+    });
+}
+
+/** The tag assignments, one per element and tag (the first wins), for the same reason. */
 export function readElementTags(doc: Y.Doc): ElementTag[] {
-  return doc.getArray<unknown>('elementTags').toArray().filter(isElementTag);
+  const seen = new Set<string>();
+  return doc
+    .getArray<unknown>('elementTags')
+    .toArray()
+    .filter((a): a is ElementTag => {
+      if (!isElementTag(a) || seen.has(assignmentKey(a))) return false;
+      seen.add(assignmentKey(a));
+      return true;
+    });
+}
+
+/**
+ * Delete the duplicates `readTagDefinitions` and `readElementTags` skip, so a
+ * merge that produced them is cleaned up by the next tag write. Returns how
+ * many entries were removed.
+ */
+export function compactTags(doc: Y.Doc): number {
+  const ids = new Set<string>();
+  const removedDefinitions = deleteWhere(doc.getArray<unknown>('customTags'), (t) => {
+    if (!isTagDefinition(t)) return false;
+    if (ids.has(t.id)) return true;
+    ids.add(t.id);
+    return false;
+  });
+  const keys = new Set<string>();
+  const removedAssignments = deleteWhere(doc.getArray<unknown>('elementTags'), (a) => {
+    if (!isElementTag(a)) return false;
+    const key = assignmentKey(a);
+    if (keys.has(key)) return true;
+    keys.add(key);
+    return false;
+  });
+  return removedDefinitions + removedAssignments;
 }
 
 /** The ids of the project's elements, from the `elements` array of the same doc. */

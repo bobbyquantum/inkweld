@@ -36,6 +36,7 @@ import {
   type TagDefinition,
   addElementTags,
   assertNameFree,
+  compactTags,
   deleteWhere,
   newTagId,
   normalizeColor,
@@ -120,7 +121,8 @@ function optionalStringArray(args: Record<string, unknown>, name: string): strin
 /**
  * Run `edit` on the project elements doc in one transaction and persist it.
  * `edit` must throw `TagToolError` before writing anything when the request
- * is invalid. Read-only tools pass `commit: false`.
+ * is invalid (a throw also aborts the cleanup). Read-only tools pass
+ * `commit: false`.
  */
 async function withProjectDoc<T>(
   ctx: McpContext,
@@ -133,8 +135,14 @@ async function withProjectDoc<T>(
     env: ctx.env,
     authToken: ctx.authToken,
   });
-  const result = editable.doc.transact(() => edit(editable.doc));
-  if (options.commit !== false) await editable.commit();
+  const write = options.commit !== false;
+  const result = editable.doc.transact(() => {
+    const value = edit(editable.doc);
+    // Writes also clean up duplicates a merge of separately edited copies left.
+    if (write) compactTags(editable.doc);
+    return value;
+  });
+  if (write) await editable.commit();
   return result;
 }
 
