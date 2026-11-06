@@ -7,6 +7,12 @@ import * as Y from 'yjs';
  * Exercise the real shared project UI against deterministic public HTTP/Yjs
  * data. Backend suites separately exercise authorization and socket revocation.
  */
+
+// CI runs these against a production build, whose Angular service worker
+// answers fetches itself, so page.route never sees them. Blocking service
+// workers keeps the mocked HTTP data in play in dev and prod builds.
+test.use({ serviceWorkers: 'block' });
+
 for (const savedProfile of [false, true]) {
   test(`public project uses the normal read-only UI (${savedProfile ? 'saved profile' : 'first visit'})`, async ({
     page,
