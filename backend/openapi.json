@@ -116,6 +116,11 @@
           "projectsVisibility": {
             "$ref": "#/components/schemas/ProfileVisibility"
           },
+          "aiAllowed": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "The user's own \"No AI / Allow AI\" choice (null = never chosen, which clients treat as No AI). Only in responses about the signed-in user themself."
+          },
           "syncQuotaBytes": {
             "type": "number",
             "nullable": true,
@@ -413,6 +418,10 @@
                 "description": "Who can see the project list (never wider than profileVisibility)"
               }
             ]
+          },
+          "aiAllowed": {
+            "type": "boolean",
+            "description": "The \"No AI / Allow AI\" choice, kept on the account so it applies on every device"
           }
         }
       },

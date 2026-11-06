@@ -80,6 +80,38 @@ export type ProfileBackgroundPreference =
 export interface UserPreferences {
   background?: BackgroundPreference;
   profileBackground?: ProfileBackgroundPreference;
+  /**
+   * The user's "No AI / Allow AI" choice, so it follows them to every device.
+   * Absent until they first choose (or until a browser that already had a
+   * choice signs in and uploads it).
+   */
+  aiAllowed?: boolean;
+}
+
+/**
+ * Parse a `users.preferences` blob. Malformed JSON is treated as empty rather
+ * than fatal — a corrupt blob should not lock someone out of the app.
+ */
+export function parseUserPreferences(raw: string | null | undefined): UserPreferences {
+  if (!raw) return {};
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+      return parsed as UserPreferences;
+    }
+  } catch {
+    logger.warn('Appearance', 'Discarding unparseable user preferences blob');
+  }
+  return {};
+}
+
+/**
+ * The stored "No AI / Allow AI" choice from a `users.preferences` blob, or
+ * `null` when the user has never chosen. Only ever sent to the user themself.
+ */
+export function aiAllowedFromPreferences(raw: string | null | undefined): boolean | null {
+  const value = parseUserPreferences(raw).aiAllowed;
+  return typeof value === 'boolean' ? value : null;
 }
 
 export function isBackgroundPresetId(value: unknown): value is BackgroundPresetId {
@@ -237,29 +269,12 @@ class AppearanceService {
     };
   }
 
-  /**
-   * Read a user's stored preferences. Malformed JSON is treated as empty
-   * rather than fatal — a corrupt blob should not lock someone out of the app.
-   */
+  /** Read a user's stored preferences (see {@link parseUserPreferences}). */
   async getPreferences(db: DatabaseInstance, userId: string): Promise<UserPreferences> {
     // Full-row select rather than a projection: the DatabaseInstance union
     // (Bun / better-sqlite / D1) only agrees on the unprojected overload.
     const rows = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-    const row = rows[0];
-
-    if (!row?.preferences) {
-      return {};
-    }
-
-    try {
-      const parsed: unknown = JSON.parse(row.preferences);
-      if (typeof parsed === 'object' && parsed !== null) {
-        return parsed as UserPreferences;
-      }
-    } catch {
-      logger.warn('Appearance', 'Discarding unparseable user preferences blob');
-    }
-    return {};
+    return parseUserPreferences(rows[0]?.preferences);
   }
 
   /** The user's profile background, normalised (see {@link resolveProfileBackground}). */
@@ -307,6 +322,11 @@ class AppearanceService {
     const normalised = resolveProfileBackground(profileBackground);
     await this.setPreferenceKey(db, userId, 'profileBackground', normalised);
     return normalised;
+  }
+
+  /** Store the user's "No AI / Allow AI" choice. */
+  async setAiAllowed(db: DatabaseInstance, userId: string, aiAllowed: boolean): Promise<void> {
+    await this.setPreferenceKey(db, userId, 'aiAllowed', aiAllowed);
   }
 
   /** Store a background choice and return the resulting preferences. */

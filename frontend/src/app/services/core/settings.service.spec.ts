@@ -246,7 +246,75 @@ describe('SettingsService', () => {
 
       service.setAiAllowed(false);
       expect(service.aiAllowed()).toBe(false);
-      expect(localStorageMock['inkweld-ai']).toBeUndefined();
+      expect(localStorageMock['inkweld-ai']).toBe('none');
+    });
+
+    it('treats a stored No AI as a choice, and nothing stored as none', () => {
+      expect(service.hasLocalAiChoice()).toBe(false);
+      localStorageMock['inkweld-ai'] = 'none';
+      const fresh = createService();
+      expect(fresh.aiAllowed()).toBe(false);
+      expect(fresh.hasLocalAiChoice()).toBe(true);
+    });
+
+    it('marks the choice as not yet on the account', () => {
+      expect(service.aiChoiceUnsynced()).toBe(false);
+      service.setAiAllowed(true);
+      expect(service.aiChoiceUnsynced()).toBe(true);
+      expect(localStorageMock['inkweld-ai-unsynced']).toBe('1');
+      expect(createService().aiChoiceUnsynced()).toBe(true);
+    });
+
+    it('works when storage throws', () => {
+      Object.defineProperty(window, 'localStorage', {
+        value: {
+          getItem: () => {
+            throw new Error('blocked');
+          },
+          setItem: () => {
+            throw new Error('blocked');
+          },
+          removeItem: () => {
+            throw new Error('blocked');
+          },
+        },
+        writable: true,
+      });
+      const blocked = createService();
+      expect(blocked.aiAllowed()).toBe(false);
+      blocked.setAiAllowed(true);
+      expect(blocked.aiAllowed()).toBe(true);
+      expect(blocked.hasLocalAiChoice()).toBe(false);
+    });
+  });
+
+  describe('applyAccountAiChoice', () => {
+    it("takes the account's choice without marking it unsynced", () => {
+      service.applyAccountAiChoice(true);
+      expect(service.aiAllowed()).toBe(true);
+      expect(localStorageMock['inkweld-ai']).toBe('allow');
+      expect(service.aiChoiceUnsynced()).toBe(false);
+    });
+
+    it('stores an account No AI so the browser has a choice', () => {
+      service.applyAccountAiChoice(false);
+      expect(localStorageMock['inkweld-ai']).toBe('none');
+    });
+  });
+
+  describe('markAiChoiceSynced', () => {
+    it('clears the flag once the account has the current choice', () => {
+      service.setAiAllowed(true);
+      service.markAiChoiceSynced(true);
+      expect(service.aiChoiceUnsynced()).toBe(false);
+      expect(localStorageMock['inkweld-ai-unsynced']).toBeUndefined();
+    });
+
+    it('keeps the flag when the choice changed while it was being sent', () => {
+      service.setAiAllowed(true);
+      service.setAiAllowed(false);
+      service.markAiChoiceSynced(true);
+      expect(service.aiChoiceUnsynced()).toBe(true);
     });
   });
 

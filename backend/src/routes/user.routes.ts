@@ -29,6 +29,7 @@ import { quotaService } from '../services/quota.service';
 import { quotaStorageContext } from '../utils/quota-context';
 import { UnauthorizedError } from '../errors';
 import { ingressSessionMatches } from '../utils/ingress';
+import { aiAllowedFromPreferences, appearanceService } from '../services/appearance.service';
 
 const userRoutes = new OpenAPIHono<AppContext>();
 
@@ -172,6 +173,7 @@ userRoutes.openapi(getCurrentUserRoute, async (c) => {
       profileVisibility: user.profileVisibility,
       activityVisibility: user.activityVisibility,
       projectsVisibility: user.projectsVisibility,
+      aiAllowed: aiAllowedFromPreferences(user.preferences),
     },
     200
   );
@@ -285,6 +287,10 @@ const UpdateProfileRequestSchema = z
     projectsVisibility: ProfileVisibilitySchema.optional().openapi({
       description: 'Who can see the project list (never wider than profileVisibility)',
     }),
+    aiAllowed: z.boolean().optional().openapi({
+      description:
+        'The "No AI / Allow AI" choice, kept on the account so it applies on every device',
+    }),
   })
   .openapi('UpdateProfileRequest');
 
@@ -343,7 +349,12 @@ userRoutes.openapi(updateProfileRoute, async (c) => {
     }
   }
 
-  const updated = await userService.updateProfile(db, user.id, body);
+  const { aiAllowed, ...profile } = body;
+  if (aiAllowed !== undefined) {
+    await appearanceService.setAiAllowed(db, user.id, aiAllowed);
+  }
+  // Re-reads the row, so the response carries the choice just stored.
+  const updated = await userService.updateProfile(db, user.id, profile);
 
   return c.json(
     {
@@ -359,6 +370,7 @@ userRoutes.openapi(updateProfileRoute, async (c) => {
       profileVisibility: updated.profileVisibility,
       activityVisibility: updated.activityVisibility,
       projectsVisibility: updated.projectsVisibility,
+      aiAllowed: aiAllowedFromPreferences(updated.preferences),
     },
     200
   );

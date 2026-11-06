@@ -2,6 +2,7 @@ import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { authService } from '../services/auth.service';
 import { isUsernameConflict, userService } from '../services/user.service';
 import { configService } from '../services/config.service';
+import { aiAllowedFromPreferences } from '../services/appearance.service';
 import { emailService } from '../services/email.service';
 import { welcomeEmail, awaitingApprovalEmail } from '../services/email-templates';
 import { getBaseUrl } from '../services/url.service';
@@ -40,6 +41,7 @@ function loginUser(user: User) {
     profileVisibility: user.profileVisibility,
     activityVisibility: user.activityVisibility,
     projectsVisibility: user.projectsVisibility,
+    aiAllowed: aiAllowedFromPreferences(user.preferences),
   };
 }
 
@@ -225,6 +227,8 @@ authRoutes.openapi(registerRoute, async (c) => {
             approved: userToReturn.approved,
             enabled: userToReturn.enabled,
             hasAvatar: userToReturn.hasAvatar,
+            // A new account has never chosen; the client uploads its browser's choice.
+            aiAllowed: null,
           },
           token,
           requiresApproval: false,

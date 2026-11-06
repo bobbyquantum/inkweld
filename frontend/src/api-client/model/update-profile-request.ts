@@ -34,4 +34,8 @@ export interface UpdateProfileRequest {
    * Who can see the project list (never wider than profileVisibility)
    */
   projectsVisibility?: ProfileVisibility;
+  /**
+   * The \"No AI / Allow AI\" choice, kept on the account so it applies on every device
+   */
+  aiAllowed?: boolean;
 }

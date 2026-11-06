@@ -6,6 +6,7 @@ import { userService } from '../services/user.service';
 import { isSessionRevoked } from '../utils/session-validity';
 import { passkeyService } from '../services/passkey.service';
 import { configService } from '../services/config.service';
+import { aiAllowedFromPreferences } from '../services/appearance.service';
 import { rpFromContext, rpFromRequest } from '../utils/webauthn-utils';
 import {
   PasskeyOptionsSchema,
@@ -251,6 +252,7 @@ passkeyRoutes.openapi(loginFinishRoute, async (c) => {
         profileVisibility: user.profileVisibility,
         activityVisibility: user.activityVisibility,
         projectsVisibility: user.projectsVisibility,
+        aiAllowed: aiAllowedFromPreferences(user.preferences),
       },
       token,
     },

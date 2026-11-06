@@ -140,7 +140,11 @@ Read `e2e/BEST_PRACTICES.md` before writing one.
 - **AI features**: gate them on `SystemConfigService.isAiOffForUser`,
   `isAiAutoReviewEnabled` or `isAiImageGenerationEnabled`, which combine the
   server kill switch with the user's own "No AI / Allow AI" preference
-  (`SettingsService.aiAllowed`, default No AI, per browser). The raw
+  (`SettingsService.aiAllowed`, default No AI). The browser keeps a copy
+  that `AiPreferenceSyncService` keeps in step with the server account's
+  `aiAllowed` (`GET`/`PATCH /users/me`): an unsynced change made in the
+  browser is sent up, otherwise the account wins. Change the choice only
+  through `setAiAllowed`, which marks it unsynced. The raw
   `isAiKillSwitchEnabled` is for admin pages only.
 - **Adding profiles**: every path that creates a profile asks
   `AppModePolicyService` (`APP_MODE`); see `services/core/AGENTS.md`.
