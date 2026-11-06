@@ -681,7 +681,7 @@ Output: `frontend/src/api-client/`
 [Husky](https://typicode.github.io/husky/) hooks live in `.husky/` and are installed by `bun install` (the `prepare` script):
 
 - **pre-commit** runs `lint-staged` (`bun fmt` on staged frontend, backend and docs files, plus ESLint `--fix` on backend sources) and blocks an accidental `backend/package-lock.json`
-- **pre-push** refuses direct pushes to `main` and checks commit messages with commitlint (conventional commits)
+- **pre-push** refuses direct pushes to `main` and checks the messages of the commits being pushed with commitlint (conventional commits). Commits already on `origin/main`, such as ones a merge of `main` brings in, and merge commits are not checked
 
 ### CI/CD
 
