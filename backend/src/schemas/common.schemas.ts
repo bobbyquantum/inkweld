@@ -162,6 +162,15 @@ export const UserSchema = z
     profileVisibility: ProfileVisibilitySchema.optional(),
     activityVisibility: ProfileVisibilitySchema.optional(),
     projectsVisibility: ProfileVisibilitySchema.optional(),
+    aiAllowed: z
+      .boolean()
+      .nullable()
+      .optional()
+      .openapi({
+        description:
+          'The user\'s own "No AI / Allow AI" choice (null = never chosen, which clients treat as No AI). ' +
+          'Only in responses about the signed-in user themself.',
+      }),
     /**
      * Per-user sync-capacity override in bytes; `null` means the instance
      * default applies. Only surfaced to admins (and the user themselves).

@@ -146,7 +146,11 @@ On top of the kill switch, every user makes their own **No AI / Allow AI** choic
 | Off         | No AI (default) | Off                            |
 | Off         | Allow AI        | Whatever the admin has enabled |
 
-The user's choice can only turn AI off; it never overrides the kill switch. It hides image generation, the AI linting plugin and Auto-Review, and the project MCP settings. It also turns off WebMCP. The choice is stored in the user's browser and shared by every profile in it. It is not sent to the server, so the server-side enforcement above is unchanged.
+The user's choice can only turn AI off; it never overrides the kill switch. It hides image generation, the AI linting plugin and Auto-Review, and the project MCP settings. It also turns off WebMCP.
+
+The choice is saved on the user's account, so it follows them to every device they sign in on. The first device a user signs in on after upgrading uploads that browser's earlier choice, if it had one. A choice made before signing in (on the setup page, or while offline) is sent to the account once it can be; otherwise the account's choice replaces the browser's on sign-in. Browser and Cloud Sync profiles have no account, so there the choice stays in the browser.
+
+The server only stores the choice; it does not enforce it. AI endpoints are still refused only by the kill switch above, so a tool that already has access to an account (an MCP client, for example) is not stopped by a user's **No AI**.
 
 ## Browser and Cloud Sync profiles
 

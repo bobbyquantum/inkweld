@@ -5,18 +5,41 @@ import { StorageContextService } from './storage-context.service';
 const SETTINGS_BASE_KEY = 'userSettings';
 
 /**
- * Unprefixed localStorage key for the user's "No AI / Allow AI" choice. It
- * belongs to the browser, not to a profile: /setup offers it before any
- * profile exists, and the browser's own agent (WebMCP) is per browser.
+ * Unprefixed localStorage key for this browser's copy of the user's "No AI /
+ * Allow AI" choice: `'allow'`, `'none'`, or absent when nobody has chosen in
+ * this browser. It belongs to the browser, not to a profile: /setup offers it
+ * before any profile exists, and the browser's own agent (WebMCP) is per
+ * browser. With a server account the account's choice is the one that counts
+ * (`AiPreferenceSyncService` keeps the two in step).
  */
 export const AI_PREFERENCE_KEY = 'inkweld-ai';
 
-function readAiAllowed(): boolean {
+/**
+ * Set (`'1'`) while a choice made in this browser hasn't reached a server
+ * account yet: made on /setup, offline, or in Browser mode. The next server
+ * account that signs in here takes it instead of overwriting it.
+ */
+export const AI_PREFERENCE_UNSYNCED_KEY = 'inkweld-ai-unsynced';
+
+function readStorage(key: string): string | null {
   try {
-    return localStorage.getItem(AI_PREFERENCE_KEY) === 'allow';
+    return localStorage.getItem(key);
   } catch {
-    return false;
+    return null;
   }
+}
+
+function writeStorage(key: string, value: string | null): void {
+  try {
+    if (value === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, value);
+  } catch {
+    // Storage can be unavailable (private mode/quota); keep UI reactive.
+  }
+}
+
+function readAiAllowed(): boolean {
+  return readStorage(AI_PREFERENCE_KEY) === 'allow';
 }
 
 @Injectable({
@@ -106,6 +129,10 @@ export class SettingsService {
    */
   private readonly _aiAllowed = signal<boolean>(readAiAllowed());
 
+  private readonly _aiChoiceUnsynced = signal<boolean>(
+    readStorage(AI_PREFERENCE_UNSYNCED_KEY) === '1'
+  );
+
   /**
    * The user's own consent to AI features, on top of the admin's AI kill
    * switch: AI runs only when the server allows it *and* the user has chosen
@@ -113,9 +140,21 @@ export class SettingsService {
    * It covers the server's AI features (image generation, Auto-Review, MCP
    * access) through `SystemConfigService`, and the WebMCP tools for the
    * browser's own agent, which need no server. Stored per browser under
-   * {@link AI_PREFERENCE_KEY}, shared by every profile.
+   * {@link AI_PREFERENCE_KEY}, shared by every profile, and on the signed-in
+   * server account so it follows the user to other devices.
    */
   readonly aiAllowed = this._aiAllowed.asReadonly();
+
+  /**
+   * True while a choice made in this browser still has to be sent to a
+   * server account (see {@link AI_PREFERENCE_UNSYNCED_KEY}).
+   */
+  readonly aiChoiceUnsynced = this._aiChoiceUnsynced.asReadonly();
+
+  /** Whether this browser has a choice of its own (not just the default). */
+  hasLocalAiChoice(): boolean {
+    return readStorage(AI_PREFERENCE_KEY) !== null;
+  }
 
   getSetting<T>(key: string, defaultValue: T): T {
     const settings = this.getSettings();
@@ -156,17 +195,38 @@ export class SettingsService {
   }
 
   /**
-   * Record the user's "No AI / Allow AI" choice. `SystemConfigService` and
-   * `WebMcpService` follow the signal.
+   * Record the user's own "No AI / Allow AI" choice. `SystemConfigService`
+   * and `WebMcpService` follow the signal; `AiPreferenceSyncService` sends it
+   * to the signed-in account, or to the next one that signs in here.
    */
   setAiAllowed(value: boolean): void {
+    this.storeAiAllowed(value);
+    this._aiChoiceUnsynced.set(true);
+    writeStorage(AI_PREFERENCE_UNSYNCED_KEY, '1');
+  }
+
+  /**
+   * Take the choice stored on the signed-in account, which wins over this
+   * browser's copy unless that has an unsynced change of its own.
+   */
+  applyAccountAiChoice(value: boolean): void {
+    if (this._aiAllowed() === value && this.hasLocalAiChoice()) return;
+    this.storeAiAllowed(value);
+  }
+
+  /**
+   * The account now has `value`. Clears the unsynced flag unless the user
+   * changed the choice again while it was being sent.
+   */
+  markAiChoiceSynced(value: boolean): void {
+    if (this._aiAllowed() !== value) return;
+    this._aiChoiceUnsynced.set(false);
+    writeStorage(AI_PREFERENCE_UNSYNCED_KEY, null);
+  }
+
+  private storeAiAllowed(value: boolean): void {
     this._aiAllowed.set(value);
-    try {
-      if (value) localStorage.setItem(AI_PREFERENCE_KEY, 'allow');
-      else localStorage.removeItem(AI_PREFERENCE_KEY);
-    } catch {
-      // Storage can be unavailable (private mode/quota); keep UI reactive.
-    }
+    writeStorage(AI_PREFERENCE_KEY, value ? 'allow' : 'none');
   }
 
   /**

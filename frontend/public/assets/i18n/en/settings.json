@@ -201,7 +201,7 @@
     "aiNone": "No AI",
     "aiAllow": "Allow AI",
     "aiHelp": "What does this do?",
-    "aiHint": "AI features stay off until you allow them. Applies to every profile in this browser."
+    "aiHint": "AI features stay off until you allow them. On a server account, your choice applies on every device you sign in on."
   },
   "projectSettingsTab": {
     "fullscreenZen": "Enable fullscreen in Zen mode",

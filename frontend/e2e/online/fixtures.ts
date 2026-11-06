@@ -125,6 +125,20 @@ async function allowAiInPage(page: Page): Promise<void> {
 }
 
 /**
+ * Make this page's AI choice win over the one stored on the account. The
+ * pre-seeded admin is shared by every worker, and the app adopts the
+ * account's choice on load unless the browser has an unsynced one, so
+ * without this an `allowAi` spec could turn AI on (or off) for another
+ * worker's admin page.
+ */
+async function pinAiChoiceInPage(page: Page, allow: boolean): Promise<void> {
+  await page.addInitScript((allowAi: boolean) => {
+    localStorage.setItem('inkweld-ai', allowAi ? 'allow' : 'none');
+    localStorage.setItem('inkweld-ai-unsynced', '1');
+  }, allow);
+}
+
+/**
  * Generate a unique test identifier
  */
 function generateTestId(): string {
@@ -308,7 +322,7 @@ export const test = base.extend<OnlineTestFixtures>({
     // Create a new context for isolation
     const context = await browser.newContext();
     const page = await context.newPage();
-    if (allowAi) await allowAiInPage(page);
+    await pinAiChoiceInPage(page, allowAi);
 
     // Suppress console logs for cleaner test output
     page.on('console', () => {});
@@ -749,12 +763,8 @@ export async function registerUser(
   // Blur the last field to trigger validation
   await page.locator('[data-testid="confirm-password-input"]').blur();
 
-  // Wait for form to be valid by checking for any validation errors to disappear
-  // and for the register button to become enabled
-  await page.waitForTimeout(500);
-
-  // Wait for the register button to be enabled (not just visible)
-  // Use toPass for resilience against race conditions
+  // Wait for the form to be valid: the register button stays disabled until
+  // validation passes. Use toPass for resilience against race conditions.
   const registerButton = page.locator(
     'mat-dialog-container [data-testid="register-button"]'
   );

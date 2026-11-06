@@ -34,6 +34,10 @@ export interface User {
   activityVisibility?: ProfileVisibility;
   projectsVisibility?: ProfileVisibility;
   /**
+   * The user\'s own \"No AI / Allow AI\" choice (null = never chosen, which clients treat as No AI). Only in responses about the signed-in user themself.
+   */
+  aiAllowed?: boolean | null;
+  /**
    * Per-user sync-capacity override in bytes (null = instance default)
    */
   syncQuotaBytes?: number | null;
