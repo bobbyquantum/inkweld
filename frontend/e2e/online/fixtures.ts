@@ -763,12 +763,8 @@ export async function registerUser(
   // Blur the last field to trigger validation
   await page.locator('[data-testid="confirm-password-input"]').blur();
 
-  // Wait for form to be valid by checking for any validation errors to disappear
-  // and for the register button to become enabled
-  await page.waitForTimeout(500);
-
-  // Wait for the register button to be enabled (not just visible)
-  // Use toPass for resilience against race conditions
+  // Wait for the form to be valid: the register button stays disabled until
+  // validation passes. Use toPass for resilience against race conditions.
   const registerButton = page.locator(
     'mat-dialog-container [data-testid="register-button"]'
   );
