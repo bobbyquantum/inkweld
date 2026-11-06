@@ -489,18 +489,30 @@ export class UnifiedProjectService {
     });
   }
 
-  async updateProject(
+  updateProject(
     username: string,
     slug: string,
     updates: Partial<Project>
   ): Promise<Project> {
     const mode = this.setupService.getMode();
     if (isLocalOrCloudMode(mode)) {
-      return this.localProjectService.updateProject(username, slug, updates);
-    } else if (mode === 'server') {
+      // The local update is synchronous; callers still get a rejection
+      try {
+        return Promise.resolve(
+          this.localProjectService.updateProject(username, slug, updates)
+        );
+      } catch (error) {
+        return Promise.reject(
+          error instanceof Error ? error : new Error(String(error))
+        );
+      }
+    }
+    if (mode === 'server') {
+      // Only the changed fields are sent, so a partial update (such as
+      // visibility alone) never overwrites other fields with stale values.
       return this.projectService.updateProject(username, slug, updates);
     }
-    throw new Error('No mode configured');
+    return Promise.reject(new Error('No mode configured'));
   }
 
   deleteProject(username: string, slug: string): Promise<void> {
