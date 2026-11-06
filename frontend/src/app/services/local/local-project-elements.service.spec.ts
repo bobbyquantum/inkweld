@@ -4,6 +4,7 @@ import { ElementType } from '@inkweld/index';
 import { type Element } from '@inkweld/index';
 import { IDBFactory } from 'fake-indexeddb';
 import { vi } from 'vitest';
+import * as Y from 'yjs';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LocalProjectElementsService } from './local-project-elements.service';
@@ -560,6 +561,36 @@ describe('LocalProjectElementsService', () => {
       // Load project 2
       await service.loadElements('user2', 'project2');
       expect(service.elements()).toHaveLength(project2Elements.length);
+    });
+  });
+
+  describe('element tags from merged copies', () => {
+    it('shows one definition per tag and one assignment per element and tag', async () => {
+      await service.loadElements(TEST_USERNAME, TEST_SLUG);
+      const doc = (
+        service as unknown as {
+          yjsConnections: Map<string, { doc: Y.Doc }>;
+        }
+      ).yjsConnections.get(`${TEST_USERNAME}:${TEST_SLUG}`)!.doc;
+
+      // A Cloud Sync merge of two devices' copies can leave duplicates.
+      const tag = { id: 't1', name: 'Hero', icon: 'star', color: '#DC143C' };
+      const link = {
+        id: 'a1',
+        elementId: 'el-1',
+        tagId: 't1',
+        createdAt: '2025-01-01T00:00:00Z',
+      };
+      const other = new Y.Doc();
+      other.getArray('customTags').push([{ ...tag, name: 'Lead' }]);
+      other.getArray('elementTags').push([{ ...link, id: 'a2' }]);
+      doc.getArray('customTags').push([tag]);
+      doc.getArray('elementTags').push([link]);
+      Y.applyUpdate(doc, Y.encodeStateAsUpdate(other));
+
+      expect(doc.getArray('customTags').length).toBe(2);
+      expect(service.customTags()).toHaveLength(1);
+      expect(service.elementTags()).toHaveLength(1);
     });
   });
 

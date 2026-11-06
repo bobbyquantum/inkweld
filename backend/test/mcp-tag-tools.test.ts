@@ -13,7 +13,15 @@ import { activityService } from '../src/services/activity.service';
 import '../src/mcp';
 import { handleMcpRequest } from '../src/mcp/mcp.handler';
 import { MCP_PROTOCOL_VERSION, META_KEYS } from '../src/mcp/mcp.types';
-import { TAG_COLORS, TAG_ICONS, resolveTags } from '../src/mcp/tools/tag-store';
+import {
+  TAG_COLORS,
+  TAG_ICONS,
+  addElementTags,
+  compactTags,
+  readElementTags,
+  readTagDefinitions,
+  resolveTags,
+} from '../src/mcp/tools/tag-store';
 
 const WRITE = ['read:elements', 'write:elements'];
 const READ = ['read:elements'];
@@ -508,6 +516,37 @@ describe('duplicates from merged copies', () => {
     const project = seedProject({ assignments: twinAssignments });
     await call('tag_element', { elementId: 'el-1', add: ['missing'] });
     expect(project.assignments()).toHaveLength(2);
+  });
+});
+
+describe('two Worker copies writing at once', () => {
+  it('reads one tag and one assignment after the copies merge, and the next write cleans up', () => {
+    // Each Worker call edits its own copy of the DO's state and sends back the change.
+    const server = new Y.Doc();
+    server.getArray('customTags').push([hero]);
+    const base = Y.encodeStateAsUpdate(server);
+    const copies = [new Y.Doc(), new Y.Doc()];
+    copies.forEach((copy, i) => {
+      Y.applyUpdate(copy, base);
+      copy.transact(() => {
+        const tags = copy.getArray<unknown>('customTags');
+        tags.delete(0, 1);
+        tags.insert(0, [{ ...hero, name: `Edit ${i}` }]);
+        addElementTags(copy, 'el-1', ['tag-hero']);
+        compactTags(copy);
+      });
+    });
+    const sent = copies.map((copy) => Y.encodeStateAsUpdate(copy, Y.encodeStateVector(server)));
+    sent.forEach((update) => Y.applyUpdate(server, update));
+
+    expect(server.getArray('customTags').length).toBe(2);
+    expect(server.getArray('elementTags').length).toBe(2);
+    expect(readTagDefinitions(server)).toHaveLength(1);
+    expect(readElementTags(server)).toHaveLength(1);
+
+    compactTags(server);
+    expect(server.getArray('customTags').length).toBe(1);
+    expect(server.getArray('elementTags').length).toBe(1);
   });
 });
 

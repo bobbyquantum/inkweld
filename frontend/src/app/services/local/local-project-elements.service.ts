@@ -7,6 +7,7 @@ import {
 } from '@models/element-ref.model';
 import { type Generator } from '@models/generator';
 import { type ElementTag, type TagDefinition } from '@models/tag.model';
+import { uniqueElementTags, uniqueTagDefinitions } from '@utils/unique-tags';
 import { nanoid } from 'nanoid';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import * as Y from 'yjs';
@@ -115,8 +116,12 @@ export class LocalProjectElementsService {
       this.schemas.set(connection.schemasArray.toArray());
       this.timeSystems.set(connection.timeSystemsArray.toArray());
       this.generators.set(connection.generatorsArray.toArray());
-      this.elementTags.set(connection.elementTagsArray.toArray());
-      this.customTags.set(connection.customTagsArray.toArray());
+      this.elementTags.set(
+        uniqueElementTags(connection.elementTagsArray.toArray())
+      );
+      this.customTags.set(
+        uniqueTagDefinitions(connection.customTagsArray.toArray())
+      );
       this.mediaTags.set(connection.mediaTagsArray.toArray());
       this.mediaProjectTags.set(connection.mediaProjectTagsArray.toArray());
       this.projectMeta.set(this.extractProjectMeta(connection.projectMetaMap));
@@ -717,11 +722,11 @@ export class LocalProjectElementsService {
     });
 
     elementTagsArray.observe(() => {
-      this.elementTags.set(elementTagsArray.toArray());
+      this.elementTags.set(uniqueElementTags(elementTagsArray.toArray()));
     });
 
     customTagsArray.observe(() => {
-      this.customTags.set(customTagsArray.toArray());
+      this.customTags.set(uniqueTagDefinitions(customTagsArray.toArray()));
     });
 
     mediaTagsArray.observe(() => {
