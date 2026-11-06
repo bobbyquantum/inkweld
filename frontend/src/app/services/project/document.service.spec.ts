@@ -153,9 +153,12 @@ describe('DocumentService', () => {
       isAuthenticated: vi.fn().mockReturnValue(true),
     } as unknown as DeepMockProxy<UnifiedUserService>;
 
-    // Mock AuthTokenService
+    // Mock AuthTokenService. Sockets ask for the token by URL; every socket
+    // here goes to the active server, so the lookup returns the token.
+    const getToken = vi.fn().mockReturnValue('test-auth-token');
     mockAuthTokenService = {
-      getToken: vi.fn().mockReturnValue('test-auth-token'),
+      getToken,
+      getTokenForUrl: vi.fn(() => getToken() as string | null),
     } as unknown as DeepMockProxy<AuthTokenService>;
 
     // Configure TestBed and inject service
@@ -838,6 +841,49 @@ describe('DocumentService', () => {
       );
     });
 
+    it('only connects with a token for the server the socket goes to', async () => {
+      const ydoc = new Y.Doc();
+      const connection = {
+        ydoc,
+        provider: null,
+        type: ydoc.getXmlFragment('prosemirror'),
+        indexeddbProvider: _mockIndexedDbProvider,
+        broadcastProvider: mockBroadcastProvider,
+      };
+      type OfflineConnection = typeof connection;
+      const privateService = service as unknown as {
+        connectWebSocketInBackground: (
+          websocketUrl: string | null,
+          documentId: string,
+          doc: Y.Doc,
+          editor: Editor,
+          connection: OfflineConnection
+        ) => Promise<void>;
+      };
+      // The active profile now belongs to another server
+      mockAuthTokenService.getTokenForUrl.mockImplementation((url: string) =>
+        url.startsWith('wss://other.example') ? 'other-token' : null
+      );
+      mockCreateAuthWsProvider.mockClear();
+
+      service.initializeSyncStatus(testDocumentId);
+      await privateService.connectWebSocketInBackground(
+        'ws://localhost:8333',
+        testDocumentId,
+        ydoc,
+        mockEditor,
+        connection
+      );
+
+      expect(mockAuthTokenService.getTokenForUrl).toHaveBeenCalledWith(
+        'ws://localhost:8333'
+      );
+      expect(mockCreateAuthWsProvider).not.toHaveBeenCalled();
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Local
+      );
+    });
+
     it('should generate a stable user color and derive the project key', () => {
       const privateService = service as unknown as {
         getProjectKey: () => string | null;
@@ -1151,6 +1197,14 @@ describe('DocumentService', () => {
         DocumentSyncState.Synced
       );
       expect(mockSetupWsReauth).toHaveBeenCalledTimes(1);
+      // Re-authentication asks for the token of this socket's server only
+      const reauthToken = mockSetupWsReauth.mock.calls[0][1] as () =>
+        string | null;
+      mockAuthTokenService.getTokenForUrl.mockClear();
+      reauthToken();
+      expect(mockAuthTokenService.getTokenForUrl).toHaveBeenCalledWith(
+        `ws://localhost:8333/api/v1/ws/yjs?documentId=${testDocumentId}`
+      );
 
       callbacks['status']?.({ status: 'disconnected' });
       scheduledReconnect?.();
@@ -2307,6 +2361,22 @@ describe('DocumentService', () => {
         expect(mockAuthTokenService.getToken).toHaveBeenCalled();
       });
 
+      it("should only sync with a token for the socket's server", async () => {
+        mockSetupService.getWebSocketUrl.mockReturnValue('ws://localhost:8333');
+        // A token is stored, but not one for this server
+        mockAuthTokenService.getTokenForUrl.mockReturnValue(null);
+        mockCreateAuthWsProvider.mockClear();
+
+        await expect(
+          service.syncDocumentToServer(testDocumentId)
+        ).resolves.toBeNull();
+
+        expect(mockAuthTokenService.getTokenForUrl).toHaveBeenCalledWith(
+          'ws://localhost:8333'
+        );
+        expect(mockCreateAuthWsProvider).not.toHaveBeenCalled();
+      });
+
       it('should log source suffix when sourceDocumentId is provided', async () => {
         mockSetupService.getWebSocketUrl.mockReturnValue(null);
 
@@ -2536,6 +2606,22 @@ describe('DocumentService', () => {
         expect(mockAuthTokenService.getToken).toHaveBeenCalled();
       });
 
+      it("should only sync with a token for the socket's server", async () => {
+        mockSetupService.getWebSocketUrl.mockReturnValue('ws://localhost:8333');
+        // A token is stored, but not one for this server
+        mockAuthTokenService.getTokenForUrl.mockReturnValue(null);
+        mockCreateAuthWsProvider.mockClear();
+
+        await service.syncWorldbuildingToServer(
+          'worldbuilding:user:project:element123'
+        );
+
+        expect(mockAuthTokenService.getTokenForUrl).toHaveBeenCalledWith(
+          'ws://localhost:8333'
+        );
+        expect(mockCreateAuthWsProvider).not.toHaveBeenCalled();
+      });
+
       it('should log source suffix when sourceWorldbuildingId is provided', async () => {
         mockSetupService.getWebSocketUrl.mockReturnValue(null);
 
@@ -2689,6 +2775,22 @@ describe('DocumentService', () => {
         await expect(
           service.syncElementsToServer('testuser', 'test-project')
         ).rejects.toThrow('No auth token available');
+      });
+
+      it("should only sync with a token for the socket's server", async () => {
+        mockSetupService.getWebSocketUrl.mockReturnValue('ws://localhost:8333');
+        // A token is stored, but not one for this server
+        mockAuthTokenService.getTokenForUrl.mockReturnValue(null);
+        mockCreateAuthWsProvider.mockClear();
+
+        await expect(
+          service.syncElementsToServer('testuser', 'test-project')
+        ).rejects.toThrow('No auth token available');
+
+        expect(mockAuthTokenService.getTokenForUrl).toHaveBeenCalledWith(
+          'ws://localhost:8333'
+        );
+        expect(mockCreateAuthWsProvider).not.toHaveBeenCalled();
       });
 
       it('should call createAuthWsProvider when syncing elements', async () => {

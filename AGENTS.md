@@ -178,11 +178,13 @@ release-please cuts releases (`.github/workflows/release-please.yml`,
   one other than `GITHUB_TOKEN` must skip forks, with
   `github.event.pull_request.head.repo.full_name == github.repository`; never
   use `pull_request_target` for it. (`docs/site/docs/admin-guide/ci-cd.md`)
-- **Reserved usernames** (`privacy`, `terms`, `share`, `delete-account`) back
+- **Reserved usernames** (`privacy`, `terms`, `share`, `public`, `delete-account`) back
   real routes; frontend ones stay above the `:username` route.
 - **Mirrored lists** must stay in step: `schemaContentHash` (frontend and
-  backend `utils/schema-hash.ts`, same golden hash) and the background preset
-  ids (`background-presets.ts` ↔ `BACKGROUND_PRESET_IDS`).
+  backend `utils/schema-hash.ts`, same golden hash), the background preset
+  ids (`background-presets.ts` ↔ `BACKGROUND_PRESET_IDS`) and the rule for new
+  usernames (backend `schemas/auth.schemas.ts` ↔ frontend
+  `utils/username-rules.ts`; `backend/AGENTS.md`).
 - **Project archive format changes** bump `ARCHIVE_VERSION`
   (`frontend/AGENTS.md`).
 - **No hardcoded user-facing English** in the frontend; use Transloco keys.
@@ -194,10 +196,10 @@ release-please cuts releases (`.github/workflows/release-please.yml`,
 | Angular conventions, tests, e2e, i18n, frontend-wide rules | `frontend/AGENTS.md` |
 | Hono conventions, migrations, AI kill switch, quotas, serving `index.html`, canvas rendering, auth, rename, share links, sync manifest | `backend/AGENTS.md` |
 | Durable Object storage and revision tokens | `backend/src/durable-objects/AGENTS.md` |
-| Profile-scoped storage, project rename, APP_MODE, app backgrounds, update dialog | `frontend/src/app/services/core/AGENTS.md` |
+| Profile-scoped storage, server profile ids, project rename, APP_MODE, app backgrounds, update dialog | `frontend/src/app/services/core/AGENTS.md` |
 | Starting offline, bulk sync planner | `frontend/src/app/services/sync/AGENTS.md` |
 | Canvas Yjs model | `frontend/src/app/services/canvas/AGENTS.md` |
-| Passkeys and policy acceptance (frontend) | `frontend/src/app/services/auth/AGENTS.md` |
+| Where the session token is sent, passkeys and policy acceptance (frontend) | `frontend/src/app/services/auth/AGENTS.md` |
 | WebMCP browser tools | `frontend/src/app/services/webmcp/AGENTS.md` |
 | EPUB output, published file share links | `frontend/src/app/services/publish/AGENTS.md` |
 | Per-element schema copies, identity images | `frontend/src/app/services/worldbuilding/AGENTS.md` |

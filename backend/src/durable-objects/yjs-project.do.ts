@@ -33,8 +33,8 @@ import {
 import { writeSyncStep1 } from 'y-protocols/sync';
 import { WSSharedDoc } from 'y-durableobjects';
 import * as Y from 'yjs';
+import { signingSecret } from '../config/signing-secret';
 import { logger } from '../services/logger.service';
-import { stripTrailingSlashes } from '../utils/string-utils';
 import { setYMapPath, yMapPathConflict } from '../utils/yjs-map-path';
 import { mirrorCanvasToElement } from '@inkweld/canvas';
 import { parseXmlToYjsNodes } from '@inkweld/prosemirror/xml';
@@ -44,13 +44,15 @@ import { activityService } from '../services/activity.service';
 import { projectService } from '../services/project.service';
 import { countWords, extractTextContent } from '../mcp/tools/mutation.tools';
 import {
-  parseDocumentOwner as parseDocumentOwnerUtil,
   parseTrackableElementId as parseTrackableElementIdUtil,
   isYjsFrameBlockedForViewer,
   isElementsDoc,
   frameMessageType,
   PUBLIC_VIEWER_ID,
+  PUBLIC_VIEW_TOKEN,
 } from '../utils/yjs-document-utils';
+import { documentProjectKey, parseDocumentId } from '../utils/yjs-document-id';
+import { MAX_YJS_JSON_DEPTH, isYjsMessageWithinLimits } from '../utils/yjs-message-limits';
 import { YjsDocStorage, COMPACT_THRESHOLD, snapshotKey } from './yjs-do-storage';
 import { safeSend, safeClose } from '../utils/ws-guards';
 import {
@@ -375,36 +377,36 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   }
 
   /**
-   * Get the JWT secret from environment
+   * Get the JWT secret from environment. Resolved by signingSecret(), the same
+   * rule the Worker signs with, so its tokens verify here.
    */
   private getSecret(): string {
-    // DATABASE_KEY overrides SESSION_SECRET when set
-    const secret = this.env.DATABASE_KEY || this.env.SESSION_SECRET;
     projDOLog.debug('getSecret check', {
       hasDatabaseKey: !!this.env.DATABASE_KEY,
       hasSessionSecret: !!this.env.SESSION_SECRET,
-      secretLength: secret?.length ?? 0,
     });
-    if (!secret || secret.length < 32) {
-      throw new Error('DATABASE_KEY must be at least 32 characters');
-    }
-    return secret;
+    return signingSecret(this.env);
   }
 
   /**
    * Verify a JWT token
    * Note: We use a simple base64 decode + HMAC verify approach
    * since hono/jwt is not available in the DO context
+   *
+   * Throws SigningSecretError when the object has no usable signing key: that
+   * is a server error, not an invalid token, so callers must not answer it
+   * like one (the client would stop retrying and drop its token).
    */
   private async verifyToken(token: string): Promise<SessionData | null> {
-    try {
-      if (!token) return null;
+    if (!token) return null;
 
+    // Outside the try below, which turns every failure into "invalid token".
+    const secret = this.getSecret();
+
+    try {
       // JWT format: header.payload.signature
       const parts = token.split('.');
       if (parts.length !== 3) return null;
-
-      const secret = this.getSecret();
 
       // Decode payload (base64url)
       const payloadB64 = parts[1].replaceAll('-', '+').replaceAll('_', '/');
@@ -473,18 +475,20 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   /**
    * Handle incoming requests - routes to WebSocket or HTTP API
    */
-  fetch(request: Request): Promise<Response> {
+  async fetch(request: Request): Promise<Response> {
     try {
       const url = new URL(request.url);
       const upgradeHeader = request.headers.get('Upgrade');
 
+      // Both handlers are awaited here, not returned, so a rejection from
+      // either one lands in the catch below.
       // Route to WebSocket handler if upgrade requested
       if (upgradeHeader === 'websocket') {
-        return this.handleWebSocketUpgrade(request, url);
+        return await this.handleWebSocketUpgrade(request, url);
       }
 
       // Route to HTTP API handlers
-      return this.handleHttpApi(request, url);
+      return await this.handleHttpApi(request, url);
     } catch (error) {
       // A rejection from either handler (WS upgrade or HTTP API) would
       // otherwise reject the DO's `fetch`, which workerd surfaces as an empty
@@ -496,6 +500,19 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       });
+    }
+  }
+
+  /**
+   * verifyToken() for the HTTP API. A missing signing key is answered with a
+   * 500 here: letting it reject would reject the object's `fetch`.
+   */
+  private async verifyHttpToken(token: string): Promise<SessionData | null | Response> {
+    try {
+      return await this.verifyToken(token);
+    } catch (error) {
+      projDOLog.error('Token check failed', error);
+      return jsonResponse({ error: 'Internal server error' }, 500);
     }
   }
 
@@ -523,7 +540,8 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
 
     const token = authHeader.substring(7);
     console.log('[DO-HTTP] Verifying token...');
-    const session = await this.verifyToken(token);
+    const session = await this.verifyHttpToken(token);
+    if (session instanceof Response) return session;
     if (!session) {
       console.log('[DO-HTTP] Invalid token');
       return new Response(JSON.stringify({ error: 'Invalid token' }), {
@@ -534,8 +552,8 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     console.log('[DO-HTTP] Token verified, user:', session.username);
 
     // Get documentId from query params
-    let documentId = url.searchParams.get('documentId');
-    if (!documentId) {
+    const rawDocumentId = url.searchParams.get('documentId');
+    if (!rawDocumentId) {
       console.log('[DO-HTTP] Missing documentId parameter');
       return new Response(JSON.stringify({ error: 'Missing documentId parameter' }), {
         status: 400,
@@ -543,20 +561,20 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       });
     }
 
-    // Normalize documentId
-    documentId = stripTrailingSlashes(documentId);
-    console.log('[DO-HTTP] documentId:', documentId);
-
-    // Extract projectId
-    const parts = documentId.split(':');
-    if (parts.length < 2) {
+    // Reject a malformed id before any storage or database work, with the
+    // parser the Worker used to pick this object. Documents are keyed by the
+    // id without its trailing slash.
+    const parsedId = parseDocumentId(rawDocumentId);
+    if (!parsedId) {
       console.log('[DO-HTTP] Invalid documentId format');
       return new Response(JSON.stringify({ error: 'Invalid documentId format' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
     }
-    this.projectId = `${parts[0]}:${parts[1]}`;
+    const documentId = parsedId.bareId;
+    console.log('[DO-HTTP] documentId:', documentId);
+    this.projectId = documentProjectKey(parsedId);
     console.log('[DO-HTTP] projectId:', this.projectId);
 
     // Enforce project-level access (owner or collaborator with read access).
@@ -567,14 +585,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     // transports through the same resolveProjectAccess helper so they can't
     // drift apart again. POST (mutation) endpoints additionally require
     // write access, mirroring the WS canWrite enforcement.
-    const parsed = this.parseDocumentOwner(documentId);
-    if (!parsed) {
-      console.log('[DO-HTTP] Invalid documentId format');
-      return new Response(JSON.stringify({ error: 'Invalid documentId format' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
+    const parsed = { projectOwner: parsedId.projectOwner, slug: parsedId.slug };
     if (path.startsWith('/api/rename/')) {
       try {
         return await this.handleRenameApi(request, url, session, parsed);
@@ -1596,21 +1607,20 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   }
 
   private async handleWebSocketUpgrade(request: Request, url: URL): Promise<Response> {
-    let documentId = url.searchParams.get('documentId');
+    const rawDocumentId = url.searchParams.get('documentId');
 
-    if (!documentId) {
+    if (!rawDocumentId) {
       return new Response('Missing documentId parameter', { status: 400 });
     }
 
-    // Remove trailing slashes if present
-    documentId = stripTrailingSlashes(documentId);
-
-    // Extract projectId from documentId (username:slug)
-    const parts = documentId.split(':');
-    if (parts.length < 2) {
+    // Refuse a malformed id before accepting the socket. Connections are
+    // tracked by the id without its trailing slash.
+    const parsedId = parseDocumentId(rawDocumentId);
+    if (!parsedId) {
       return new Response('Invalid documentId format', { status: 400 });
     }
-    this.projectId = `${parts[0]}:${parts[1]}`;
+    const documentId = parsedId.bareId;
+    this.projectId = documentProjectKey(parsedId);
 
     // Note: WS reconnect rate limiting is applied AFTER authentication
     // (in handleAuthMessage), not here — an unauthenticated upgrade doesn't
@@ -2517,6 +2527,13 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     }
 
     try {
+      // Public viewers are anonymous: no awareness (cursor, name) from them.
+      if (
+        connInfo.userId === PUBLIC_VIEWER_ID &&
+        frameMessageType(message) === Y_MESSAGE_AWARENESS
+      ) {
+        return;
+      }
       if (!connInfo.canWrite && isYjsFrameBlockedForViewer(message)) {
         projDOLog.debug(`Blocked write frame from read-only viewer for ${connInfo.documentId}`);
         return;
@@ -2590,11 +2607,13 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   }
 
   /**
-   * Parse the project owner + slug out of a Yjs document id. Delegates to
-   * the shared util so the Bun WS route and DO stay in lockstep.
+   * Parse the project owner + slug out of a Yjs document id. Uses the parser
+   * the Worker route and the Bun WS route share (`utils/yjs-document-id.ts`),
+   * so access is always checked on the project this object was chosen for.
    */
   private parseDocumentOwner(documentId: string): { projectOwner: string; slug: string } | null {
-    return parseDocumentOwnerUtil(documentId);
+    const parsed = parseDocumentId(documentId);
+    return parsed ? { projectOwner: parsed.projectOwner, slug: parsed.slug } : null;
   }
 
   /**
@@ -2836,7 +2855,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     token: string
   ): Promise<void> {
     try {
-      const isPublicViewer = token === 'public-view';
+      const isPublicViewer = token === PUBLIC_VIEW_TOKEN;
       const sessionData = isPublicViewer ? null : await this.verifyToken(token);
       if (!isPublicViewer && !sessionData) {
         projDOLog.error(`Invalid auth token for ${connInfo.documentId}`);
@@ -2847,7 +2866,8 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
 
       // Validate project access with a collaboration lookup so collaborators
       // (editor/commenter/viewer) can sync via the Cloudflare Durable Object
-      // runtime. Mirrors routes/yjs.routes.ts (Bun reference impl).
+      // runtime. Mirrors routes/yjs.routes.ts (Bun reference impl). The id
+      // was checked when the socket was accepted; check again before use.
       const parsed = this.parseDocumentOwner(connInfo.documentId);
       if (!parsed) {
         projDOLog.error(`Invalid documentId format: ${connInfo.documentId}`);
@@ -3009,19 +3029,13 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   }
 
   /**
-   * Project key (`username:slug`) used to scope presence broadcasts. Mirrors
-   * `projectKeyForDocumentId` in `yjs.routes.ts` so the Bun and CF runtimes
-   * agree on grouping. Strips the optional `worldbuilding:` prefix and keeps
-   * only the first two `:`-separated parts.
+   * Project key (`username:slug`) used to scope presence broadcasts: the
+   * first two segments of the id, read with the parser the Bun route uses
+   * (`utils/yjs-document-id.ts`) so both runtimes agree on grouping.
    */
   private projectKeyForDocumentId(documentId: string): string | null {
-    let docIdForParsing = documentId;
-    if (docIdForParsing.startsWith('worldbuilding:')) {
-      docIdForParsing = docIdForParsing.substring('worldbuilding:'.length);
-    }
-    const parts = docIdForParsing.split(':');
-    if (parts.length < 2) return null;
-    return `${parts[0]}:${parts[1]}`;
+    const parsed = parseDocumentId(documentId);
+    return parsed ? documentProjectKey(parsed) : null;
   }
 
   /**
@@ -3031,13 +3045,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    * registry with N sessions per user.
    */
   private isElementsDocumentId(documentId: string): boolean {
-    // Strip trailing slashes (avoid regex to keep this linear-time and
-    // sidestep the super-linear-backtracking linter warning on /\/+$/).
-    let end = documentId.length;
-    while (end > 0 && documentId.codePointAt(end - 1) === 0x2f /* '/' */) {
-      end--;
-    }
-    return documentId.slice(0, end).endsWith(':elements');
+    return parseDocumentId(documentId)?.isElements ?? false;
   }
 
   /**
@@ -3047,9 +3055,18 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    * prevents our per-socket awareness bookkeeping from tracking client IDs.
    * We decode awareness messages here and apply them with `origin = ws` so
    * disconnect cleanup can correctly evict that socket's awareness states.
+   *
+   * A message outside the limits in `utils/yjs-message-limits.ts` is dropped
+   * before anything is applied, as on Bun (`YjsService.handleMessage`).
    */
   private applyDocumentMessage(sharedDoc: WSSharedDoc, ws: WebSocket, data: ArrayBuffer): void {
     const message = new Uint8Array(data);
+    if (!isYjsMessageWithinLimits(message)) {
+      projDOLog.warn(
+        `Dropped a message that does not decode or nests values more than ${MAX_YJS_JSON_DEPTH} levels deep`
+      );
+      return;
+    }
     const decoder = createDecoder(message);
     const messageType = readVarUint(decoder);
 

@@ -12,6 +12,7 @@ import {
   type AutoReviewMarkAttrs,
 } from '@inkweld/prosemirror/schema';
 import { SetupService } from '@services/core/setup.service';
+import { encodePathSegment } from '@utils/url-path';
 import type { Node } from 'prosemirror-model';
 import type { EditorView } from 'prosemirror-view';
 import { firstValueFrom } from 'rxjs';
@@ -180,7 +181,7 @@ export class AutoReviewApiService {
       const base = this.basePath;
       const result = await firstValueFrom(
         this.http.get<{ count: number }>(
-          `${base}/api/v1/projects/${encodeURIComponent(username)}/${encodeURIComponent(slug)}/docs/${encodeURIComponent(docId)}/auto-review/rejections`
+          `${base}/api/v1/projects/${encodePathSegment(username)}/${encodePathSegment(slug)}/docs/${encodePathSegment(docId)}/auto-review/rejections`
         )
       );
       return result.count ?? 0;
@@ -200,7 +201,7 @@ export class AutoReviewApiService {
       const base = this.basePath;
       await firstValueFrom(
         this.http.delete<{ success: boolean }>(
-          `${base}/api/v1/projects/${encodeURIComponent(username)}/${encodeURIComponent(slug)}/docs/${encodeURIComponent(docId)}/auto-review/rejections`
+          `${base}/api/v1/projects/${encodePathSegment(username)}/${encodePathSegment(slug)}/docs/${encodePathSegment(docId)}/auto-review/rejections`
         )
       );
       return true;

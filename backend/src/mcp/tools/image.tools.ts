@@ -27,6 +27,7 @@ import type {
 } from '../../types/image-generation';
 import type { DatabaseInstance } from '../../types/context';
 import { logger } from '../../services/logger.service';
+import { OPEN_WORLD_WRITE_TOOL, READ_ONLY_TOOL } from '../tool-annotations';
 
 const mcpImageLog = logger.child('MCP-Image');
 
@@ -618,6 +619,7 @@ registerTool({
   tool: {
     name: 'list_project_media',
     title: 'List Project Media',
+    annotations: READ_ONLY_TOOL,
     description:
       'List media files in a project and return media:// URLs for use with get_media_content.',
     inputSchema: {
@@ -706,6 +708,7 @@ registerTool({
   tool: {
     name: 'list_image_profiles',
     title: 'List Image Profiles',
+    annotations: READ_ONLY_TOOL,
     description:
       'List enabled image generation profiles with profile IDs to use in generate_image and related tools.',
     inputSchema: {
@@ -762,6 +765,7 @@ registerTool({
   tool: {
     name: 'get_media_content',
     title: 'Get Media Content',
+    annotations: READ_ONLY_TOOL,
     description:
       'Read project media content by media:// URL or filename. Returns image data, text content, or base64 bytes.',
     inputSchema: {
@@ -959,6 +963,7 @@ registerTool({
   tool: {
     name: 'apply_image',
     title: 'Apply Image',
+    annotations: OPEN_WORLD_WRITE_TOOL,
     description: `Unified image tool: generate, upload, or reference an existing media file — and optionally assign it to a project cover or element image.
 
 **source** controls where the image comes from:

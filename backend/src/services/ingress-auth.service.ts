@@ -16,24 +16,22 @@
  * - With no list configured, the first account on the instance becomes admin,
  *   as with ordinary registration.
  */
-import { firstResultSequential } from '@inkweld/async';
 import type { User } from '../db/schema';
 import type { DatabaseInstance } from '../types/context';
-import { RESERVED_USERNAMES } from '../schemas/auth.schemas';
+import { isReservedUsername } from '../schemas/auth.schemas';
 import { ingressAdmins, type IngressUser } from '../utils/ingress';
 import { trimHyphens } from '../utils/string-utils';
 import { logger } from './logger.service';
 import { userService, type LoginRefusal } from './user.service';
 
 const FALLBACK_USERNAME = 'ha-user';
-const MAX_USERNAME_ATTEMPTS = 100;
 
 export type IngressSignInResult =
   { ok: true; user: User } | ({ ok: false; status: 403 } & LoginRefusal);
 
 /**
  * Turn an HA login name into an Inkweld username: lower-case letters, digits,
- * `-` and `_`, at least three characters, and not a reserved route.
+ * `-` and `_`, at least three characters, and not reserved.
  */
 export function baseUsernameFor(haUser: IngressUser): string {
   const source = haUser.username ?? haUser.displayName ?? '';
@@ -44,8 +42,7 @@ export function baseUsernameFor(haUser: IngressUser): string {
       .replaceAll(/-{2,}/g, '-')
   ).slice(0, 32);
   if (cleaned.length < 3) return FALLBACK_USERNAME;
-  const reserved = (RESERVED_USERNAMES as readonly string[]).includes(cleaned);
-  return reserved ? `${cleaned}-ha` : cleaned;
+  return isReservedUsername(cleaned) ? `${cleaned}-ha` : cleaned;
 }
 
 class IngressAuthService {
@@ -67,7 +64,8 @@ class IngressAuthService {
   }
 
   private async createAccount(db: DatabaseInstance, haUser: IngressUser): Promise<User> {
-    const username = await this.availableUsername(db, baseUsernameFor(haUser));
+    // The lowest free `name`, `name-2`, …, compared ignoring case.
+    const username = await userService.availableUsername(db, baseUsernameFor(haUser));
     try {
       const user = await userService.create(
         db,
@@ -87,17 +85,6 @@ class IngressAuthService {
       if (existing) return existing;
       throw error;
     }
-  }
-
-  private async availableUsername(db: DatabaseInstance, base: string): Promise<string> {
-    const candidates = Array.from({ length: MAX_USERNAME_ATTEMPTS }, (_, i) =>
-      i === 0 ? base : `${base}-${i + 1}`
-    );
-    // Sequential so the lowest free suffix wins and probing stops there.
-    const free = await firstResultSequential(candidates, async (candidate) =>
-      (await userService.findByUsername(db, candidate)) ? undefined : candidate
-    );
-    return free ?? `${base}-${crypto.randomUUID().slice(0, 8)}`;
   }
 
   private async applyAdminPolicy(

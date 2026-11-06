@@ -62,4 +62,10 @@ describe('DocumentSyncManifestService', () => {
     expect(logger.warn).toHaveBeenCalled();
     httpMock.verify();
   });
+
+  it('falls back to syncing every document for a dot-segment slug', async () => {
+    await expect(service.getManifest('alice', '..')).resolves.toBeNull();
+    httpMock.expectNone(() => true);
+    httpMock.verify();
+  });
 });

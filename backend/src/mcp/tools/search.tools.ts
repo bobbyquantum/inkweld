@@ -38,6 +38,7 @@ import {
   sectionAddressProperties,
   xmlToMarkdownOutput,
 } from './document-sections';
+import { READ_ONLY_TOOL } from '../tool-annotations';
 
 const mcpSearchLog = logger.child('MCP-Search');
 
@@ -289,6 +290,7 @@ registerTool({
   tool: {
     name: 'get_project_tree',
     title: 'Get Project Tree',
+    annotations: READ_ONLY_TOOL,
     description: `Get the full hierarchical tree structure of the project elements.
 
 UNDERSTANDING THE TREE STRUCTURE:
@@ -402,6 +404,7 @@ registerTool({
   tool: {
     name: 'search_elements',
     title: 'Search Elements',
+    annotations: READ_ONLY_TOOL,
     description: 'Search for elements in the project by name or type',
     inputSchema: {
       type: 'object',
@@ -530,6 +533,7 @@ registerTool({
   tool: {
     name: 'search_worldbuilding',
     title: 'Search Worldbuilding',
+    annotations: READ_ONLY_TOOL,
     description:
       'Search across all worldbuilding content (characters, locations, items, etc.). Set includeFullContent=true to get complete worldbuilding data.',
     inputSchema: {
@@ -656,6 +660,7 @@ registerTool({
   tool: {
     name: 'search_relationships',
     title: 'Search Relationships',
+    annotations: READ_ONLY_TOOL,
     description: 'Find elements connected to a specific element through relationships',
     inputSchema: {
       type: 'object',
@@ -833,6 +838,7 @@ registerTool({
   tool: {
     name: 'get_element_full',
     title: 'Get Element Full',
+    annotations: READ_ONLY_TOOL,
     description:
       'Get complete element data including all worldbuilding content, relationships, and metadata. Use this to retrieve all data about a specific character, location, or other worldbuilding element.',
     inputSchema: {
@@ -940,6 +946,7 @@ registerTool({
   tool: {
     name: 'get_document_content',
     title: 'Get Document Content',
+    annotations: READ_ONLY_TOOL,
     description:
       'Get the prose content of a document element. Defaults to ProseMirror XML, the canonical Inkweld format. Use "markdown" for a human-friendly round-trippable form (lossy marks like comments and colors are preserved as inline HTML spans). Use "text" for plain text without structure. Pass section or sectionIndex to read one section (a heading and everything under it, see get_document_outline) instead of the whole document; update_document_section with operation "replace" accepts the result back.',
     inputSchema: {
@@ -1327,6 +1334,7 @@ registerTool({
   tool: {
     name: 'get_relationships_graph',
     title: 'Get Relationships Graph',
+    annotations: READ_ONLY_TOOL,
     description:
       'Get all relationships for a project as a graph structure, including backlinks. Useful for understanding how elements are connected.',
     inputSchema: {
@@ -1462,6 +1470,7 @@ registerTool({
   tool: {
     name: 'get_project_metadata',
     title: 'Get Project Metadata',
+    annotations: READ_ONLY_TOOL,
     description:
       'Get project metadata including title, description, author info, and settings stored in the project.',
     inputSchema: {
@@ -1563,6 +1572,7 @@ registerTool({
   tool: {
     name: 'get_publish_plans',
     title: 'Get Publish Plans',
+    annotations: READ_ONLY_TOOL,
     description:
       'Get all saved publish/export plans for a project. Publish plans define how content is organized for export (EPUB, PDF, etc.).',
     inputSchema: {

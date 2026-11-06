@@ -3,6 +3,11 @@ import { inject, Injectable, signal } from '@angular/core';
 import { forEachConcurrent, forEachSequential } from '@inkweld/async';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { StorageUsageService } from '@services/user/storage-usage.service';
+import {
+  isSafeMediaFilename,
+  mediaFilePath,
+  projectMediaPath,
+} from '@utils/media-reference';
 import { toReadableBlob, UnreadableBlobError } from '@utils/readable-blob';
 import { firstValueFrom } from 'rxjs';
 
@@ -193,7 +198,13 @@ export class MediaSyncService {
    */
   private getMediaUrl(projectKey: string): string {
     const { username, slug } = this.parseProjectKey(projectKey);
-    return `${this.storageContext.getApiBaseUrl()}/api/v1/media/${username}/${slug}`;
+    return `${this.storageContext.getApiBaseUrl()}${projectMediaPath(username, slug)}`;
+  }
+
+  /** URL of one media file of the project, each segment encoded. */
+  private getMediaFileUrl(projectKey: string, filename: string): string {
+    const { username, slug } = this.parseProjectKey(projectKey);
+    return `${this.storageContext.getApiBaseUrl()}${mediaFilePath(username, slug, filename)}`;
   }
 
   /**
@@ -224,10 +235,14 @@ export class MediaSyncService {
       // Fetch local media list
       const localMedia = await this.localStorage.listMedia(projectKey);
 
-      // Build a map of local media by ID
+      // Build a map of local media by ID. An upload names the server file
+      // after the id, so only ids that are a single plain path segment
+      // (every id this app creates) take part in sync.
       const localMap = new Map<string, MediaInfo>();
       for (const item of localMedia) {
-        localMap.set(item.mediaId, item);
+        if (isSafeMediaFilename(item.mediaId)) {
+          localMap.set(item.mediaId, item);
+        }
       }
 
       // Build a map of server media by ID
@@ -307,6 +322,9 @@ export class MediaSyncService {
     projectKey: string,
     filename: string
   ): Promise<void> {
+    if (!isSafeMediaFilename(filename)) {
+      throw new Error('Not a media filename');
+    }
     const state = this.getSyncState(projectKey);
     const mediaId = this.filenameToMediaId(filename);
 
@@ -319,7 +337,7 @@ export class MediaSyncService {
     }));
 
     try {
-      const url = `${this.getMediaUrl(projectKey)}/${filename}`;
+      const url = this.getMediaFileUrl(projectKey, filename);
       const blob = await firstValueFrom(
         this.http.get(url, { responseType: 'blob' })
       );
@@ -352,9 +370,11 @@ export class MediaSyncService {
    * Fetch one file this browser does not have yet, such as an image an agent
    * just uploaded and placed, without waiting for the next background sync.
    * Resolves to whether it arrived. A failure touches no sync state: a missing
-   * image is not a sync error.
+   * image is not a sync error. A filename that is not a single plain path
+   * segment is never requested.
    */
   fetchMissingMedia(projectKey: string, filename: string): Promise<boolean> {
+    if (!isSafeMediaFilename(filename)) return Promise.resolve(false);
     const key = `${projectKey}/${filename}`;
     const running = this.missingMediaFetches.get(key);
     if (running) return running;
@@ -372,7 +392,7 @@ export class MediaSyncService {
   ): Promise<boolean> {
     try {
       const blob = await firstValueFrom(
-        this.http.get(`${this.getMediaUrl(projectKey)}/${filename}`, {
+        this.http.get(this.getMediaFileUrl(projectKey, filename), {
           responseType: 'blob',
         })
       );
@@ -462,6 +482,10 @@ export class MediaSyncService {
    * Note: This uses the existing image upload endpoint
    */
   async uploadToServer(projectKey: string, mediaId: string): Promise<void> {
+    // The id names the server file; checkSyncStatus lists no other kind.
+    if (!isSafeMediaFilename(mediaId)) {
+      throw new Error('Not a media id');
+    }
     const state = this.getSyncState(projectKey);
 
     // Mark as uploading
@@ -481,7 +505,6 @@ export class MediaSyncService {
       const blob = await toReadableBlob(stored);
 
       // Use the media upload endpoint
-      const { username, slug } = this.parseProjectKey(projectKey);
       const formData = new FormData();
       formData.append(
         'file',
@@ -489,7 +512,7 @@ export class MediaSyncService {
         `${mediaId}.${this.getExtension(blob.type)}`
       );
 
-      const uploadUrl = `${this.storageContext.getApiBaseUrl()}/api/v1/media/${username}/${slug}`;
+      const uploadUrl = this.getMediaUrl(projectKey);
       try {
         await firstValueFrom(this.http.post(uploadUrl, formData));
       } catch (error) {
@@ -576,9 +599,7 @@ export class MediaSyncService {
     // before the item is dropped from local state.
     await forEachSequential(matches, item =>
       firstValueFrom(
-        this.http.delete(
-          `${this.getMediaUrl(projectKey)}/${encodeURIComponent(item.filename)}`
-        )
+        this.http.delete(this.getMediaFileUrl(projectKey, item.filename))
       )
     );
 

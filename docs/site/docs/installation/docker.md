@@ -27,7 +27,7 @@ docker run -d \
 Then open [http://localhost:8333](http://localhost:8333) in your browser.
 
 :::warning[Set these for any real deployment]
-The image runs with `NODE_ENV=production`, so the server **refuses to start** unless `SESSION_SECRET` (32+ characters) and `WEBAUTHN_RP_ID` are set. `localhost` is fine for a local trial. For a real domain, set `WEBAUTHN_RP_ID` to your hostname (for example `inkweld.example.com`, no protocol or port) and `ALLOWED_ORIGINS` to the full public URL. **`WEBAUTHN_RP_ID` cannot be changed after users register passkeys**, so choose it before anyone signs up.
+The image runs with `NODE_ENV=production`. Set `SESSION_SECRET` (32+ characters) and `WEBAUTHN_RP_ID` yourself. If `DATABASE_KEY` and `SESSION_SECRET` are both missing, the image generates a key the first time and keeps it in `/data/.inkweld-key`, so keep the `/data` volume. If `WEBAUTHN_RP_ID` is missing, passkeys use the host name of the first `ALLOWED_ORIGINS` entry. `localhost` is fine for a local trial. For a real domain, set `WEBAUTHN_RP_ID` to your hostname (for example `inkweld.example.com`, no protocol or port) and `ALLOWED_ORIGINS` to the full public URL. **`WEBAUTHN_RP_ID` cannot be changed after users register passkeys**, so choose it before anyone signs up.
 :::
 
 :::tip[First User is Admin]
@@ -306,6 +306,8 @@ docker compose up -d
 Your data is stored in the `inkweld_data` volume and persists across container updates. Database migrations run automatically on startup.
 :::
 
+If the updated container exits at startup, check `docker logs inkweld` (see [Troubleshooting](#container-wont-start)). An install that never set `SESSION_SECRET` or `DATABASE_KEY` gets a generated key in `/data/.inkweld-key` on its first start with 1.0.0-beta.5 or later: everyone signs in again once, and settings stored encrypted move to the new key automatically.
+
 ## Backup and Restore
 
 ### Creating Backups
@@ -353,8 +355,10 @@ docker logs inkweld
 Common issues:
 
 - **Port already in use**: Change the port mapping (e.g., `-p 9000:8333`)
-- **Invalid SESSION_SECRET**: Must be at least 32 characters
+- **`could not be written`** (from the image's start-up script): `/data` is not writable, so no key could be generated. Mount a writable volume at `/data`, or set `SESSION_SECRET`.
+- **`must be at least 32 characters`**, **`is set to the built-in development key`** or **`is set to a sample value from the Inkweld documentation`**: Add `-e SESSION_SECRET=<output of openssl rand -hex 32>` and keep the value. If you also set `DATABASE_KEY`, it is the one used, so the same applies to it. If the server ran without a secret of its own before, setting one signs everyone out once; settings stored encrypted move to the new key automatically
 - **`WEBAUTHN_RP_ID must be set in production`**: Add `-e WEBAUTHN_RP_ID=<your hostname>` (or `localhost` for a local trial)
+- **Passkey sign-in fails with `ALLOWED_ORIGINS contains "*"`**: List the URLs users open Inkweld from in `ALLOWED_ORIGINS` instead of `*`
 
 ### WebSocket connection fails
 

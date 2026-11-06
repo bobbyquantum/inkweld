@@ -217,3 +217,124 @@ describe('R2StorageService.createProjectFile', () => {
     expect(r2.text('alice/novel/a.png')).toBe('first');
   });
 });
+
+describe('R2StorageService key segments', () => {
+  const data = new TextEncoder().encode('x');
+
+  /** Every call that builds a project key or prefix from a username and slug. */
+  function projectCalls(service: R2StorageService, username: string, slug: string) {
+    return [
+      () => service.saveProjectFile(username, slug, 'a.png', data, 'image/png'),
+      () => service.createProjectFile(username, slug, 'a.png', data, 'image/png'),
+      () => service.readProjectFile(username, slug, 'a.png'),
+      () => service.projectFileExists(username, slug, 'a.png'),
+      () => service.deleteProjectFile(username, slug, 'a.png'),
+      () => service.getFileMetadata(username, slug, 'a.png'),
+      () => service.listProjectFiles(username, slug),
+      () => service.deleteProjectDirectory(username, slug),
+      () => service.moveProjectDirectory(username, slug, 'saga'),
+      () => service.moveProjectDirectory(username, 'novel', slug),
+    ];
+  }
+
+  /** Every call that builds a per-user key (avatar, banner, background). */
+  function userCalls(service: R2StorageService, username: string) {
+    return [
+      () => service.saveUserAvatar(username, data),
+      () => service.getUserAvatar(username),
+      () => service.hasUserAvatar(username),
+      () => service.deleteUserAvatar(username),
+      () => service.saveSlotImage('banners', username, data, 'image/png'),
+      () => service.getSlotImage('backgrounds', username),
+      () => service.hasSlotImage('banners', username),
+      () => service.deleteSlotImage('backgrounds', username),
+    ];
+  }
+
+  function refusedCalls(service: R2StorageService, usernames: string[], slugs: string[]) {
+    return [
+      ...usernames.flatMap((username) => [
+        ...projectCalls(service, username, 'draft'),
+        ...userCalls(service, username),
+      ]),
+      ...slugs.flatMap((slug) => projectCalls(service, 'bob', slug)),
+    ];
+  }
+
+  it('rejects a separator in a username or project slug for every key it builds', async () => {
+    const r2 = createObjectBucket();
+    r2.seed('alice/novel/a.png', 'media', 'image/png');
+    r2.seed('bob/draft/b.png', 'media', 'image/png');
+    const service = new R2StorageService(r2.bucket);
+
+    const calls = refusedCalls(service, ['x/y', 'x\\y'], ['p/q', 'p\\q']);
+    const results = await Promise.allSettled(calls.map((call) => call()));
+
+    expect(results.map((result) => result.status)).toEqual(calls.map(() => 'rejected'));
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        expect(String(result.reason)).toContain('path traversal');
+      }
+    }
+    // Nothing was listed, written or removed.
+    expect([...r2.store.keys()].sort()).toEqual(['alice/novel/a.png', 'bob/draft/b.png']);
+    expect(r2.putCount()).toBe(0);
+  });
+
+  it('rejects empty, `..` and NUL segments', async () => {
+    const service = new R2StorageService(createObjectBucket().bucket);
+    const calls = refusedCalls(service, ['', '..', 'alice\0'], ['', 'a..b']);
+    const results = await Promise.allSettled(calls.map((call) => call()));
+    expect(results.map((result) => result.status)).toEqual(calls.map(() => 'rejected'));
+  });
+
+  it('lets a filename name a subdirectory, but not step out of the project', async () => {
+    const r2 = createObjectBucket();
+    const service = new R2StorageService(r2.bucket);
+
+    await service.saveProjectFile('alice', 'novel', 'published/file-1', data, 'application/pdf');
+    expect(r2.text('alice/novel/published/file-1')).toBe('x');
+    expect(await service.readProjectFile('alice', 'novel', 'published/file-1')).not.toBeNull();
+
+    await expect(service.readProjectFile('alice', 'novel', '../other/a.png')).rejects.toThrow(
+      'path traversal'
+    );
+    await expect(service.saveProjectFile('alice', 'novel', 'a\0.png', data)).rejects.toThrow(
+      'path traversal'
+    );
+  });
+});
+
+describe('R2StorageService keys for usernames from before the username rule', () => {
+  const data = new TextEncoder().encode('x');
+
+  // None of these fits the rule for new usernames, but each is one key segment.
+  it.each(['Legacy.User', 'a:b', 'Jane Doe', 'x'.repeat(45)])(
+    'stores, lists and deletes the files of %j',
+    async (username) => {
+      const r2 = createObjectBucket();
+      const service = new R2StorageService(r2.bucket);
+
+      await service.saveProjectFile(username, 'novel', 'map.png', data, 'image/png');
+      expect(r2.text(`${username}/novel/map.png`)).toBe('x');
+      expect(await service.readProjectFile(username, 'novel', 'map.png')).not.toBeNull();
+      expect(await service.listProjectFiles(username, 'novel')).toMatchObject([
+        { filename: 'map.png', size: 1 },
+      ]);
+      await service.deleteProjectFile(username, 'novel', 'map.png');
+      await service.saveProjectFile(username, 'novel', 'published/file-1', data);
+      await service.deleteProjectDirectory(username, 'novel');
+
+      await service.saveUserAvatar(username, data);
+      expect(r2.text(`avatars/${username}.png`)).toBe('x');
+      expect(await service.hasUserAvatar(username)).toBe(true);
+      await service.deleteUserAvatar(username);
+
+      await service.saveSlotImage('banners', username, data, 'image/png');
+      expect((await service.getSlotImage('banners', username))?.contentType).toBe('image/png');
+      await service.deleteSlotImage('banners', username);
+
+      expect([...r2.store.keys()]).toEqual([]);
+    }
+  );
+});

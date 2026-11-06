@@ -62,6 +62,12 @@ command = ""
 # ========================================
 # Run with: wrangler dev (from backend directory)
 # Uses local SQLite - no Cloudflare resources needed.
+#
+# For local use only: never deploy these top-level settings (`wrangler deploy`
+# without --env). NODE_ENV = "development" turns on development defaults (error
+# details in responses, and the built-in development signing key when no
+# SESSION_SECRET is set). The SESSION_SECRET below is a sample value, which the
+# server only accepts when NODE_ENV is development or test.
 
 [vars]
 NODE_ENV = "development"
@@ -139,6 +145,11 @@ GITHUB_ENABLED = "false"
 # SESSION_SECRET is a secret, never a var. Set it with:
 #   npx wrangler secret put SESSION_SECRET --env preview
 
+# `wrangler deploy --env preview` stops with an error while the Worker has no
+# SESSION_SECRET secret (or one passed with --secrets-file).
+[env.preview.secrets]
+required = ["SESSION_SECRET"]
+
 # Create with: npx wrangler d1 create inkweld_preview
 [[env.preview.d1_databases]]
 binding = "DB"
@@ -196,6 +207,11 @@ GITHUB_ENABLED = "false"
 # SESSION_SECRET is a secret, never a var. Set it with:
 #   npx wrangler secret put SESSION_SECRET --env production
 
+# `wrangler deploy --env production` stops with an error while the Worker has
+# no SESSION_SECRET secret (or one passed with --secrets-file).
+[env.production.secrets]
+required = ["SESSION_SECRET"]
+
 # Create with: npx wrangler d1 create inkweld_prod
 [[env.production.d1_databases]]
 binding = "DB"
@@ -222,8 +238,15 @@ script_name = "inkweld-backend-prod"
 # to config/process.env for non-Workers environments (Bun/Node.js).
 #
 # Required for each environment:
-#   SESSION_SECRET - Used for JWT signing, CSRF token generation, and session
-#                    cookies. Must be at least 32 characters in production.
+#   SESSION_SECRET - Signs session and MCP tokens and encrypts stored settings.
+#                    Must be at least 32 characters (openssl rand -hex 32).
+#                    The [env.*.secrets] sections above make `wrangler deploy`
+#                    stop while it is missing. A Worker running without a
+#                    usable one answers sign-in, authenticated API calls and
+#                    MCP with a 500, and the log names the variable to set.
+#                    The built-in development key and the sample values from
+#                    the docs are only accepted when NODE_ENV is development
+#                    or test.
 #
 # Also required, but a plain var (set in the [env.*.vars] sections above, not
 # a secret):
@@ -231,8 +254,11 @@ script_name = "inkweld-backend-prod"
 #                    match your frontend domain (no protocol/port). IMMUTABLE.
 #
 # Optional:
-#   DATABASE_KEY   - Override for SESSION_SECRET, used specifically for database
-#                    encryption. Falls back to SESSION_SECRET if not set.
+#   DATABASE_KEY   - Overrides SESSION_SECRET for signing and for database
+#                    encryption. Falls back to SESSION_SECRET if not set. It
+#                    should be at least 32 characters: a shorter one still
+#                    encrypts stored settings, but tokens are then signed with
+#                    SESSION_SECRET and the log warns about it.
 #   GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET - Required if GitHub OAuth is enabled.
 #                    The OAuth app's callback URL is
 #                    https://<your-backend-domain>/api/v1/auth/github

@@ -15,6 +15,7 @@ import { Hono } from 'hono';
 import type { Context } from 'hono';
 import { logger } from '../services/logger.service';
 import type { CloudflareAppContext, DurableObjectStub } from '../types/cloudflare';
+import { documentProjectKey, parseDocumentId } from '../utils/yjs-document-id';
 
 const yjsWorkerLog = logger.child('YjsWorker');
 const app = new Hono<CloudflareAppContext>();
@@ -38,13 +39,12 @@ function resolveProjectStub(
     return { ok: false, error: c.json({ error: 'Missing documentId parameter' }, 400) };
   }
 
-  // Validate document format (username:slug:documentId or username:slug:elements)
-  const parts = documentId.split(':');
-  if (parts.length < 2) {
-    return {
-      ok: false,
-      error: c.json({ error: `Invalid document ID format: ${documentId}` }, 400),
-    };
+  // username:slug:elements or username:slug:<elementId>, optionally with one
+  // trailing slash. The Durable Object reads the id with the same parser, so
+  // it checks access on the project it was chosen for.
+  const parsed = parseDocumentId(documentId);
+  if (!parsed) {
+    return { ok: false, error: c.json({ error: 'Invalid document ID format' }, 400) };
   }
 
   const namespace = c.env.YJS_PROJECTS;
@@ -56,7 +56,7 @@ function resolveProjectStub(
   // One Durable Object per PROJECT (username:slug). idFromName ensures the same
   // project always maps to the same instance, so ALL documents in a project
   // share one DO = massive cost savings.
-  const projectId = `${parts[0]}:${parts[1]}`;
+  const projectId = documentProjectKey(parsed);
   const stub = namespace.get(namespace.idFromName(projectId));
   return { ok: true, stub, projectId };
 }

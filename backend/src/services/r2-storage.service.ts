@@ -1,5 +1,7 @@
 import type { R2Bucket } from '@cloudflare/workers-types';
 import type { SlotNamespace } from './storage.service';
+import { BadRequestError } from '../errors';
+import { isStorageSegment } from '../utils/storage-segment';
 import { logger } from './logger.service';
 import { forEachConcurrent, forEachPage, forEachSequential } from '@inkweld/async';
 
@@ -25,13 +27,36 @@ export class R2StorageService {
   constructor(private readonly bucket: R2Bucket) {}
 
   /**
-   * Validate that a path component does not contain traversal sequences
-   * that could escape the intended key namespace.
+   * Validate one segment of a key (username, project slug, slot key): the
+   * same rule as the filesystem adapter's path components
+   * ({@link isStorageSegment}), so it always stays a single segment of the
+   * key.
    */
   private validateKeyComponent(component: string, label: string): void {
-    if (!component || component.includes('..') || component.includes('\0')) {
-      throw new Error(`Invalid ${label}: path traversal detected`);
+    if (!isStorageSegment(component)) {
+      throw new BadRequestError(`Invalid ${label}: path traversal detected`);
     }
+  }
+
+  /**
+   * Validate a filename inside a project. It may name a subdirectory
+   * (published files live at `published/<id>`), so `/` is allowed, as on the
+   * filesystem, but `..` and NUL are not.
+   */
+  private validateFilename(filename: string): void {
+    if (!filename || filename.includes('..') || filename.includes('\0')) {
+      throw new BadRequestError('Invalid filename: path traversal detected');
+    }
+  }
+
+  /**
+   * The key prefix every file of a project lives under.
+   * Format: {username}/{projectSlug}/
+   */
+  private getProjectPrefix(username: string, projectSlug: string): string {
+    this.validateKeyComponent(username, 'username');
+    this.validateKeyComponent(projectSlug, 'project slug');
+    return `${username}/${projectSlug}/`;
   }
 
   /**
@@ -39,10 +64,9 @@ export class R2StorageService {
    * Format: {username}/{projectSlug}/{filename}
    */
   private getProjectFileKey(username: string, projectSlug: string, filename: string): string {
-    this.validateKeyComponent(username, 'username');
-    this.validateKeyComponent(projectSlug, 'project slug');
-    this.validateKeyComponent(filename, 'filename');
-    return `${username}/${projectSlug}/${filename}`;
+    const prefix = this.getProjectPrefix(username, projectSlug);
+    this.validateFilename(filename);
+    return `${prefix}${filename}`;
   }
 
   /**
@@ -159,7 +183,7 @@ export class R2StorageService {
    * Delete all files in a project directory
    */
   async deleteProjectDirectory(username: string, projectSlug: string): Promise<void> {
-    const prefix = `${username}/${projectSlug}/`;
+    const prefix = this.getProjectPrefix(username, projectSlug);
     const objects = await this.listAll(prefix);
     await this.deleteKeys(objects.map((obj) => obj.key));
   }
@@ -175,13 +199,10 @@ export class R2StorageService {
    * exist, a leftover under the old slug is not worth failing the rename for.
    */
   async moveProjectDirectory(username: string, oldSlug: string, newSlug: string): Promise<void> {
-    this.validateKeyComponent(username, 'username');
-    this.validateKeyComponent(oldSlug, 'project slug');
-    this.validateKeyComponent(newSlug, 'project slug');
+    const oldPrefix = this.getProjectPrefix(username, oldSlug);
+    const newPrefix = this.getProjectPrefix(username, newSlug);
     if (oldSlug === newSlug) return;
 
-    const oldPrefix = `${username}/${oldSlug}/`;
-    const newPrefix = `${username}/${newSlug}/`;
     const sources = await this.listAll(oldPrefix);
     if (sources.length === 0) return;
 
@@ -335,7 +356,7 @@ export class R2StorageService {
     projectSlug: string,
     prefix?: string
   ): Promise<Array<{ filename: string; size: number; mimeType?: string; uploadedAt?: Date }>> {
-    const basePrefix = `${username}/${projectSlug}/`;
+    const basePrefix = this.getProjectPrefix(username, projectSlug);
     const fullPrefix = prefix ? `${basePrefix}${prefix}` : basePrefix;
 
     const objects = await this.listAll(fullPrefix);

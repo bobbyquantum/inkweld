@@ -213,13 +213,20 @@ export class ProjectTreeComponent implements OnDestroy {
   private touchTimeout: ReturnType<typeof setTimeout> | null = null;
   /**
    * When a long-press fires the context menu on a touch device, the subsequent
-   * `touchend` must not also open the document or close the mobile sidenav.
-   * This flag stores the node ID whose next touch-open should be suppressed.
+   * `touchend` must not also open the element, toggle the folder or close the
+   * mobile sidenav. This flag stores the node ID whose next touch should be
+   * ignored.
    */
   private suppressTouchOpenNodeId: string | null = null;
   /** Touch start coordinates used to suppress open after scroll swipes */
   private touchStartX: number | null = null;
   private touchStartY: number | null = null;
+  /**
+   * Whether the current press turned into a drag. Cleared by the next press
+   * rather than when the drag ends, because `cdkDragEnded` can fire before
+   * the row's `touchend`: it does whenever the drop doesn't animate.
+   */
+  private pressBecameDrag = false;
 
   /** Minimum pixel movement before we consider the touch a scroll/drag */
   private static readonly TOUCH_MOVE_THRESHOLD = 10;
@@ -301,7 +308,9 @@ export class ProjectTreeComponent implements OnDestroy {
    */
   toggleExpandedTouch(node: ProjectElement, event: TouchEvent) {
     this.markRecentTouch(node, event);
-    this.projectStateService.toggleExpanded(node.id);
+    if (this.isTap(node, event)) {
+      this.projectStateService.toggleExpanded(node.id);
+    }
   }
 
   /**
@@ -309,7 +318,11 @@ export class ProjectTreeComponent implements OnDestroy {
    * the browser synthesises afterwards is not handled a second time.
    */
   private markRecentTouch(node: ProjectElement, event: TouchEvent) {
-    event.preventDefault();
+    // The touchend that ends a scroll can't be cancelled (and makes no
+    // click); trying anyway logs an error.
+    if (event.cancelable) {
+      event.preventDefault();
+    }
     event.stopPropagation();
 
     if (this.touchTimeout) {
@@ -360,14 +373,47 @@ export class ProjectTreeComponent implements OnDestroy {
       return;
     }
     this.markRecentTouch(node, event);
-    this.expandAndOpenFolder(node, event);
+    if (this.isTap(node, event)) {
+      this.expandAndOpenFolder(node);
+    }
   }
 
-  private expandAndOpenFolder(node: ProjectElement, event?: Event) {
+  private expandAndOpenFolder(node: ProjectElement) {
     if (!node.expanded) {
       this.projectStateService.setExpanded(node.id, true);
     }
-    this.onOpenDocument(node, event);
+    this.onOpenDocument(node);
+  }
+
+  /**
+   * Whether the touch that just ended on `node` was a tap. A row gets
+   * `touchend` after every touch that starts on it, so this rules out the
+   * rest: a drag, a scroll swipe, and a long press that opened the context
+   * menu. None of those may open or toggle anything.
+   */
+  private isTap(node: ProjectElement, event: TouchEvent): boolean {
+    const moved = this.touchMovedPastThreshold(event);
+    if (this.suppressTouchOpenNodeId === node.id) {
+      this.suppressTouchOpenNodeId = null;
+      return false;
+    }
+    return !this.pressBecameDrag && !moved;
+  }
+
+  /** Whether the finger moved further than a tap allows since touchstart. */
+  private touchMovedPastThreshold(event: TouchEvent): boolean {
+    const startX = this.touchStartX;
+    const startY = this.touchStartY;
+    this.touchStartX = null;
+    this.touchStartY = null;
+    if (startX === null || startY === null) return false;
+    const touch = event.changedTouches[0];
+    return (
+      Math.abs(touch.clientX - startX) >
+        ProjectTreeComponent.TOUCH_MOVE_THRESHOLD ||
+      Math.abs(touch.clientY - startY) >
+        ProjectTreeComponent.TOUCH_MOVE_THRESHOLD
+    );
   }
 
   /**
@@ -376,6 +422,7 @@ export class ProjectTreeComponent implements OnDestroy {
    */
   public onNodeDown(node: ProjectElement, event?: Event) {
     this.selectedItem = node;
+    this.pressBecameDrag = false;
     if (isTouchEvent(event) && event.touches.length === 1) {
       this.touchStartX = event.touches[0].clientX;
       this.touchStartY = event.touches[0].clientY;
@@ -388,6 +435,7 @@ export class ProjectTreeComponent implements OnDestroy {
    */
   public dragStarted(node: ProjectElement) {
     this.draggedNode = node;
+    this.pressBecameDrag = true;
     this.currentDropLevel = node.level;
     this.validLevelsArray = [node.level];
     this.nodeAboveDropPosition = null;
@@ -597,14 +645,15 @@ export class ProjectTreeComponent implements OnDestroy {
       return;
     }
 
-    // Capture the destination before any await: `cdkDragEnded` can fire while
-    // the dialog is open and would otherwise clear the target folder signal.
+    // Work out the destination before the dialog, from the tree as the user
+    // saw it. Not from `targetParentFolderId`: the CDK emits `cdkDragEnded`
+    // before `cdkDropListDropped`, so `dragEnded()` has already cleared it.
     const dropLevel = this.currentDropLevel;
     const insertIndex = this.projectStateService.getDropInsertIndex(
       nodeAbove,
       dropLevel
     );
-    const targetFolderId = this.targetParentFolderId();
+    const targetFolderId = this.findParentFolderForDrop(nodeAbove, dropLevel);
 
     const confirmed = await this.confirmMove(node, nodeAbove, dropLevel);
     if (!confirmed) return;
@@ -813,32 +862,18 @@ export class ProjectTreeComponent implements OnDestroy {
    * @param node The node to open.
    */
   public onOpenDocument(node: ProjectElement, event?: Event) {
+    // From a row's touchend, open only if the touch was a tap
+    if (isTouchEvent(event) && !this.isTap(node, event)) {
+      return;
+    }
     // Suppress opening if a long-press context menu was just triggered for this node
     if (this.suppressTouchOpenNodeId === node.id) {
       this.suppressTouchOpenNodeId = null;
       return;
     }
-    // Suppress opening if a drag is in progress (touchend fires before cdkDragEnded)
+    // Suppress opening while a drag is in progress
     if (this.draggedNode !== null) {
       return;
-    }
-    // Suppress opening if the touch moved significantly (scroll swipe), not a tap
-    if (
-      isTouchEvent(event) &&
-      this.touchStartX !== null &&
-      this.touchStartY !== null
-    ) {
-      const ct = event.changedTouches[0];
-      const dx = ct.clientX - this.touchStartX;
-      const dy = ct.clientY - this.touchStartY;
-      this.touchStartX = null;
-      this.touchStartY = null;
-      if (
-        Math.abs(dx) > ProjectTreeComponent.TOUCH_MOVE_THRESHOLD ||
-        Math.abs(dy) > ProjectTreeComponent.TOUCH_MOVE_THRESHOLD
-      ) {
-        return;
-      }
     }
     // Convert ProjectElement back to Element
     const dto: Element = {

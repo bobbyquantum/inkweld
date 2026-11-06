@@ -1446,10 +1446,12 @@ export class DocumentService {
       `Setting up WebSocket connection for document: ${formattedDocId}`
     );
 
-    // Get auth token for WebSocket authentication
+    // Get auth token for WebSocket authentication. Retries keep the URL
+    // they started with, so the token is only handed out while that is
+    // still the active profile's server.
     const authToken = this.publicContext.active()
       ? 'public-view'
-      : this.authTokenService.getToken();
+      : this.authTokenService.getTokenForUrl(websocketUrl);
     if (!authToken) {
       this.logger.error(
         'DocumentService',
@@ -1649,13 +1651,14 @@ export class DocumentService {
       // Authentication succeeded - we're now connected and synced
       this.updateSyncStatus(documentId, DocumentSyncState.Synced);
 
-      // Set up re-authentication for reconnections
+      // Set up re-authentication for reconnections (only with the token of
+      // the profile whose server this socket is connected to)
       this.setupWsReauth(
         provider,
         () =>
           this.publicContext.active()
             ? 'public-view'
-            : this.authTokenService.getToken(),
+            : this.authTokenService.getTokenForUrl(wsUrl),
         error => {
           // A denial during the re-auth handshake (rate-limited / forbidden /
           // invalid token) is terminal or long-backoff — route it through the
@@ -2756,7 +2759,7 @@ export class DocumentService {
     }
 
     // Get auth token for WebSocket authentication
-    const authToken = this.authTokenService.getToken();
+    const authToken = this.authTokenService.getTokenForUrl(websocketUrl);
     if (!authToken) {
       this.logger.warn(
         'DocumentService',
@@ -2950,7 +2953,7 @@ export class DocumentService {
     }
 
     // Get auth token for WebSocket authentication
-    const authToken = this.authTokenService.getToken();
+    const authToken = this.authTokenService.getTokenForUrl(websocketUrl);
     if (!authToken) {
       this.logger.warn(
         'DocumentService',
@@ -3102,7 +3105,7 @@ export class DocumentService {
     }
 
     // Get auth token for WebSocket authentication
-    const authToken = this.authTokenService.getToken();
+    const authToken = this.authTokenService.getTokenForUrl(websocketUrl);
     if (!authToken) {
       throw new Error(
         `syncElementsToServer: No auth token available for ${serverDocId}`

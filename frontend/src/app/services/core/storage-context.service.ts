@@ -1,6 +1,7 @@
 import { computed, Injectable, signal } from '@angular/core';
 import { forEachSequential } from '@inkweld/async';
 import { djb2Hex } from '@utils/schema-hash';
+import { serverAddress } from '@utils/server-address';
 import { stripTrailingSlashes } from '@utils/string-utils';
 
 import { environment } from '../../../environments/environment';
@@ -44,8 +45,10 @@ export type StorageConfigType = 'local' | 'cloud' | 'server';
  */
 export interface ServerConfig {
   /**
-   * Unique ID: "local", first 8 chars of hash(serverUrl) for servers, or
-   * "cloud-{provider}-{accountHash}" for cloud sync configs
+   * Unique ID: "local", an 8-character hash for servers (see
+   * {@link StorageContextService.addServerConfig}), or
+   * "cloud-{provider}-{accountHash}" for cloud sync configs. Never changes
+   * once assigned: it names the profile's storage prefix.
    */
   id: string;
 
@@ -530,8 +533,8 @@ export function buildLocalConfigId(username: string): string {
 }
 
 /**
- * Id for a server profile. The first profile on a server uses the
- * `hash(serverUrl)` id; further author profiles on the same server append a
+ * Id for a server profile. The first profile on a server uses the server's
+ * id (`serverUrlHash`); further author profiles on the same server append a
  * hash of the username so each gets its own storage prefix and login token.
  */
 export function buildServerConfigId(
@@ -541,6 +544,21 @@ export function buildServerConfigId(
   return username
     ? `${serverUrlHash}-${djb2Hex(username.trim().toLowerCase())}`
     : serverUrlHash;
+}
+
+/**
+ * Fewest server id candidates to consider, so a server whose preferred id was
+ * taken when its profile was created still finds that profile's id after
+ * other profiles have been removed.
+ */
+const MIN_SERVER_ID_CANDIDATES = 8;
+
+/** True for a server profile whose server has this {@link serverAddress} */
+function isServerProfileFor(config: ServerConfig, address: string): boolean {
+  return (
+    config.type === 'server' &&
+    serverAddress(config.serverUrl ?? '') === address
+  );
 }
 
 /** Prefix shared by all cloud sync config IDs */
@@ -569,7 +587,7 @@ export function buildCloudConfigId(
  *
  * Storage prefixes:
  * - "local:" for local mode
- * - "srv:{hash}:" for server mode (hash = first 8 chars of SHA-256 of server URL)
+ * - "srv:{id}:" for server mode (the server profile's id, see addServerConfig)
  * - "cloud-{provider}-{hash}:" for cloud sync mode (hash of provider account id)
  *
  * @example
@@ -682,15 +700,19 @@ export class StorageContextService {
   }
 
   /**
-   * Generate a stable hash for a server URL (first 8 chars of SHA-256)
-   * Uses a simple hash for synchronous operation; SHA-256 would require async
+   * The preferred id for a server profile: a djb2 hash (8 hex characters) of
+   * the URL's scheme, host and port. Every existing server profile was given
+   * this id or one derived from it, so it must not change. It leaves out the
+   * path and is only 32 bits, so two servers can share it: profiles are
+   * matched to a server by {@link serverAddress}, never by this hash (see
+   * {@link resolveServerConfigId}).
    */
   hashServerUrl(url: string): string {
     return djb2Hex(this.normalizeUrl(url));
   }
 
   /**
-   * Normalize a URL for consistent hashing
+   * Normalize a URL for {@link hashServerUrl}: scheme, host and port only
    */
   private normalizeUrl(url: string): string {
     try {
@@ -805,11 +827,12 @@ export class StorageContextService {
   }
 
   /**
-   * Check if a server URL is already configured
+   * Check if a server URL is already configured: some server profile has the
+   * same address (path included)
    */
   hasServerConfig(serverUrl: string): boolean {
-    const hash = this.hashServerUrl(serverUrl);
-    return this.configurations().some(c => c.id === hash);
+    const address = serverAddress(serverUrl);
+    return this.configurations().some(c => isServerProfileFor(c, address));
   }
 
   /**
@@ -876,7 +899,14 @@ export class StorageContextService {
   }
 
   /**
-   * Add a server configuration
+   * Add a server configuration, or update the one this server already has,
+   * and return it. Does not switch to it.
+   *
+   * A profile belongs to one server for good: its id names its storage
+   * prefix and its login token. An existing profile is only updated for the
+   * same server (same {@link serverAddress}, path included) and never moved
+   * to another one. A new server whose preferred id another server's profile
+   * already uses gets a different id (see {@link resolveServerConfigId}).
    */
   addServerConfig(
     serverUrl: string,
@@ -910,7 +940,8 @@ export class StorageContextService {
         c => c.id === id
       );
       if (existingIndex >= 0) {
-        // Update existing
+        // Update existing: always this server's own profile, since
+        // resolveServerConfigId never returns another server's id
         const updated = { ...currentConfig };
         updated.configurations = [...updated.configurations];
         updated.configurations[existingIndex] = {
@@ -949,20 +980,32 @@ export class StorageContextService {
 
   /**
    * Pick the config id for a server profile. Without a username this is the
-   * per-server id. With one: reuse the profile already bound to that
-   * user, else claim a profile on that server that has no user yet, else mint
-   * a user-specific id so a second author gets separate storage.
+   * per-server id. With one: reuse the profile on that server already bound
+   * to that user, else claim a profile on that server that has no user yet,
+   * else mint a user-specific id so a second author gets separate storage.
+   *
+   * Profiles are matched to the server by {@link serverAddress}, path
+   * included. The per-server id is one this server's profile already has,
+   * else the first unused {@link serverIdCandidates} entry; a minted
+   * user-specific id is unused too. So an id is never shared with another
+   * server's profile, and a server whose ids never collided keeps exactly the
+   * ids it always had.
    */
   private resolveServerConfigId(
     normalizedUrl: string,
     username?: string
   ): string {
-    const urlHash = this.hashServerUrl(normalizedUrl);
-    if (!username) return urlHash;
+    const address = serverAddress(normalizedUrl);
+    const candidates = this.serverIdCandidates(normalizedUrl, address);
+    if (!username) {
+      return (
+        candidates.find(id => this.isIdOfServer(id, address)) ??
+        this.firstUnusedId(candidates)
+      );
+    }
     const wanted = username.trim().toLowerCase();
-    const onServer = this.configurations().filter(
-      c =>
-        c.type === 'server' && this.hashServerUrl(c.serverUrl ?? '') === urlHash
+    const onServer = this.configurations().filter(c =>
+      isServerProfileFor(c, address)
     );
     const bound = onServer.find(
       c => c.userProfile?.username.trim().toLowerCase() === wanted
@@ -970,7 +1013,42 @@ export class StorageContextService {
     if (bound) return bound.id;
     const unclaimed = onServer.find(c => !c.userProfile);
     if (unclaimed) return unclaimed.id;
-    return buildServerConfigId(urlHash, username);
+    return this.firstUnusedId(
+      candidates.map(id => buildServerConfigId(id, username))
+    );
+  }
+
+  /**
+   * Ids a profile for this server may take, most preferred first: the
+   * {@link hashServerUrl} id, which existing profiles were created with,
+   * then hashes of the server's full address and of the address with a
+   * counter. The order never depends on other profiles, so a server finds the
+   * id it was given again. There are more candidates than profiles, so at
+   * least one of them is unused.
+   */
+  private serverIdCandidates(normalizedUrl: string, address: string): string[] {
+    const ids = new Set([this.hashServerUrl(normalizedUrl), djb2Hex(address)]);
+    const needed = Math.max(
+      this.configurations().length + 1,
+      MIN_SERVER_ID_CANDIDATES
+    );
+    for (let n = 2; ids.size < needed && n <= needed + 64; n++) {
+      ids.add(djb2Hex(`${address}#${n}`));
+    }
+    return [...ids];
+  }
+
+  /** True when one of this server's profiles has the id */
+  private isIdOfServer(id: string, address: string): boolean {
+    const owner = this.getConfigById(id);
+    return !!owner && isServerProfileFor(owner, address);
+  }
+
+  /** The first of the candidates that no profile uses */
+  private firstUnusedId(candidates: string[]): string {
+    const unused = candidates.find(id => !this.getConfigById(id));
+    if (!unused) throw new Error('No unused server profile id');
+    return unused;
   }
 
   /**

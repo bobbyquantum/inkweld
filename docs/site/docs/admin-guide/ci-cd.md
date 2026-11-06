@@ -174,7 +174,9 @@ with the newer schema.
 
 ## Image contents
 
-- Bun runtime with the Hono API surface
+- Bun runtime with the Hono API surface, compiled into one `inkweld-server`
+  binary with `NODE_ENV=production`. The server reads `NODE_ENV` again when it
+  starts, so the container's value is the one that applies
 - Angular production build served via the `bun-app.ts` static handler
 - LevelDB + SQLite dependencies pre-installed
 - Non-root user with `/data` as the writable volume
@@ -182,8 +184,9 @@ with the newer schema.
 ## Sample runtime configuration
 
 `SESSION_SECRET`, `ALLOWED_ORIGINS` and `WEBAUTHN_RP_ID` are the settings a
-production container needs. See [Configuration](/docs/configuration) for the
-full list.
+production container needs; it refuses to start without `SESSION_SECRET` (32+
+characters) or `WEBAUTHN_RP_ID`. See [Configuration](/docs/configuration) for
+the full list.
 
 ```bash
  docker run -p 8333:8333 -v inkweld_data:/data \

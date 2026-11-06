@@ -132,7 +132,8 @@
     "deleteThreadAria": "Delete comment thread",
     "closePopover": "Close comment popover",
     "noMessages": "No messages",
-    "unknownAuthor": "Unknown"
+    "unknownAuthor": "Unknown",
+    "unavailable": "This comment could not be loaded."
   },
   "elementRef": {
     "tooltip": {

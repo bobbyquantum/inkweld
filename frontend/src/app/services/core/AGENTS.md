@@ -36,6 +36,38 @@ than the visitor's JWT. Media and publications read directly from the link's
 server. Public navigation stays under `/public`; leaving uses a full reload
 to restore the saved profile. Never replay pending profile writes or run
 automatic content migrations in this context.
+## Server profile ids
+
+A server profile's id names its storage prefix (`srv:<id>:`) and its token
+key, so it is fixed for good and a profile never moves to another server.
+
+- **Profiles are matched to a server by address**, never by id:
+  `serverAddress()` (`utils/server-address.ts`) is the lowercase scheme and
+  host, the port unless it is the default, and the path without trailing
+  slashes. `https://host/a` and `https://host/b` are two servers.
+- **Ids** come from `StorageContextService.resolveServerConfigId`, which
+  takes the first unused id from a fixed list of candidates per server:
+  `hashServerUrl()` (djb2 of scheme, host and port, no path), then a hash of
+  the full address, then of the address with a counter. Existing profiles
+  were created with the first, so a server whose ids never collided keeps
+  exactly the ids it always had (upgrade path: the ids name IndexedDB
+  databases). A server whose preferred id another server's profile already
+  uses gets a later candidate and keeps it: adding the same server again
+  finds its profiles by address. A further author's profile takes the first
+  unused `<candidate>-<hash(username)>` in the same order, so it is
+  `<hashServerUrl()>-<hash(username)>` unless that is taken, and it need not
+  start with the id of the server's first profile.
+- `addServerConfig` only ever updates a profile of the same server;
+  `hasServerConfig` compares addresses. Don't look a server's profile up by
+  `hashServerUrl()`, and don't work out a server from a profile id.
+- An id freed by removing a profile can go to another server later. A tab
+  that still shows the removed profile keeps using the id, so stored tokens
+  record the server they belong to (`services/auth/AGENTS.md`).
+- **A server whose address changes is a new server.** A Home Assistant app
+  reinstalled under a new ingress path, or a hosted build whose `apiUrl`
+  moves to another path, gets new profiles and signs in again. The old
+  profiles keep their ids, local data and sessions; under ingress, where the
+  profile switcher is hidden, they are no longer shown.
 
 ## Project rename has one local path
 

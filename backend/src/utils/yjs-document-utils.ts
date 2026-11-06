@@ -19,6 +19,9 @@ import { createDecoder, readVarUint } from 'lib0/decoding';
 /** Reserved connection identity used only to revoke anonymous public viewers. */
 export const PUBLIC_VIEWER_ID = ':public-view:';
 
+/** Auth message a client sends instead of a token to view a public project. */
+export const PUBLIC_VIEW_TOKEN = 'public-view';
+
 /** Sync protocol message type — Yjs sync (subtypes inside the frame). */
 export const Y_MESSAGE_SYNC = 0;
 /** Sync protocol message type — Yjs awareness updates. */
@@ -63,6 +66,9 @@ export function isSyncFrame(message: ArrayBuffer | Uint8Array): boolean {
   return frameMessageType(message) === Y_MESSAGE_SYNC;
 }
 
+/** Sync sub-type of a state vector request (`y-protocols/sync` messageYjsSyncStep1). */
+export const Y_SYNC_STEP_1 = 0;
+
 /** Sync sub-type of a document update (`y-protocols/sync` messageYjsUpdate). */
 export const Y_SYNC_UPDATE = 2;
 
@@ -85,6 +91,10 @@ export function isSyncUpdateFrame(message: ArrayBuffer | Uint8Array): boolean {
  * Parse the project owner + slug out of a Yjs document id. Returns null
  * for malformed ids. Strips the optional `worldbuilding:` prefix so the
  * worldbuilding namespace resolves to the same project access record.
+ *
+ * Not for ids that come from a client: those go through `parseDocumentId`
+ * (`utils/yjs-document-id.ts`), which the sync routes and the Durable Object
+ * share, so access is checked on the project the documents live in.
  */
 export function parseDocumentOwner(
   documentId: string
@@ -97,6 +107,16 @@ export function parseDocumentOwner(
   if (parts.length < 2) return null;
   if (!parts[0] || !parts[1]) return null;
   return { projectOwner: parts[0], slug: parts[1] };
+}
+
+/**
+ * Whether a project's `username` and `slug` can be joined into a document id
+ * (`username:slug:…`). Ids are split on `:` to find the project, so a part
+ * that contains one would be read as a different project. Accounts created
+ * before usernames had a character rule may have one.
+ */
+export function canNameProjectInDocumentId(username: string, slug: string): boolean {
+  return Boolean(username) && Boolean(slug) && !username.includes(':') && !slug.includes(':');
 }
 
 /**
@@ -131,30 +151,27 @@ export function isElementsDoc(documentId: string): boolean {
 }
 
 /**
- * Detect Yjs frames that mutate document state. Read-only viewers must
- * receive sync-step-1 / sync-step-2 from the server and may broadcast
- * awareness, but must not send sync-step-2 (their own snapshot),
- * sync-update (binary diff) frames, or top-level update frames
- * (messageType === 2) back to the server.
+ * Detect Yjs frames a read-only viewer may not send. A viewer may ask for
+ * the document (sync step 1) and broadcast awareness (presence / cursors).
+ * Everything else is dropped: sync step 2 (its own snapshot), sync updates,
+ * any other message type, and frames that don't decode.
+ *
+ * The types are read with lib0's `readVarUint`, exactly as the sync handlers
+ * read them (`yjsService.handleMessage`, y-durableobjects'
+ * `WSSharedDoc.update`). A varuint can be padded (`0x82 0x00` is also 2), so
+ * comparing raw bytes let through updates that the handlers then applied.
  *
  * Returns true when the message should be dropped for a viewer.
  */
 export function isYjsFrameBlockedForViewer(message: ArrayBuffer | Uint8Array): boolean {
   const bytes = message instanceof Uint8Array ? message : new Uint8Array(message);
-  if (bytes.length === 0) return true;
   try {
     const decoder = createDecoder(bytes);
     const messageType = readVarUint(decoder);
-
     if (messageType === Y_MESSAGE_AWARENESS) return false;
-    if (messageType === 2) return true;
-
-    if (messageType === Y_MESSAGE_SYNC) {
-      return readVarUint(decoder) !== 0;
-    }
-    return false;
+    return messageType !== Y_MESSAGE_SYNC || readVarUint(decoder) !== Y_SYNC_STEP_1;
   } catch {
-    // Malformed protocol frames must never reach the document mutation handler.
+    // Truncated: the handlers can't read it either.
     return true;
   }
 }

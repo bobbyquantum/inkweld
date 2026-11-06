@@ -10,6 +10,13 @@ import { fileStorageService } from '../services/file-storage.service';
 import { imageService } from '../services/image.service';
 import { UserSchema, PaginatedUsersResponseSchema } from '../schemas/user.schemas';
 import {
+  USERNAME_MAX_LENGTH,
+  USERNAME_MIN_LENGTH,
+  fitsUsernameRule,
+  isReservedUsername,
+} from '../schemas/auth.schemas';
+import { trimHyphens } from '../utils/string-utils';
+import {
   errorResponse,
   errorResponses,
   MessageResponseSchema,
@@ -695,14 +702,56 @@ userRoutes.openapi(searchUsersRoute, async (c) => {
 });
 
 // Check username route
+const USERNAME_REFUSALS = ['invalid', 'reserved', 'taken'] as const;
+type UsernameRefusal = (typeof USERNAME_REFUSALS)[number];
+
 const UsernameAvailabilitySchema = z
   .object({
     available: z.boolean().openapi({ example: true, description: 'Whether username is available' }),
+    reason: z
+      .enum(USERNAME_REFUSALS)
+      .optional()
+      .openapi({
+        example: 'taken',
+        description:
+          'Why the username cannot be used, when it cannot: invalid (not 3 to 39 ASCII ' +
+          'letters, digits, hyphens and underscores), reserved (a name the app uses itself), ' +
+          'or taken (an account has it, ignoring letter case)',
+      }),
     suggestions: z
       .array(z.string())
       .openapi({ example: ['johndoe123', 'johndoe_new'], description: 'Alternative suggestions' }),
   })
   .openapi('UsernameAvailability');
+
+/** Why the form of a name rules it out for a new account, or null when it doesn't. */
+function ruleRefusal(username: string): UsernameRefusal | null {
+  if (!fitsUsernameRule(username)) return 'invalid';
+  if (isReservedUsername(username)) return 'reserved';
+  return null;
+}
+
+/**
+ * Names to suggest instead of `username`, if they are free: the name with
+ * each run of characters outside the username rule replaced by `-` and cut
+ * to the length limit, then that name with `123` or `_new` added. Names
+ * outside the rule and reserved names are left out.
+ */
+function suggestionCandidates(username: string): string[] {
+  const stem = trimHyphens(username.replaceAll(/[^\w-]+/g, '-')).slice(0, USERNAME_MAX_LENGTH);
+  if (!stem) return [];
+  return [
+    ...new Set([
+      stem,
+      ...['123', '_new'].map(
+        (tail) => `${stem.slice(0, USERNAME_MAX_LENGTH - tail.length)}${tail}`
+      ),
+    ]),
+  ].filter(
+    (candidate) =>
+      candidate !== username && fitsUsernameRule(candidate) && !isReservedUsername(candidate)
+  );
+}
 
 const checkUsernameRoute = createRoute({
   method: 'get',
@@ -718,27 +767,32 @@ const checkUsernameRoute = createRoute({
       },
       description: 'Username availability',
     },
-    400: errorResponse('Invalid username'),
+    400: errorResponse('Username missing or shorter than 3 characters'),
   },
 });
 
 userRoutes.openapi(checkUsernameRoute, async (c) => {
   const username = c.req.query('username');
 
-  if (!username || username.length < 3) {
+  if (!username || username.length < USERNAME_MIN_LENGTH) {
     return c.json({ error: 'Username must be at least 3 characters' }, 400);
   }
 
   const db = c.get('db');
-  const existingUser = await userService.findByUsername(db, username);
-
-  return c.json(
-    {
-      available: !existingUser,
-      suggestions: existingUser ? [`${username}123`, `${username}_new`] : [],
-    },
-    200
+  const refusal = ruleRefusal(username);
+  const candidates = suggestionCandidates(username);
+  // One query looks up the name, when its form allows it, and the suggestions.
+  const taken = await userService.findTakenUsernames(
+    db,
+    refusal ? candidates : [username, ...candidates]
   );
+  const reason = refusal ?? (taken.has(username.toLowerCase()) ? 'taken' : null);
+  if (!reason) {
+    return c.json({ available: true, suggestions: [] }, 200);
+  }
+
+  const suggestions = candidates.filter((candidate) => !taken.has(candidate.toLowerCase()));
+  return c.json({ available: false, reason, suggestions }, 200);
 });
 
 // Get avatar route

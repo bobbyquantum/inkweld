@@ -1,6 +1,7 @@
 import { type ErrorHandler } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
+import { isDevelopmentOrTest, runtimeEnv } from '../config/runtime-env';
 import { logger } from '../services/logger.service';
 import { getRequestCorrelationId, pathForLogging } from './request-logger';
 
@@ -72,28 +73,21 @@ export function quotaExceededBody(err: QuotaErrorShape): {
 }
 
 /**
- * Whether unhandled-error messages may be echoed to the client.
+ * Whether unhandled-error messages may be echoed to the client: only when the
+ * environment is development or test.
  *
- * The check used to be `process.env.NODE_ENV === 'production'`. On Cloudflare
- * Workers `process.env` is not populated from `[vars]` (the project's
- * compatibility date predates `nodejs_compat_populate_process_env`), so that
- * comparison was always false there and every 500 returned the raw error —
- * DB errors, internal paths, provider responses. Resolve the environment from
- * the request bindings first, then `process.env`. When neither says anything,
- * a Workers runtime (detected the same way as config/env.ts) is treated as
- * production and everything else as development. Details are shown only for
- * an explicit development/test environment — fail closed.
+ * The environment comes from runtimeEnv() (config/runtime-env.ts): the request
+ * bindings first (Workers `[vars]`, which `process.env` does not see), then
+ * NODE_ENV as the process was started with, which a bundled binary or Worker
+ * must not take from the machine that built it. When neither is set, Workers
+ * count as production and Bun/Node as development.
  */
 export function shouldExposeErrorDetails(env: unknown): boolean {
-  const bindings = env as { NODE_ENV?: unknown } | undefined;
-  const fromBindings = typeof bindings?.NODE_ENV === 'string' ? bindings.NODE_ENV : undefined;
-  const fromProcess =
-    typeof process !== 'undefined' && process.env ? process.env['NODE_ENV'] : undefined;
-  const g = globalThis as Record<string, unknown>;
-  const isWorkers = g.caches !== undefined && g.WebSocketPair !== undefined;
-  const nodeEnv = fromBindings ?? fromProcess ?? (isWorkers ? 'production' : 'development');
-  return nodeEnv === 'development' || nodeEnv === 'test';
+  return isDevelopmentOrTest(runtimeEnv(env));
 }
+
+/** Name of the error signingSecret() throws (config/signing-secret.ts). */
+const SIGNING_SECRET_ERROR = 'SigningSecretError';
 
 export const errorHandler: ErrorHandler = (err, c) => {
   // Get correlation ID from request context
@@ -110,6 +104,15 @@ export const errorHandler: ErrorHandler = (err, c) => {
     log.debug(
       `Client error on ${method} ${path}: ${err.name}`,
       { method, path, errorName: err.name },
+      correlationId
+    );
+  } else if (err.name === SIGNING_SECRET_ERROR) {
+    // A configuration problem, not a bug: one line naming what to set, no
+    // stack. The response below stays the generic 500.
+    log.error(
+      `${method} ${path} failed: ${err.message}`,
+      undefined,
+      { method, path },
       correlationId
     );
   } else {

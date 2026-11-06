@@ -346,13 +346,19 @@ export function encodeLeaveFrame(sessionId: string): Uint8Array {
 /**
  * Convenience: parse a raw incoming frame, returning both the decoder
  * (positioned past the multiplex byte) AND the message-type tag so the
- * caller can dispatch. Returns null if the frame is too short to read a tag.
+ * caller can dispatch. Returns null when no tag can be read: an empty frame,
+ * or one whose leading varuint is cut short or too large (lib0 throws for
+ * both). Never throws, so it is safe on any frame a client sends.
  */
 export function peekFrameTag(frame: Uint8Array): { tag: number; decoder: decoding.Decoder } | null {
   if (frame.length === 0) return null;
   const decoder = decoding.createDecoder(frame);
-  const tag = decoding.readVarUint(decoder);
-  return { tag, decoder };
+  try {
+    const tag = decoding.readVarUint(decoder);
+    return { tag, decoder };
+  } catch {
+    return null;
+  }
 }
 
 // writeHello and writeUpdate are re-exported above (at the import site).

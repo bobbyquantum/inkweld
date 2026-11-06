@@ -59,6 +59,20 @@ Never run `npm install` here; install from the repo root with `bun install`.
   `URL.createObjectURL` mock returns `blob:mock-url` for every caller, so give
   your test its own value first
   (`vi.spyOn(URL, 'createObjectURL').mockReturnValue(...)`).
+- **Specs must pass in any locale and time zone.** Contributors run them on
+  their own machines, Windows included, where `toLocaleString()` and `Intl`
+  without a locale follow the machine's settings (the `number` pipe doesn't:
+  `LOCALE_ID` is `'en'`). Build expected text with the same call as the code
+  (`(1000).toLocaleString()`), and give date inputs the local times the UI
+  produces (`new Date(2025, 0, 15)`, not `'2025-01-15T00:00:00Z'`). To check,
+  run `bun exec "export TZ=Pacific/Kiritimati LC_ALL=fr_FR.UTF-8; npm test"`
+  here, and again with `ar_EG.UTF-8` for non-Latin digits. `bun exec` runs it
+  in Bun's shell, so the same line works in bash, PowerShell and Command
+  Prompt; keep the `export`, because an inline `TZ=… npm test` there doesn't
+  replace a `TZ` the machine already sets. `TZ` works on every OS, but Node
+  reads `LC_ALL` only on Linux and macOS: on Windows the locale is the
+  regional format in Settings (Time & language → Language & region), so
+  change it there to try another.
 
 ## E2E tests (Playwright)
 
@@ -81,6 +95,17 @@ Read `e2e/BEST_PRACTICES.md` before writing one.
   fixtures use the password API.
 - Every job traces the first attempt of each test and uploads
   `test-results/`; open a trace with `npx playwright show-trace <trace.zip>`.
+- **Touch gestures**: Playwright's touchscreen only taps. Send swipes and
+  long-press drags as raw touch points over CDP (`Finger` in
+  `e2e/local/project-tree-touch.spec.ts`); Chromium holds back `touchmove`
+  until the finger leaves a slop region of about 15 px.
+- **Reduced motion changes drop timing.** The suites run with
+  `reducedMotion: 'reduce'`, which gives every element a 0.01 ms transition
+  (`src/themes/theme.scss`), so the CDK animates each drop and
+  `cdkDragEnded` fires after the dragged row's `touchend`. Without the
+  preference, as for most users, the drop doesn't animate and the drag ends
+  first. Test what happens on release under
+  `page.emulateMedia({ reducedMotion: 'no-preference' })`.
 
 ## Rules that apply across the app
 
@@ -94,6 +119,21 @@ Read `e2e/BEST_PRACTICES.md` before writing one.
   `appOrigin()` from `utils/app-base.ts` for full-page navigations, new
   windows and server URLs. Under ingress, sign-out and the account/server
   switcher are hidden.
+- **Every API path segment goes through `encodePathSegment()`**
+  (`utils/url-path.ts`), which percent-encodes it and throws for `.`, `..`
+  and non-strings. Hand-built paths call it for each segment; the generated
+  API client calls it for every path parameter (`encodeApiPathParam` in
+  `config/api.config.ts`), so a generated call given such a value throws
+  synchronously, before any request; a caller outside a `try` handles that
+  (`UserAvatarComponent` falls back to its generated avatar). Ids read from
+  project data are checked before they name a server resource: comment
+  thread and message ids must be UUIDs (`isCommentId` in
+  `services/project/comment.service.ts`; the comment popover shows and acts
+  on a server thread only once it has loaded the open mark's thread, and
+  shows any other server comment as unavailable), and a `media://` filename
+  must be one plain path segment (`safeMediaReferenceFilename` /
+  `isSafeMediaFilename` in `utils/media-reference.ts`), else it resolves to
+  no image without a request.
 - **Backgrounds**: never reference `/home_background.png` in a component
   stylesheet; use the mixins in `src/themes/_app-background.scss`
   (`services/core/AGENTS.md`).
@@ -104,6 +144,15 @@ Read `e2e/BEST_PRACTICES.md` before writing one.
   `isAiKillSwitchEnabled` is for admin pages only.
 - **Adding profiles**: every path that creates a profile asks
   `AppModePolicyService` (`APP_MODE`); see `services/core/AGENTS.md`.
+  A profile never changes server, and a new server never takes the id of
+  another server's profile (same file, "Server profile ids").
+- **The session token only goes to the active profile's server.** A manual
+  `Authorization` header or a socket token comes from
+  `AuthTokenService.getTokenForUrl(url)` with the URL being contacted (`null`
+  for any other server), never straight from `getToken()`. `AuthInterceptor`
+  applies the same rule to `HttpClient` requests, and tokens are only
+  written through `AuthTokenService`, which records each one's server
+  (`services/auth/AGENTS.md`).
 - **Storage quota errors** are 403 with `code: 'QUOTA_EXCEEDED'`; tell them
   apart from access errors with `getQuotaExceeded()` /
   `StorageUsageService.noteQuotaError()`, and only warn when
@@ -123,6 +172,9 @@ Read `e2e/BEST_PRACTICES.md` before writing one.
   `ARCHIVE_VERSION` (file format) and the backend `PROTOCOL_VERSION` (live Yjs
   sync) are separate. Docs: `docs/site/docs/developer/project-archives.md`.
 - **Markdown input rules** are opt-in (`components/editor-input-rules/AGENTS.md`).
+- **CDK drag and drop**: on release the CDK emits `cdkDragEnded` before
+  `cdkDropListDropped`, so a drop handler can't read state that the drag-end
+  handler clears (see `drop()` in `components/project-tree/`).
 
 ## Internationalization (Transloco)
 
@@ -141,9 +193,10 @@ keys), and `services/core/locale.service.ts` persists the active language.
 - Components with no user-facing strings (e.g. `AriaTabPanelComponent`,
   `TreeNodeIconComponent`) don't use Transloco.
 
-**Error codes** are mapped to keys in `services/core/error-translation.service.ts`;
-add new codes there and the key to the right JSON file. Unmapped errors fall
-back to `errors.unknown`.
+**Error codes** of errors thrown as `PasskeyError` or `UserServiceError` are
+mapped to keys in `services/core/error-translation.service.ts`; add new codes
+there and the key to the right JSON file. Unmapped errors fall back to
+`errors.unknown`. Sign-in callback codes are mapped separately (below).
 
 | Error class | Code | Translation key / behaviour |
 |---|---|---|
@@ -156,6 +209,13 @@ back to `errors.unknown`.
 | `UserServiceError` | `LOGIN_FAILED` | `login.errors.loginFailed` |
 | `UserServiceError` | `ACCOUNT_PENDING` | Redirect to `/approval-pending` |
 
+**Sign-in callback codes**: OIDC sign-in failures and GitHub's `email_in_use`
+arrive on `/oauth/callback` as `?error=<code>` (GitHub's other failures still
+redirect to `/?error=…`). `ERROR_MESSAGE_KEYS` in `OAuthCallbackComponent`
+maps the codes that have their own message (`email_in_use` →
+`auth.oauthCallback.emailInUse`); add new ones there. Any other code shows
+`errors.unknown`.
+
 **Adding a locale**: copy `public/assets/i18n/en/` to `<lang>/` and translate
 it; register the Angular locale data (`registerLocaleData`) and add
 `{ id, label }` to `availableLangs` in `app.config.ts`; make sure
@@ -167,10 +227,10 @@ Settings appears once there is more than one language.
 
 | Area | Notes |
 |---|---|
-| Profile-scoped storage, project rename, APP_MODE, backgrounds, update dialog | `src/app/services/core/AGENTS.md` |
+| Profile-scoped storage, server profile ids, project rename, APP_MODE, backgrounds, update dialog | `src/app/services/core/AGENTS.md` |
 | Starting offline, bulk sync planner | `src/app/services/sync/AGENTS.md` |
 | Canvas Yjs model | `src/app/services/canvas/AGENTS.md` |
-| Passkeys, policy acceptance | `src/app/services/auth/AGENTS.md` |
+| Where the session token is sent, passkeys, policy acceptance | `src/app/services/auth/AGENTS.md` |
 | WebMCP tools | `src/app/services/webmcp/AGENTS.md` |
 | EPUB output, share links | `src/app/services/publish/AGENTS.md` |
 | Per-element schema copies, identity images | `src/app/services/worldbuilding/AGENTS.md` |

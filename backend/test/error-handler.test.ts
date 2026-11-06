@@ -1,6 +1,10 @@
-import { describe, it, expect } from 'bun:test';
+import { afterAll, beforeAll, describe, it, expect, spyOn } from 'bun:test';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
+import { SigningSecretError } from '../src/config/signing-secret';
 import { errorHandler, shouldExposeErrorDetails } from '../src/middleware/error-handler';
 
 describe('Error Handler Middleware', () => {
@@ -358,6 +362,96 @@ describe('Error Handler Middleware', () => {
         const json = await res.json();
         expect(json.message).toBe('An error occurred');
       });
+    });
+  });
+  describe('missing signing key', () => {
+    it('answers with a generic 500 and logs one line naming what to set, without a stack', async () => {
+      const errorSpy = spyOn(console, 'error').mockImplementation(() => {});
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+      try {
+        const app = createTestApp();
+        app.get('/test', () => {
+          throw new SigningSecretError(
+            'DATABASE_KEY or SESSION_SECRET must be set when NODE_ENV is "production"'
+          );
+        });
+
+        const res = await app.request('/test');
+        expect(res.status).toBe(500);
+        expect(await res.json()).toEqual({
+          error: 'Internal Server Error',
+          message: 'An error occurred',
+        });
+        expect(errorSpy).toHaveBeenCalledTimes(1);
+        const line = String(errorSpy.mock.calls[0][0]);
+        expect(line).toContain('DATABASE_KEY or SESSION_SECRET must be set');
+        expect(line).not.toContain('stack');
+      } finally {
+        process.env.NODE_ENV = originalEnv;
+        errorSpy.mockRestore();
+      }
+    });
+  });
+
+  /**
+   * Bun's bundler replaces `process.env.NODE_ENV` with its build-time value.
+   * A server bundled with "development" in place must still hide details
+   * when it is started in production.
+   */
+  describe('in a bundle', () => {
+    let dir: string;
+    let bundle: string;
+
+    beforeAll(async () => {
+      dir = mkdtempSync(join(tmpdir(), 'inkweld-error-handler-'));
+      const entry = join(dir, 'entry.ts');
+      writeFileSync(
+        entry,
+        `import { Hono } from ${JSON.stringify(Bun.resolveSync('hono', import.meta.dir))};
+import { errorHandler } from ${JSON.stringify(join(import.meta.dir, '../src/middleware/error-handler.ts'))};
+const app = new Hono();
+app.onError(errorHandler);
+app.get('/boom', () => {
+  throw new Error('internal detail');
+});
+const res = await app.request('/boom');
+console.log(JSON.stringify(await res.json()));
+`
+      );
+      const result = await Bun.build({
+        entrypoints: [entry],
+        outdir: join(dir, 'out'),
+        target: 'bun',
+        minify: true,
+        define: { 'process.env.NODE_ENV': JSON.stringify('development') },
+      });
+      expect(result.success).toBe(true);
+      bundle = result.outputs[0].path;
+    });
+
+    afterAll(() => {
+      rmSync(dir, { recursive: true, force: true });
+    });
+
+    function messageWhenStartedWith(nodeEnv: string): unknown {
+      const result = Bun.spawnSync({
+        cmd: [process.execPath, bundle],
+        cwd: dir,
+        env: { PATH: process.env.PATH ?? '', NODE_ENV: nodeEnv, LOG_LEVEL: 'none' },
+        stdout: 'pipe',
+        stderr: 'pipe',
+      });
+      expect(result.exitCode).toBe(0);
+      return (JSON.parse(result.stdout.toString()) as { message: unknown }).message;
+    }
+
+    it('hides the message when started with NODE_ENV=production', () => {
+      expect(messageWhenStartedWith('production')).toBe('An error occurred');
+    });
+
+    it('shows the message when started with NODE_ENV=development', () => {
+      expect(messageWhenStartedWith('development')).toBe('internal detail');
     });
   });
 });

@@ -11,47 +11,53 @@
     </div>
   } @else {
     <div class="comment-popover__header">
-      <app-user-avatar
-        [username]="threadAuthor()"
-        size="small"
-        class="comment-popover__avatar"></app-user-avatar>
-      <span class="comment-popover__author">{{ threadAuthor() }}</span>
-      <span class="comment-popover__date">{{ threadDate() }}</span>
-      <span class="comment-popover__spacer"></span>
-      @if (!readOnly()) {
-        @if (!attrs().resolved) {
+      @if (unavailable()) {
+        <div class="comment-popover__notice" data-testid="comment-unavailable">
+          {{ 'editor.comments.unavailable' | transloco }}
+        </div>
+      } @else {
+        <app-user-avatar
+          [username]="threadAuthor()"
+          size="small"
+          class="comment-popover__avatar"></app-user-avatar>
+        <span class="comment-popover__author">{{ threadAuthor() }}</span>
+        <span class="comment-popover__date">{{ threadDate() }}</span>
+        <span class="comment-popover__spacer"></span>
+        @if (!readOnly()) {
+          @if (!attrs().resolved) {
+            <button
+              mat-icon-button
+              appTooltipAriaLabel
+              class="comment-popover__action"
+              [attr.aria-label]="'editor.comments.resolveThread' | transloco"
+              [matTooltip]="'editor.comments.resolve' | transloco"
+              (click)="onResolve()"
+              data-testid="comment-resolve-btn">
+              <mat-icon>check_circle_outline</mat-icon>
+            </button>
+          } @else {
+            <button
+              mat-icon-button
+              appTooltipAriaLabel
+              class="comment-popover__action"
+              [attr.aria-label]="'editor.comments.unresolveThread' | transloco"
+              [matTooltip]="'editor.comments.unresolve' | transloco"
+              (click)="onUnresolve()"
+              data-testid="comment-unresolve-btn">
+              <mat-icon>undo</mat-icon>
+            </button>
+          }
           <button
             mat-icon-button
             appTooltipAriaLabel
             class="comment-popover__action"
-            [attr.aria-label]="'editor.comments.resolveThread' | transloco"
-            [matTooltip]="'editor.comments.resolve' | transloco"
-            (click)="onResolve()"
-            data-testid="comment-resolve-btn">
-            <mat-icon>check_circle_outline</mat-icon>
-          </button>
-        } @else {
-          <button
-            mat-icon-button
-            appTooltipAriaLabel
-            class="comment-popover__action"
-            [attr.aria-label]="'editor.comments.unresolveThread' | transloco"
-            [matTooltip]="'editor.comments.unresolve' | transloco"
-            (click)="onUnresolve()"
-            data-testid="comment-unresolve-btn">
-            <mat-icon>undo</mat-icon>
+            [attr.aria-label]="'editor.comments.deleteThreadAria' | transloco"
+            [matTooltip]="'editor.comments.deleteThread' | transloco"
+            (click)="onDelete()"
+            data-testid="comment-delete-btn">
+            <mat-icon>delete_outline</mat-icon>
           </button>
         }
-        <button
-          mat-icon-button
-          appTooltipAriaLabel
-          class="comment-popover__action"
-          [attr.aria-label]="'editor.comments.deleteThreadAria' | transloco"
-          [matTooltip]="'editor.comments.deleteThread' | transloco"
-          (click)="onDelete()"
-          data-testid="comment-delete-btn">
-          <mat-icon>delete_outline</mat-icon>
-        </button>
       }
       <button
         mat-icon-button
@@ -65,54 +71,56 @@
       </button>
     </div>
 
-    <div class="comment-popover__messages" #messagesContainer>
-      @for (msg of messages(); track msg.id) {
-        <div class="comment-popover__message">
-          <div class="comment-popover__msg-header">
-            <app-user-avatar
-              [username]="msg.authorUsername || msg.authorName"
-              size="small"
-              class="comment-popover__msg-avatar"></app-user-avatar>
-            <span class="comment-popover__msg-author">{{
-              msg.authorName
-            }}</span>
-            <span class="comment-popover__msg-date">{{
-              formatDate(msg.createdAt)
-            }}</span>
+    @if (!unavailable()) {
+      <div class="comment-popover__messages" #messagesContainer>
+        @for (msg of messages(); track msg.id) {
+          <div class="comment-popover__message">
+            <div class="comment-popover__msg-header">
+              <app-user-avatar
+                [username]="msg.authorUsername || msg.authorName"
+                size="small"
+                class="comment-popover__msg-avatar"></app-user-avatar>
+              <span class="comment-popover__msg-author">{{
+                msg.authorName
+              }}</span>
+              <span class="comment-popover__msg-date">{{
+                formatDate(msg.createdAt)
+              }}</span>
+            </div>
+            <div class="comment-popover__msg-text">{{ msg.text }}</div>
           </div>
-          <div class="comment-popover__msg-text">{{ msg.text }}</div>
-        </div>
-      } @empty {
-        <div class="comment-popover__empty">
-          {{ 'editor.comments.noMessages' | transloco }}
+        } @empty {
+          <div class="comment-popover__empty">
+            {{ 'editor.comments.noMessages' | transloco }}
+          </div>
+        }
+      </div>
+
+      @if (!readOnly()) {
+        <div class="comment-popover__reply">
+          <input
+            #replyInput
+            id="comment-popover-reply-input"
+            [attr.aria-label]="'editor.comments.reply' | transloco"
+            class="comment-popover__reply-input"
+            type="text"
+            [placeholder]="'editor.comments.replyPlaceholder' | transloco"
+            [formField]="form.replyText"
+            (keydown.enter)="onReply()"
+            data-testid="comment-reply-input" />
+          <button
+            mat-icon-button
+            appTooltipAriaLabel
+            class="comment-popover__reply-btn"
+            [attr.aria-label]="'editor.comments.sendReply' | transloco"
+            [disabled]="!model().replyText.trim()"
+            (click)="onReply()"
+            [matTooltip]="'editor.comments.sendReply' | transloco"
+            data-testid="comment-reply-btn">
+            <mat-icon>send</mat-icon>
+          </button>
         </div>
       }
-    </div>
-
-    @if (!readOnly()) {
-      <div class="comment-popover__reply">
-        <input
-          #replyInput
-          id="comment-popover-reply-input"
-          [attr.aria-label]="'editor.comments.reply' | transloco"
-          class="comment-popover__reply-input"
-          type="text"
-          [placeholder]="'editor.comments.replyPlaceholder' | transloco"
-          [formField]="form.replyText"
-          (keydown.enter)="onReply()"
-          data-testid="comment-reply-input" />
-        <button
-          mat-icon-button
-          appTooltipAriaLabel
-          class="comment-popover__reply-btn"
-          aria-label="Send reply"
-          [disabled]="!model().replyText.trim()"
-          (click)="onReply()"
-          [matTooltip]="'editor.comments.sendReply' | transloco"
-          data-testid="comment-reply-btn">
-          <mat-icon>send</mat-icon>
-        </button>
-      </div>
     }
   }
 </div>

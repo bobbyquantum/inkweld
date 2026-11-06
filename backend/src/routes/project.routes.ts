@@ -3,7 +3,11 @@ import { requireAuth } from '../middleware/auth';
 import { projectService } from '../services/project.service';
 import { userService } from '../services/user.service';
 import { collaborationService } from '../services/collaboration.service';
-import { moveProjectData, removeProjectData } from '../services/project-data.service';
+import {
+  moveProjectData,
+  removeProjectData,
+  sharesProjectDirectory,
+} from '../services/project-data.service';
 import { getProjectStorageSize } from '../services/storage-size.service';
 import { quotaService } from '../services/quota.service';
 import { quotaStorageContext } from '../utils/quota-context';
@@ -237,7 +241,9 @@ projectRoutes.openapi(createProjectRoute, async (c) => {
 
   const existing = await projectService.findByUsernameAndSlug(db, user.username, slug);
 
-  if (existing) {
+  // The new project's data is wiped below, so it must not share its directory
+  // with another account's project.
+  if (existing || (await sharesProjectDirectory(c, userId, user.username, slug))) {
     throw new BadRequestError('Project with this slug already exists');
   }
 
@@ -377,7 +383,7 @@ projectRoutes.openapi(updateProjectRoute, async (c) => {
   if (newSlug) {
     // Check if new slug already exists for this user
     const existing = await projectService.findByUsernameAndSlug(db, username, newSlug);
-    if (existing) {
+    if (existing || (await sharesProjectDirectory(c, project.userId, username, newSlug))) {
       throw new BadRequestError('A project with this slug already exists');
     }
 
@@ -476,7 +482,7 @@ projectRoutes.openapi(deleteProjectRoute, async (c) => {
     .then((size) => size.dataBytes + size.mediaBytes)
     .catch(() => 0);
 
-  await removeProjectData(c, username, slug);
+  await removeProjectData(c, username, slug, { skipUnstorableFiles: true });
 
   await projectService.delete(db, project.id, project.userId, project.slug);
   await quotaService.recordDeletion(db, project.userId, freedBytes);

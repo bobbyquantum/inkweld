@@ -890,6 +890,51 @@ describe('ElementRefTooltipComponent', () => {
       expect(mockHttp.get).not.toHaveBeenCalled();
     });
 
+    it('should download from the encoded project media URL', async () => {
+      mockLocalStorage.getMediaUrl
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce('blob:fresh');
+      const generation = ++component['previewGeneration'];
+
+      await component['resolveImageUrl'](
+        'media://Map of the North.png',
+        'alice',
+        'novel',
+        generation
+      );
+
+      expect(mockHttp.get).toHaveBeenCalledWith(
+        'https://api/api/v1/media/alice/novel/Map%20of%20the%20North.png',
+        { responseType: 'blob' }
+      );
+      expect(component.resolvedImageUrl()).toBe('blob:fresh');
+    });
+
+    it.each([
+      'media://../x.png',
+      'media://..%2fx.png',
+      'media://%2E%2E/x.png',
+      'media://img.png#x',
+      'media://.',
+    ])(
+      'should show no image for %j without a lookup or request',
+      async reference => {
+        component.resolvedImageUrl.set('blob:previous');
+        const generation = ++component['previewGeneration'];
+
+        await component['resolveImageUrl'](
+          reference,
+          'alice',
+          'novel',
+          generation
+        );
+
+        expect(component.resolvedImageUrl()).toBeNull();
+        expect(mockLocalStorage.getMediaUrl).not.toHaveBeenCalled();
+        expect(mockHttp.get).not.toHaveBeenCalled();
+      }
+    );
+
     it('should clear the image when a media:// download fails', async () => {
       mockLocalStorage.getMediaUrl.mockRejectedValue(new Error('offline'));
       const generation = ++component['previewGeneration'];

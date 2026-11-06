@@ -5,6 +5,7 @@ import type {
   UserActivityResponse,
 } from '@models/activity-event';
 import { SetupService } from '@services/core/setup.service';
+import { encodePathSegment } from '@utils/url-path';
 import type { Observable } from 'rxjs';
 
 /**
@@ -42,7 +43,7 @@ export class ActivityFeedService {
     slug: string,
     options: { limit?: number; before?: number } = {}
   ): Observable<ProjectActivityResponse> {
-    const url = `${this.baseUrl}/projects/${encodeURIComponent(username)}/${encodeURIComponent(slug)}`;
+    const url = `${this.baseUrl}/projects/${encodePathSegment(username)}/${encodePathSegment(slug)}`;
     const params: Record<string, string> = {};
     if (options.limit !== undefined) params['limit'] = String(options.limit);
     if (options.before !== undefined) params['before'] = String(options.before);

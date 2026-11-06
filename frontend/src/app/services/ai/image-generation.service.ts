@@ -421,13 +421,13 @@ export class ImageGenerationService {
     }
   }
 
-  private createStreamingHeaders(): Record<string, string> {
+  private createStreamingHeaders(url: string): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Accept: 'text/event-stream',
     };
 
-    const token = this.authTokenService.getToken();
+    const token = this.authTokenService.getTokenForUrl(url);
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -438,15 +438,13 @@ export class ImageGenerationService {
   private openStreamingResponse(
     request: ImageGenerateRequest
   ): Promise<Response> {
-    return fetch(
-      `${this.storageContext.getApiBaseUrl()}/api/v1/ai/image/generate-stream`,
-      {
-        method: 'POST',
-        headers: this.createStreamingHeaders(),
-        body: JSON.stringify(request),
-        credentials: 'include',
-      }
-    );
+    const url = `${this.storageContext.getApiBaseUrl()}/api/v1/ai/image/generate-stream`;
+    return fetch(url, {
+      method: 'POST',
+      headers: this.createStreamingHeaders(url),
+      body: JSON.stringify(request),
+      credentials: 'include',
+    });
   }
 
   private async getStreamingErrorMessage(response: Response): Promise<string> {

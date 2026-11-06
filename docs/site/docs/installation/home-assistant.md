@@ -26,13 +26,15 @@ If the list is empty, the first account created on the instance becomes the admi
 
 ## What the app configures
 
-The app sets these environment variables for you (see [Configuration](../configuration.md#home-assistant-ingress)):
+The app sets these environment variables for you (see [Configuration](../configuration.md#home-assistant-ingress)). The image runs with `NODE_ENV=production`, which needs a signing key and a passkey RP ID; the app provides both, so there is nothing to set by hand:
 
-| Variable                | Value set by the app | Purpose                                               |
-| ----------------------- | -------------------- | ----------------------------------------------------- |
-| `INGRESS_ENABLED`       | `true`               | Turns on ingress handling                             |
-| `INGRESS_TRUSTED_PROXY` | `172.30.32.2`        | The Home Assistant Supervisor's ingress proxy address |
-| `INGRESS_ADMINS`        | from the app options | HA usernames that are Inkweld admins                  |
+| Variable                | Value set by the app                                    | Purpose                                               |
+| ----------------------- | ------------------------------------------------------- | ----------------------------------------------------- |
+| `INGRESS_ENABLED`       | `true`                                                  | Turns on ingress handling                             |
+| `INGRESS_TRUSTED_PROXY` | `172.30.32.2`                                           | The Home Assistant Supervisor's ingress proxy address |
+| `INGRESS_ADMINS`        | from the app options                                    | HA usernames that are Inkweld admins                  |
+| `DATABASE_KEY`          | generated on first start, kept in `/data/.database-key` | Signs sessions and encrypts stored settings           |
+| `WEBAUTHN_RP_ID`        | from the app options (default `homeassistant.local`)    | Passkey relying party ID                              |
 
 ## Security model
 

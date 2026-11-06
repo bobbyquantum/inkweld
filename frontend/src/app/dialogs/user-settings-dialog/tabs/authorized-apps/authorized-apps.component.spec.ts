@@ -463,8 +463,14 @@ describe('AuthorizedAppsComponent', () => {
   it('should format dates correctly', () => {
     const timestamp = new Date('2025-06-15').getTime();
     const formatted = component.formatDate(timestamp);
-    expect(formatted).toContain('2025');
-    expect(formatted).toContain('Jun');
+    // In the machine's locale and time zone.
+    expect(formatted).toBe(
+      new Date(timestamp).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
+    );
   });
 
   it('should generate grant keys', () => {

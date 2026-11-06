@@ -140,6 +140,12 @@ describe('ActivityFeedService', () => {
       req.flush(projectResponse);
       await promise;
     });
+
+    it('refuses a dot-segment username or slug without a request', () => {
+      expect(() => service.getProjectActivity('..', 'slug')).toThrow();
+      expect(() => service.getProjectActivity('user', '.')).toThrow();
+      httpController.expectNone(() => true);
+    });
   });
 
   describe('getMyActivity', () => {

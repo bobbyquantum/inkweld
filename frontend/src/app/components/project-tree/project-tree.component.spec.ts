@@ -478,77 +478,112 @@ describe('ProjectTreeComponent', () => {
         ).not.toHaveBeenCalled();
       });
 
-      it('should expand a closed folder when dropping into it', async () => {
-        settingsService.getSetting.mockReturnValue(false); // confirmElementMoves disabled
-
-        // Create a closed folder
-        const closedFolder: ProjectElement = {
+      describe('into a folder', () => {
+        const folder = (expanded: boolean): ProjectElement => ({
+          ...mockDto,
           id: 'folder-1',
-          name: 'Closed Folder',
+          name: 'Folder',
           type: ElementType.Folder,
-          order: 0,
           level: 0,
           expandable: true,
-          expanded: false, // Folder is collapsed
-          version: 0,
-          metadata: {},
-          visible: true,
-          parentId: null,
+          expanded,
+        });
+
+        /**
+         * Drags a document to just below `target` and drops it at
+         * `dropLevel`, with the events in the CDK's order: the drag ends
+         * (`cdkDragEnded`) before the tree hears of the drop.
+         */
+        const dropBelow = async (target: ProjectElement, dropLevel: number) => {
+          const dragged: ProjectElement = {
+            ...mockDto,
+            id: 'doc-1',
+            name: 'Doc',
+            type: ElementType.Item,
+            level: 0,
+          };
+          visibleElementsSignal.set([dragged, target]);
+          fixture.detectChanges();
+
+          component.dragStarted(dragged);
+          component.currentDropLevel = dropLevel;
+          component['nodeAboveDropPosition'] = target;
+          component['updateParentFolderHighlight']();
+
+          // currentIndex 1: the dragged row now sits below the target.
+          const event = createTestDragEvent();
+          event.item = { data: dragged } as CdkDrag<ProjectElement>;
+          event.container = {
+            data: [dragged, target],
+            getSortedItems: () => [
+              { data: target } as CdkDrag<ProjectElement>,
+              { data: dragged } as CdkDrag<ProjectElement>,
+            ],
+          } as CdkDropList<ProjectElement[]>;
+
+          component.dragEnded();
+          await component.drop(event);
         };
 
-        // Set up the visible elements to include the closed folder
-        visibleElementsSignal.set([closedFolder, mockDto]);
-        fixture.detectChanges();
+        it('should expand a closed folder once the move is confirmed', async () => {
+          settingsService.getSetting.mockReturnValue(true);
+          dialogGatewayService.openMoveElementDialog.mockResolvedValue({
+            dontAskAgain: false,
+          });
 
-        // Set up the dragged node
-        component.draggedNode = mockDto;
+          await dropBelow(folder(false), 1);
 
-        // Set the target parent folder to the closed folder
-        component.targetParentFolderId.set('folder-1');
+          expect(projectStateService.moveElement).toHaveBeenCalledWith(
+            'doc-1',
+            expect.any(Number),
+            1
+          );
+          expect(projectStateService.setExpanded).toHaveBeenCalledWith(
+            'folder-1',
+            true
+          );
+        });
 
-        const event = createTestDragEvent();
-        await component.drop(event);
+        it('should expand a closed folder when moves are not confirmed', async () => {
+          settingsService.getSetting.mockReturnValue(false);
 
-        // Verify setExpanded was called to expand the folder
-        expect(projectStateService.setExpanded).toHaveBeenCalledWith(
-          'folder-1',
-          true
-        );
-      });
+          await dropBelow(folder(false), 1);
 
-      it('should not expand an already open folder when dropping into it', async () => {
-        settingsService.getSetting.mockReturnValue(false); // confirmElementMoves disabled
+          expect(projectStateService.setExpanded).toHaveBeenCalledWith(
+            'folder-1',
+            true
+          );
+        });
 
-        // Create an open folder
-        const openFolder: ProjectElement = {
-          id: 'folder-1',
-          name: 'Open Folder',
-          type: ElementType.Folder,
-          order: 0,
-          level: 0,
-          expandable: true,
-          expanded: true, // Folder is already expanded
-          version: 0,
-          metadata: {},
-          visible: true,
-          parentId: null,
-        };
+        it('should leave a closed folder closed when the move is cancelled', async () => {
+          settingsService.getSetting.mockReturnValue(true);
+          dialogGatewayService.openMoveElementDialog.mockResolvedValue(
+            undefined
+          );
 
-        // Set up the visible elements to include the open folder
-        visibleElementsSignal.set([openFolder, mockDto]);
-        fixture.detectChanges();
+          await dropBelow(folder(false), 1);
 
-        // Set up the dragged node
-        component.draggedNode = mockDto;
+          expect(projectStateService.moveElement).not.toHaveBeenCalled();
+          expect(projectStateService.setExpanded).not.toHaveBeenCalled();
+        });
 
-        // Set the target parent folder to the open folder
-        component.targetParentFolderId.set('folder-1');
+        it('should leave a closed folder closed when the drop lands beside it', async () => {
+          settingsService.getSetting.mockReturnValue(false);
 
-        const event = createTestDragEvent();
-        await component.drop(event);
+          await dropBelow(folder(false), 0);
 
-        // Verify setExpanded was NOT called since folder is already open
-        expect(projectStateService.setExpanded).not.toHaveBeenCalled();
+          expect(projectStateService.moveElement).toHaveBeenCalled();
+          expect(projectStateService.setExpanded).not.toHaveBeenCalled();
+        });
+
+        it('should not expand a folder that is already open', async () => {
+          settingsService.getSetting.mockReturnValue(false);
+
+          await dropBelow(folder(true), 1);
+
+          expect(projectStateService.moveElement).toHaveBeenCalled();
+          expect(projectStateService.setExpanded).not.toHaveBeenCalled();
+        });
       });
     });
 
@@ -771,6 +806,7 @@ describe('ProjectTreeComponent', () => {
     beforeEach(() => {
       node = { ...mockDto, id: 'test-touch-id' };
       mockTouchEvent = {
+        cancelable: true,
         preventDefault: vi.fn(),
         stopPropagation: vi.fn(),
       } as unknown as TouchEvent;
@@ -858,8 +894,7 @@ describe('ProjectTreeComponent', () => {
       expect(mockTouchEvent.preventDefault).toHaveBeenCalled();
       expect(open).toHaveBeenCalledTimes(1);
       expect(open).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'test-touch-id' }),
-        mockTouchEvent
+        expect.objectContaining({ id: 'test-touch-id' })
       );
     });
 
@@ -1562,6 +1597,127 @@ describe('ProjectTreeComponent', () => {
       component.onOpenDocument(mockDto);
 
       expect(emitted).toHaveLength(1);
+    });
+
+    /** A one-finger touch at (clientX, clientY), as a row's handlers get it. */
+    const touchAt = (
+      type: 'touchstart' | 'touchend',
+      clientX: number,
+      clientY: number,
+      cancelable = true
+    ): TouchEvent => {
+      const point = new Touch({
+        identifier: 0,
+        target: document.body,
+        clientX,
+        clientY,
+      });
+      return new TouchEvent(type, {
+        cancelable,
+        touches: type === 'touchstart' ? [point] : [],
+        changedTouches: [point],
+      });
+    };
+
+    it('should not open a document whose drag ended before its touchend', () => {
+      // Without a drop animation the CDK ends the drag, clearing draggedNode,
+      // before the row's touchend runs.
+      component.onNodeDown(mockDto, touchAt('touchstart', 0, 0));
+      component.dragStarted(mockDto);
+      component.dragEnded();
+
+      const emitted: unknown[] = [];
+      component.documentOpened.subscribe(e => emitted.push(e));
+      component.onOpenDocument(mockDto, touchAt('touchend', 0, 0));
+
+      expect(emitted).toHaveLength(0);
+    });
+
+    describe('on folder rows', () => {
+      const folder: ProjectElement = {
+        ...mockDto,
+        id: 'folder-1',
+        expandable: true,
+        expanded: true,
+      };
+
+      it('should not toggle a folder after a scroll swipe that started on it', () => {
+        component.onNodeDown(folder, touchAt('touchstart', 0, 0));
+        component.onFolderRowTouch(folder, touchAt('touchend', 0, -200));
+        // A click the browser may still send is swallowed too.
+        component.onFolderRowClick(folder, new MouseEvent('click'));
+
+        expect(projectStateService.toggleExpanded).not.toHaveBeenCalled();
+      });
+
+      it('should not toggle a folder when its drag ends after the touchend', () => {
+        // The drop animates (reduced motion gives everything a transition),
+        // so the row's touchend comes first.
+        component.onNodeDown(folder, touchAt('touchstart', 0, 0));
+        component.dragStarted(folder);
+        component.onFolderRowTouch(folder, touchAt('touchend', 0, 0));
+        component.dragEnded();
+
+        expect(projectStateService.toggleExpanded).not.toHaveBeenCalled();
+      });
+
+      it('should not toggle a folder when its drag ended before the touchend', () => {
+        component.onNodeDown(folder, touchAt('touchstart', 0, 0));
+        component.dragStarted(folder);
+        component.dragEnded();
+        component.onFolderRowTouch(folder, touchAt('touchend', 0, 0));
+
+        expect(projectStateService.toggleExpanded).not.toHaveBeenCalled();
+      });
+
+      it('should toggle a folder again on the first tap after a drag', () => {
+        component.onNodeDown(folder, touchAt('touchstart', 0, 0));
+        component.dragStarted(folder);
+        component.dragEnded();
+        component.onFolderRowTouch(folder, touchAt('touchend', 0, 0));
+
+        component.onNodeDown(folder, touchAt('touchstart', 0, 0));
+        component.toggleExpandedTouch(folder, touchAt('touchend', 2, 3));
+
+        expect(projectStateService.toggleExpanded).toHaveBeenCalledOnce();
+        expect(projectStateService.toggleExpanded).toHaveBeenCalledWith(
+          'folder-1'
+        );
+      });
+
+      it('should not toggle a folder after a long press opened its context menu', () => {
+        component.onNodeDown(folder, touchAt('touchstart', 0, 0));
+        component.onContextMenuOpen(
+          folder,
+          new PointerEvent('contextmenu', { pointerType: 'touch' })
+        );
+        component.onFolderRowTouch(folder, touchAt('touchend', 0, 0));
+
+        expect(projectStateService.toggleExpanded).not.toHaveBeenCalled();
+      });
+
+      it('should neither expand nor open a folder after a swipe when clicking a folder opens it', () => {
+        folderClickOpens.set(true);
+        const open = vi.spyOn(component, 'onOpenDocument');
+        const collapsed = { ...folder, expanded: false };
+
+        component.onNodeDown(collapsed, touchAt('touchstart', 0, 0));
+        component.onFolderRowTouch(collapsed, touchAt('touchend', 0, -200));
+
+        expect(projectStateService.setExpanded).not.toHaveBeenCalled();
+        expect(open).not.toHaveBeenCalled();
+      });
+
+      it('should not cancel a touchend that cannot be cancelled', () => {
+        // The touchend that ends a scroll; cancelling it only logs an error.
+        const touchEnd = touchAt('touchend', 0, -200, false);
+        const preventDefault = vi.spyOn(touchEnd, 'preventDefault');
+
+        component.onNodeDown(folder, touchAt('touchstart', 0, 0));
+        component.onFolderRowTouch(folder, touchEnd);
+
+        expect(preventDefault).not.toHaveBeenCalled();
+      });
     });
   });
 });

@@ -58,6 +58,11 @@
   flex: 1;
 }
 
+.comment-popover__notice {
+  flex: 1;
+  color: var(--sys-on-surface-variant);
+}
+
 .comment-popover__action {
   width: 28px;
   height: 28px;

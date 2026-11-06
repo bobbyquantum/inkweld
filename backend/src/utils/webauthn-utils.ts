@@ -8,6 +8,7 @@
 import type { Context } from 'hono';
 import type { PasskeyRpConfig } from '../services/passkey.service';
 import { config } from '../config/env';
+import { isDevelopmentOrTest, runtimeEnv } from '../config/runtime-env';
 import type { DatabaseInstance } from '../types/context';
 import { getInkweldAppClientOrigins } from '../services/inkweld-app-client.service';
 
@@ -38,19 +39,25 @@ function resolveRpId(envRpId: string | undefined, configOrigins: string[]): stri
 
 /**
  * Resolve the expected-origins list for WebAuthn verification.  When the
- * configured origins include '*' the behaviour depends on the environment:
- * production throws (misconfiguration must surface loudly), while dev/test
- * falls back to the request Origin header so local setups that legitimately
- * use '*' continue to work.
+ * configured origins include '*' the behaviour depends on the environment
+ * (`nodeEnv`, from runtimeEnv()): only development and test fall back to the
+ * request Origin header, so local setups that legitimately use '*' keep
+ * working; every other environment (production, preview, staging…) throws so
+ * the misconfiguration surfaces loudly.
  */
-function resolveOrigins(configOrigins: string[], requestOrigin: string | undefined): string[] {
+function resolveOrigins(
+  configOrigins: string[],
+  requestOrigin: string | undefined,
+  nodeEnv: string
+): string[] {
   if (!configOrigins.includes('*')) return configOrigins;
 
-  if (process.env['NODE_ENV'] === 'production') {
+  if (!isDevelopmentOrTest(nodeEnv)) {
     throw new Error(
       'ALLOWED_ORIGINS contains "*" which is not a valid WebAuthn expected ' +
-        'origin in production. Configure ALLOWED_ORIGINS with an explicit ' +
-        'comma-separated list of origins (e.g. "https://app.example.com").'
+        `origin outside development and test (NODE_ENV is "${nodeEnv}"). Configure ` +
+        'ALLOWED_ORIGINS with an explicit comma-separated list of origins ' +
+        '(e.g. "https://app.example.com").'
     );
   }
   return requestOrigin ? [requestOrigin] : ['http://localhost'];
@@ -77,7 +84,7 @@ export function rpFromContext(c: Context, extraOrigins: readonly string[] = []):
 
   const rpId = resolveRpId(env?.WEBAUTHN_RP_ID, configOrigins);
   const rpName = env?.WEBAUTHN_RP_NAME || config.webauthn.rpName;
-  const resolved = resolveOrigins(configOrigins, c.req.header('origin'));
+  const resolved = resolveOrigins(configOrigins, c.req.header('origin'), runtimeEnv(env));
   const origins = [...resolved, ...extraOrigins.filter((o) => !resolved.includes(o))];
 
   return { rpId, rpName, origins };

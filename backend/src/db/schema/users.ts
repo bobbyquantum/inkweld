@@ -1,4 +1,5 @@
-import { sqliteTable, text, integer, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { sql } from 'drizzle-orm';
+import { sqliteTable, text, integer, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 /**
  * Who may see a profile (or one section of it).
@@ -101,7 +102,13 @@ export const users = sqliteTable(
     /** Unix seconds when policyAcceptedVersion was recorded. */
     policyAcceptedAt: integer('policyAcceptedAt'),
   },
-  (table) => [uniqueIndex('users_oidc_identity_unique').on(table.oidcIssuer, table.oidcSubject)]
+  (table) => [
+    uniqueIndex('users_oidc_identity_unique').on(table.oidcIssuer, table.oidcSubject),
+    // A new username may not match an existing one ignoring case, so sign-up
+    // looks names up by lower(username). Not unique: accounts created before
+    // that rule may differ only in case, and they keep their names.
+    index('users_username_lower_idx').on(sql`lower(${table.username})`),
+  ]
 );
 
 export type User = typeof users.$inferSelect;

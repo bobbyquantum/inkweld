@@ -321,8 +321,16 @@ the full binary):
 ```bash
 # From repo root
 bun run build:image
-docker run -p 8333:8333 -e SESSION_SECRET=change-me-to-a-long-random-string inkweld:latest
+docker run -p 8333:8333 \
+  -e SESSION_SECRET=$(openssl rand -hex 32) \
+  -e WEBAUTHN_RP_ID=localhost \
+  -e ALLOWED_ORIGINS=http://localhost:8333 \
+  inkweld:latest
 ```
+
+The image runs with `NODE_ENV=production`, so it refuses to start without
+`SESSION_SECRET` (32+ characters) and `WEBAUTHN_RP_ID`. Keep the secret for the
+next run: a new one signs everyone out and makes stored API keys unreadable.
 
 #### Traditional Servers (Node.js)
 

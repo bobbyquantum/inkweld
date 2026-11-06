@@ -35,6 +35,10 @@ cytoscape.use(dagre);
 import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { type RelationshipTypeDefinition } from '@models/element-ref.model';
+import {
+  mediaIdFromReference,
+  safeMediaReferenceFilename,
+} from '@utils/media-reference';
 
 import { type Element, ElementType } from '../../../../../api-client';
 import {
@@ -1194,16 +1198,17 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
 
   /**
    * Resolve a media:// URL by looking up in local IndexedDB.
-   * On cache miss, triggers a server sync and retries once.
+   * On cache miss, triggers a server sync and retries once. A filename that
+   * is not a single plain path segment resolves to no image.
    */
   private async resolveMediaUrl(
     imageUrl: string,
     username: string,
     slug: string
   ): Promise<string | null> {
-    const filename = imageUrl.substring('media://'.length);
-    const lastDot = filename.lastIndexOf('.');
-    const mediaId = lastDot > 0 ? filename.substring(0, lastDot) : filename;
+    const filename = safeMediaReferenceFilename(imageUrl);
+    if (!filename) return null;
+    const mediaId = mediaIdFromReference(imageUrl);
     const projectKey = `${username}/${slug}`;
 
     // Try local IndexedDB first

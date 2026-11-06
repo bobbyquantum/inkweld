@@ -14,8 +14,7 @@
  * enabled AND the TCP peer is the Supervisor's ingress proxy — never based on
  * `X-Forwarded-For`, which the client controls.
  *
- * Settings (read at call time with bracket notation, like client-ip.ts,
- * because `bun build --compile --minify` constant-folds dotted env reads):
+ * Settings (read at call time, like client-ip.ts):
  *   - `INGRESS_ENABLED=true` turns the feature on.
  *   - `INGRESS_TRUSTED_PROXY` is the proxy's address. Required: the Home
  *     Assistant app sets it to the Supervisor's fixed address on the hassio

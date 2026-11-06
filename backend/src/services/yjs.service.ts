@@ -12,8 +12,24 @@ import { activityService } from './activity.service';
 import type { DatabaseInstance } from '../types/context';
 import type { DocumentRevisionEntry } from '../types/document-revision.types';
 import { forEachSequential } from '@inkweld/async';
+import { documentProjectKey, parseDocumentId } from '../utils/yjs-document-id';
+import { MAX_YJS_JSON_DEPTH, isYjsMessageWithinLimits } from '../utils/yjs-message-limits';
 
 const yjsLog = logger.child('Yjs');
+
+/**
+ * Stop the interval y-protocols' `Awareness` starts in its constructor, which
+ * renews the document's own awareness state and drops other clients' states
+ * after 30 s without an update. The server publishes no awareness state of its
+ * own and removes a socket's states when the socket closes (`handleDisconnect`),
+ * so the interval has nothing to do. The Durable Object stops it too.
+ */
+function stopAwarenessInterval(awareness: awarenessProtocol.Awareness): void {
+  const { _checkInterval: interval } = awareness as {
+    _checkInterval?: ReturnType<typeof setInterval>;
+  };
+  if (interval !== undefined) clearInterval(interval);
+}
 
 /**
  * The subset of `y-leveldb`'s LeveldbPersistence this service uses. Typed
@@ -222,15 +238,13 @@ export class YjsService {
   private readonly pendingSinceCompact = new Map<string, number>();
 
   /**
-   * Get project key from documentId
+   * The project key (`username:projectSlug`) of a document id, or null for an
+   * id that is not `username:projectSlug:docName`. Helpers that walk every
+   * key in `docs` skip ids they cannot parse.
    */
-  private getProjectKey(documentId: string): string {
-    const parts = documentId.split(':');
-    if (parts.length < 3) {
-      throw new Error(`Invalid documentId format: ${documentId}`);
-    }
-    // Return username:projectSlug
-    return `${parts[0]}:${parts[1]}`;
+  private projectKeyOf(documentId: string): string | null {
+    const parsed = parseDocumentId(documentId);
+    return parsed ? documentProjectKey(parsed) : null;
   }
 
   /**
@@ -281,7 +295,10 @@ export class YjsService {
     const timer = setTimeout(() => {
       this.idleTimers.delete(doc.name);
       if (this.docs.get(doc.name) !== doc || doc.conns.size > 0) return;
-      void this.evictIdleDocument(doc);
+      // Nothing awaits a timer, so a rejection here would go unhandled.
+      void this.evictIdleDocument(doc).catch((error: unknown) => {
+        yjsLog.error(`Failed to evict idle document ${doc.name}`, error);
+      });
     }, this.idleCleanupMs);
     this.idleTimers.set(doc.name, timer);
   }
@@ -309,20 +326,29 @@ export class YjsService {
 
     // Only close persistence if NO documents from this project are active
     // or still loading.
-    await this.closePersistenceIfUnused(this.getProjectKey(doc.name));
+    const projectKey = this.projectKeyOf(doc.name);
+    if (projectKey) await this.closePersistenceIfUnused(projectKey);
   }
 
   /**
    * Build a fresh shared doc, wire awareness relaying, load persisted state
    * and publish it to `docs`. Only ever called via `getDocument`.
+   *
+   * Rejects an id that is not `username:projectSlug:docName` before building
+   * anything: such a document could not be persisted, and every helper that
+   * looks documents up by project would have to step around it.
    */
   private async createDocument(documentId: string): Promise<WSSharedDoc> {
+    if (!parseDocumentId(documentId)) {
+      throw new Error(`Invalid documentId format: ${documentId}`);
+    }
     const ydoc = new Y.Doc();
     const awareness = new awarenessProtocol.Awareness(ydoc);
     // The server itself is not an awareness participant — Yjs creates a
     // default local state, so remove it to avoid broadcasting a phantom
-    // client to every peer.
+    // client to every peer, and stop the timer that would renew it.
     awareness.setLocalState(null);
+    stopAwarenessInterval(awareness);
 
     const sharedDoc: WSSharedDoc = {
       name: documentId,
@@ -353,16 +379,22 @@ export class YjsService {
         for (const clientId of removed) controlledIds.delete(clientId);
       }
       // Broadcast the awareness change (including removals) to every other
-      // peer so they unmount the ghost user immediately.
-      const encoder = encoding.createEncoder();
-      encoding.writeVarUint(encoder, messageAwareness);
-      const changedClients = [...added, ...updated, ...removed];
-      encoding.writeVarUint8Array(
-        encoder,
-        awarenessProtocol.encodeAwarenessUpdate(awareness, changedClients)
-      );
-      const message = encoding.toUint8Array(encoder);
-      this.broadcastMessage(sharedDoc, message, origin);
+      // peer so they unmount the ghost user immediately. The listener runs
+      // inside whatever changed the awareness (a message, a disconnect), so a
+      // failure is logged here rather than passed on to it.
+      try {
+        const encoder = encoding.createEncoder();
+        encoding.writeVarUint(encoder, messageAwareness);
+        const changedClients = [...added, ...updated, ...removed];
+        encoding.writeVarUint8Array(
+          encoder,
+          awarenessProtocol.encodeAwarenessUpdate(awareness, changedClients)
+        );
+        const message = encoding.toUint8Array(encoder);
+        this.broadcastMessage(sharedDoc, message, origin);
+      } catch (error) {
+        yjsLog.error(`Error relaying an awareness change for ${documentId}`, error);
+      }
     };
     awareness.on('update', onAwarenessChange);
     sharedDoc.awarenessChangeListener = onAwarenessChange;
@@ -378,18 +410,15 @@ export class YjsService {
    * Setup LevelDB persistence for a document
    */
   private async setupPersistence(documentId: string, ydoc: Y.Doc) {
-    // Parse documentId format: username:projectSlug:docName
-    const parts = documentId.split(':');
-    if (parts.length < 3) {
-      yjsLog.error(`Invalid documentId format: ${documentId}`);
-      return;
+    // documentId format: username:projectSlug:docName (checked by createDocument)
+    const parsed = parseDocumentId(documentId);
+    if (!parsed) {
+      throw new Error(`Invalid documentId format: ${documentId}`);
     }
-
-    const [username, projectSlug] = parts;
-    const projectKey = this.getProjectKey(documentId);
+    const projectKey = documentProjectKey(parsed);
 
     // One persistence instance per PROJECT (not per document!)
-    const persistence = await this.getPersistenceForProject(username, projectSlug);
+    const persistence = await this.getPersistenceForProject(parsed.projectOwner, parsed.slug);
 
     // Load existing state from persistence for THIS specific document
     try {
@@ -622,7 +651,7 @@ export class YjsService {
    * handle here would break that load.
    */
   private async closePersistenceIfUnused(projectKey: string): Promise<void> {
-    const belongsToProject = (documentId: string) => this.getProjectKey(documentId) === projectKey;
+    const belongsToProject = (documentId: string) => this.projectKeyOf(documentId) === projectKey;
     const hasLiveDocs =
       Array.from(this.docs.keys()).some(belongsToProject) ||
       Array.from(this.pendingLoads.keys()).some(belongsToProject);
@@ -704,15 +733,20 @@ export class YjsService {
     // Send awareness states (user identity is broadcast by the client, not the
     // server — setting it server-side would overwrite clients' own state and
     // leak whichever user connected most recently into everyone's awareness).
+    // Awareness is best-effort: a socket that does not get it still syncs.
     const awarenessStates = doc.awareness.getStates();
     if (awarenessStates.size > 0) {
-      const encoder2 = encoding.createEncoder();
-      encoding.writeVarUint(encoder2, messageAwareness);
-      encoding.writeVarUint8Array(
-        encoder2,
-        awarenessProtocol.encodeAwarenessUpdate(doc.awareness, Array.from(awarenessStates.keys()))
-      );
-      ws.send(encoding.toUint8Array(encoder2));
+      try {
+        const encoder2 = encoding.createEncoder();
+        encoding.writeVarUint(encoder2, messageAwareness);
+        encoding.writeVarUint8Array(
+          encoder2,
+          awarenessProtocol.encodeAwarenessUpdate(doc.awareness, Array.from(awarenessStates.keys()))
+        );
+        ws.send(encoding.toUint8Array(encoder2));
+      } catch (error) {
+        yjsLog.error(`Could not send awareness states for ${documentId}`, error);
+      }
     }
 
     return doc;
@@ -749,7 +783,7 @@ export class YjsService {
     const projectKey = `${username}:${slug}`;
     let closed = 0;
     for (const [docId, doc] of this.docs) {
-      if (this.getProjectKey(docId) !== projectKey) continue;
+      if (this.projectKeyOf(docId) !== projectKey) continue;
       for (const [ws, wsUserId] of doc.wsUserIds) {
         if (wsUserId === userId && this.closeRevokedSocket(ws, reason, `${userId} on ${docId}`)) {
           closed++;
@@ -897,8 +931,20 @@ export class YjsService {
       yjsLog.error('Failed to emit element diff activity events', err, { projectId, userId });
     }
   }
+
+  /**
+   * Apply one sync or awareness message from `ws` to its document and send
+   * any reply. A message outside the limits in `utils/yjs-message-limits.ts`
+   * is dropped before anything is applied.
+   */
   handleMessage(ws: YjsSocket, doc: WSSharedDoc, message: Buffer) {
     try {
+      if (!isYjsMessageWithinLimits(message)) {
+        yjsLog.warn(
+          `Dropped a message for ${doc.name} that does not decode or nests values more than ${MAX_YJS_JSON_DEPTH} levels deep`
+        );
+        return;
+      }
       const decoder = decoding.createDecoder(message);
       const messageType = decoding.readVarUint(decoder);
 
@@ -1125,7 +1171,7 @@ export class YjsService {
     // Close any documents from the project and remove them from the map
     const docsToRemove: string[] = [];
     this.docs.forEach((doc, docId) => {
-      if (this.getProjectKey(docId) === projectKey) {
+      if (this.projectKeyOf(docId) === projectKey) {
         doc.conns.forEach((_, ws) => {
           try {
             ws.close(1000, closeReason);

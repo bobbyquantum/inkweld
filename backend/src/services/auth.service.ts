@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
 import { sign, verify } from 'hono/jwt';
-import { config } from '../config/env';
+import { signingSecret } from '../config/signing-secret';
 import { userService } from './user.service';
 import { isSessionRevoked } from '../utils/session-validity';
 import type { User } from '../db/schema/users';
@@ -51,36 +51,26 @@ export type SessionResult =
   | { status: 'invalid-token' } // Token present but invalid/expired
   | { status: 'expired-token' }; // Token present but expired
 
+/** The token from an `Authorization: Bearer <token>` header, or null. */
+function bearerToken(c: Context): string | null {
+  const authHeader = c.req.header('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return null;
+  }
+  return authHeader.substring(7) || null; // Remove 'Bearer ' prefix
+}
+
 /**
  * Auth service using Hono's signed cookies for session management
  */
 class AuthService {
   /**
-   * Get the session secret from request context (for Workers) or config (for Bun/Node)
-   * In Cloudflare Workers, env vars are only available via c.env, not process.env
+   * The session signing key for this request: from c.env on Cloudflare Workers
+   * (secrets only exist there), from the process environment on Bun/Node.
+   * Throws SigningSecretError when there is no usable key (see signingSecret).
    */
   private getSecret(c: Context): string {
-    // Try to get from request context first (Cloudflare Workers)
-    // In Hono Workers, c.env is the raw Cloudflare env bindings object
-    const env = (c as unknown as { env: Record<string, string | undefined> }).env;
-    // DATABASE_KEY overrides SESSION_SECRET when set
-    let envSecret: string | undefined;
-    if (env && typeof env.DATABASE_KEY === 'string') {
-      envSecret = env.DATABASE_KEY;
-    } else if (env && typeof env.SESSION_SECRET === 'string') {
-      envSecret = env.SESSION_SECRET;
-    }
-
-    if (envSecret && envSecret.length >= 32) {
-      return envSecret;
-    }
-
-    // Fall back to config (Bun/Node.js with process.env)
-    const configSecret = config.databaseKey;
-    if (!configSecret || configSecret.length < 32) {
-      throw new Error('DATABASE_KEY must be at least 32 characters for secure cookie signing');
-    }
-    return configSecret;
+    return signingSecret((c as unknown as { env?: unknown }).env);
   }
 
   /**
@@ -141,21 +131,16 @@ class AuthService {
    * Get session data from Authorization header (Bearer token)
    */
   async getSession(c: Context): Promise<SessionData | null> {
+    const token = bearerToken(c);
+    if (!token) {
+      return null;
+    }
+
+    // Outside the try: a server without a usable key answers with an error
+    // rather than treating every token as invalid.
+    const secret = this.getSecret(c);
     try {
-      const authHeader = c.req.header('Authorization');
-
-      if (!authHeader?.startsWith('Bearer ')) {
-        return null;
-      }
-
-      const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-
-      if (!token) {
-        return null;
-      }
-
       // Verify and decode JWT using request-context secret
-      const secret = this.getSecret(c);
       const payload = await verify(token, secret, 'HS256');
 
       if (!payload) {
@@ -187,21 +172,15 @@ class AuthService {
    * "no auth" (anonymous user) vs "invalid token" (should clear credentials).
    */
   async getSessionWithReason(c: Context): Promise<SessionResult> {
+    const token = bearerToken(c);
+    if (!token) {
+      return { status: 'no-auth' };
+    }
+
+    // Outside the try, as in getSession: a missing key is not an invalid token,
+    // and the client must not drop its credentials because of it.
+    const secret = this.getSecret(c);
     try {
-      const authHeader = c.req.header('Authorization');
-
-      if (!authHeader?.startsWith('Bearer ')) {
-        return { status: 'no-auth' };
-      }
-
-      const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-
-      if (!token) {
-        return { status: 'no-auth' };
-      }
-
-      // Verify and decode JWT using request-context secret
-      const secret = this.getSecret(c);
       let payload;
       try {
         payload = await verify(token, secret, 'HS256');
@@ -301,13 +280,14 @@ class AuthService {
    * @returns SessionData if valid, null otherwise
    */
   async verifyToken(token: string, c: Context): Promise<SessionData | null> {
-    try {
-      if (!token) {
-        return null;
-      }
+    if (!token) {
+      return null;
+    }
 
+    // Outside the try, as in getSession.
+    const secret = this.getSecret(c);
+    try {
       // Verify and decode JWT using request-context secret
-      const secret = this.getSecret(c);
       const payload = await verify(token, secret, 'HS256');
 
       if (!payload) {

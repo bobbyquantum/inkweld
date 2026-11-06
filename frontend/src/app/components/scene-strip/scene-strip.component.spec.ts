@@ -178,8 +178,8 @@ describe('SceneStripComponent', () => {
     const words: HTMLElement = fixture.nativeElement.querySelector(
       '[data-testid="scene-strip-words"]'
     );
-    expect(words.textContent).toContain('250');
-    expect(words.textContent).toContain('1,000');
+    expect(words.textContent).toContain((250).toLocaleString());
+    expect(words.textContent).toContain((1000).toLocaleString());
   });
 
   it('caps progress at 100 and hides it without a target', async () => {

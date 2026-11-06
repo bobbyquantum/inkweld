@@ -3,10 +3,10 @@
  *
  * The OAuth middleware's `user.email` is GitHub's primary address with no
  * regard to its `verified` flag, falling back to any non-noreply address.
- * We link a GitHub identity to an existing local account by email, so an
- * attacker who adds a victim's address to their GitHub profile (unverified —
- * GitHub allows that) could sign in as the victim. Only a verified address
- * may take part in that match.
+ * GitHub lets an account list addresses it has not confirmed, so only a
+ * verified address is stored on an Inkweld account or checked against the
+ * addresses other accounts use. Accounts are matched by GitHub id, never by
+ * email.
  */
 
 export interface GithubEmailEntry {
@@ -27,7 +27,7 @@ export function selectVerifiedGithubEmail(emails: readonly GithubEmailEntry[]): 
 /**
  * Fetch the account's addresses from GitHub and return a verified one, or
  * null if none is verified or the request fails (sign-in then proceeds
- * without linking by email).
+ * without an email address).
  */
 export async function fetchVerifiedGithubEmail(
   accessToken: string,
@@ -69,8 +69,8 @@ export interface GithubProfile {
  * Build the profile handed to `userService.createOrUpdateGithubUser` from the
  * middleware's user object plus a verified email looked up with the access
  * token. Without a token, or when GitHub reports no verified address, the
- * profile carries an empty, unverified email so the identity is never linked
- * to an existing account by email.
+ * profile carries an empty, unverified email, so no unconfirmed address is
+ * stored or checked against other accounts.
  */
 export async function resolveGithubProfile(
   githubUser: GithubOAuthUser,

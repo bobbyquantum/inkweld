@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "2a858ec4-dd90-46e6-81f9-f81369181818",
+  "id": "055a544c-74c7-4aa4-92c1-1efa27735d9c",
   "prevId": "f5ea89ae-0dea-4744-849d-7d80cf108167",
   "tables": {
     "users": {
@@ -230,6 +230,13 @@
             "oidcSubject"
           ],
           "isUnique": true
+        },
+        "users_username_lower_idx": {
+          "name": "users_username_lower_idx",
+          "columns": [
+            "lower(\"username\")"
+          ],
+          "isUnique": false
         }
       },
       "foreignKeys": {},
@@ -320,14 +327,6 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
-        },
-        "is_public": {
-          "name": "is_public",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": false
         },
         "user_id": {
           "name": "user_id",
@@ -3137,6 +3136,14 @@
     "columns": {}
   },
   "internal": {
-    "indexes": {}
+    "indexes": {
+      "users_username_lower_idx": {
+        "columns": {
+          "lower(\"username\")": {
+            "isExpression": true
+          }
+        }
+      }
+    }
   }
 }

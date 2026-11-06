@@ -19,9 +19,9 @@
  *      @hono/node-server's incoming socket).
  *   4. `undefined` — callers fall back to a shared bucket / null audit field.
  *
- * `TRUST_PROXY` is read with bracket notation at call time (never hoisted)
- * because `bun build --compile --minify` constant-folds dotted `process.env`
- * reads at build time, which would freeze the value into the binary.
+ * `TRUST_PROXY` is read at call time (never hoisted), so the environment the
+ * server runs with applies and tests can change it. Bundlers replace only
+ * NODE_ENV with a build-time value; read that through config/runtime-env.ts.
  */
 
 import type { Context } from 'hono';

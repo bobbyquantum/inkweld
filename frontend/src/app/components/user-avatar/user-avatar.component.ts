@@ -130,32 +130,38 @@ export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
       return;
     }
 
-    // Try to load avatar from server
-    this.avatarSubscription = this.userService
-      .getUserAvatar(this.username)
-      .subscribe({
-        next: (blob: Blob) => {
-          void (async () => {
-            if (blob && blob.size > 0) {
-              // Cache the avatar locally for offline access
-              await this.localStorage.saveUserAvatar(this.username, blob);
-              this.currentObjectUrl = URL.createObjectURL(blob);
-              this.avatarUrl.set(
-                this.sanitizer.bypassSecurityTrustUrl(this.currentObjectUrl) // NOSONAR — blob URL from createObjectURL
-              );
-              this.error.set(false);
-            } else {
-              // Empty blob means no avatar, use fallback
-              this.error.set(true);
-            }
+    // Try to load avatar from server. A name that cannot be a path segment
+    // ('.' or '..') is refused before any request and keeps the fallback.
+    try {
+      this.avatarSubscription = this.userService
+        .getUserAvatar(this.username)
+        .subscribe({
+          next: (blob: Blob) => {
+            void (async () => {
+              if (blob && blob.size > 0) {
+                // Cache the avatar locally for offline access
+                await this.localStorage.saveUserAvatar(this.username, blob);
+                this.currentObjectUrl = URL.createObjectURL(blob);
+                this.avatarUrl.set(
+                  this.sanitizer.bypassSecurityTrustUrl(this.currentObjectUrl) // NOSONAR — blob URL from createObjectURL
+                );
+                this.error.set(false);
+              } else {
+                // Empty blob means no avatar, use fallback
+                this.error.set(true);
+              }
+              this.isLoading.set(false);
+            })();
+          },
+          error: () => {
+            this.error.set(true);
             this.isLoading.set(false);
-          })();
-        },
-        error: () => {
-          this.error.set(true);
-          this.isLoading.set(false);
-        },
-      });
+          },
+        });
+    } catch {
+      this.error.set(true);
+      this.isLoading.set(false);
+    }
   }
 
   /**

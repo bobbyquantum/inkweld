@@ -1,9 +1,15 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeAll, afterAll, afterEach, beforeEach } from 'bun:test';
 import { drizzle, type BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator';
 import { Database as BunDatabase } from 'bun:sqlite';
 import { join } from 'node:path';
 import * as schema from '../src/db/schema';
+import {
+  config as envConfig,
+  DEV_FALLBACK_SECRET,
+  PUBLISHED_KEYS,
+  SAMPLE_SECRETS,
+} from '../src/config/env';
 import { configService, type ConfigValue } from '../src/services/config.service';
 import { config, CONFIG_KEYS, type ConfigKey } from '../src/db/schema/config';
 import { DEFAULT_SYNC_QUOTA_BYTES, parseSyncQuotaBytes } from '../src/utils/sync-quota';
@@ -259,6 +265,103 @@ describe('ConfigService', () => {
       const result = await configService.get(db, 'AI_OPENAI_API_KEY');
       expect(result).toBeDefined();
       // The value might be the malformed string or a default, but shouldn't throw
+    });
+  });
+
+  /**
+   * A deployment that ran without a key of its own (or with a sample value
+   * from the docs) encrypted its settings with a key published in this
+   * repository. Once it runs with its own key, those settings must still be
+   * readable, and are stored again under the new key.
+   */
+  describe('settings encrypted with a published key', () => {
+    const OWN_KEY = 'a-deployment-key-of-its-own-with-32-plus-chars';
+
+    afterEach(() => {
+      // Back to the key every other test uses (the development key under test).
+      configService.setDatabaseKey(envConfig.databaseKey);
+    });
+
+    async function storedValue(key: ConfigKey): Promise<string | undefined> {
+      const row = await db.select().from(config).where(eq(config.key, key)).get();
+      return row?.value;
+    }
+
+    /** Store `value` encrypted with `databaseKey`, then switch to the deployment's own key. */
+    async function storeWith(databaseKey: string, key: ConfigKey, value: string): Promise<string> {
+      configService.setDatabaseKey(databaseKey);
+      await configService.set(db, key, value);
+      configService.setDatabaseKey(OWN_KEY);
+      return (await storedValue(key)) ?? '';
+    }
+
+    it.each(PUBLISHED_KEYS.map((key) => [key]))(
+      'reads a value encrypted with a published key and stores it again (%#)',
+      async (publishedKey) => {
+        const before = await storeWith(publishedKey, 'OIDC_CLIENT_SECRET', 'client-secret-1');
+
+        const result = await configService.get(db, 'OIDC_CLIENT_SECRET');
+        expect(result.value).toBe('client-secret-1');
+        expect(result.source).toBe('database');
+
+        const after = await storedValue('OIDC_CLIENT_SECRET');
+        expect(after).not.toBe(before);
+        // Read again: the stored value now decrypts with the deployment's key,
+        // so it is not rewritten a second time.
+        expect((await configService.get(db, 'OIDC_CLIENT_SECRET')).value).toBe('client-secret-1');
+        expect(await storedValue('OIDC_CLIENT_SECRET')).toBe(after);
+      }
+    );
+
+    it('stores values read through getMany again too', async () => {
+      const before = await storeWith(DEV_FALLBACK_SECRET, 'EMAIL_PASSWORD', 'smtp-password');
+
+      const values = await configService.getMany(db, ['EMAIL_PASSWORD', 'EMAIL_ENABLED']);
+      expect(values.EMAIL_PASSWORD.value).toBe('smtp-password');
+      expect(await storedValue('EMAIL_PASSWORD')).not.toBe(before);
+    });
+
+    it('leaves a value encrypted with an unknown key as it was', async () => {
+      const before = await storeWith(
+        'some-other-key-that-is-not-published-anywhere',
+        'OIDC_CLIENT_SECRET',
+        'client-secret-2'
+      );
+
+      const result = await configService.get(db, 'OIDC_CLIENT_SECRET');
+      expect(result.value).not.toBe('client-secret-2');
+      expect(await storedValue('OIDC_CLIENT_SECRET')).toBe(before);
+      // A second read gives the same answer.
+      expect((await configService.get(db, 'OIDC_CLIENT_SECRET')).value).toBe(result.value);
+    });
+
+    it('does not move values between published keys in development', async () => {
+      const before = await storeWith(SAMPLE_SECRETS[0], 'OIDC_CLIENT_SECRET', 'client-secret-3');
+      configService.setDatabaseKey(DEV_FALLBACK_SECRET);
+
+      await configService.get(db, 'OIDC_CLIENT_SECRET');
+      expect(await storedValue('OIDC_CLIENT_SECRET')).toBe(before);
+    });
+
+    it('keeps a value saved after the old one was read', async () => {
+      await storeWith(DEV_FALLBACK_SECRET, 'OIDC_CLIENT_SECRET', 'old-secret');
+      const staleCiphertext = (await storedValue('OIDC_CLIENT_SECRET')) ?? '';
+      // An admin saves a new value between the read and the write-back.
+      await configService.set(db, 'OIDC_CLIENT_SECRET', 'new-secret');
+      const saved = await storedValue('OIDC_CLIENT_SECRET');
+
+      const internals = configService as unknown as {
+        reencryptStored(
+          db: unknown,
+          reads: { key: ConfigKey; ciphertext: string; value: string }[]
+        ): Promise<void>;
+      };
+      await internals.reencryptStored(db, [
+        { key: 'OIDC_CLIENT_SECRET', ciphertext: staleCiphertext, value: 'old-secret' },
+      ]);
+
+      expect(await storedValue('OIDC_CLIENT_SECRET')).toBe(saved);
+      expect((await configService.get(db, 'OIDC_CLIENT_SECRET')).value).toBe('new-secret');
     });
   });
 

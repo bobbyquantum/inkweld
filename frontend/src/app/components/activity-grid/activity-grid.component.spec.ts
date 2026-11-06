@@ -248,7 +248,13 @@ describe('ActivityGridComponent', () => {
     fixture.detectChanges();
     const tooltip = el.querySelector('[data-testid="activity-tooltip"]');
     expect(tooltip).not.toBeNull();
-    expect(tooltip?.textContent).toContain('2026');
+    // The day as a long date in the machine's locale.
+    expect(tooltip?.textContent).toContain(
+      new Intl.DateTimeFormat(undefined, {
+        dateStyle: 'long',
+        timeZone: 'UTC',
+      }).format(Date.UTC(2026, 0, 1))
+    );
 
     el.querySelector('.grid-scroller')!.dispatchEvent(
       new MouseEvent('mouseleave')

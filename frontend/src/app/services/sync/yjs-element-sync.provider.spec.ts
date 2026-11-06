@@ -49,7 +49,10 @@ vi.mock(
 
 describe('YjsElementSyncProvider', () => {
   let provider: YjsElementSyncProvider;
-  let authTokenService: { getToken: ReturnType<typeof vi.fn> };
+  let authTokenService: {
+    getToken: ReturnType<typeof vi.fn>;
+    getTokenForUrl: ReturnType<typeof vi.fn>;
+  };
   let storageContext: { prefixDocumentId: ReturnType<typeof vi.fn> };
   let versionCompatibility: { syncBlocked: ReturnType<typeof vi.fn> };
   let websocketProvider: {
@@ -162,8 +165,12 @@ describe('YjsElementSyncProvider', () => {
       warn: vi.fn(),
       error: vi.fn(),
     };
+    // Sockets ask for the token by URL; every socket here goes to the
+    // active server, so the lookup returns the token.
+    const getToken = vi.fn().mockReturnValue('token');
     authTokenService = {
-      getToken: vi.fn().mockReturnValue('token'),
+      getToken,
+      getTokenForUrl: vi.fn(() => getToken() as string | null),
     };
     storageContext = {
       prefixDocumentId: vi.fn((documentId: string) => `prefix:${documentId}`),
@@ -1804,6 +1811,57 @@ describe('YjsElementSyncProvider', () => {
       globalThis.dispatchEvent(new Event('focus'));
       await vi.advanceTimersByTimeAsync(10 * 60_000);
       expect(createWs).toHaveBeenCalledTimes(2);
+    });
+
+    it('stays local when the token is not for the server it connects to', async () => {
+      authTokenService.getTokenForUrl.mockReturnValue(null);
+
+      const result = await provider.connect(config);
+
+      expect(result).toEqual({ success: true });
+      expect(authTokenService.getTokenForUrl).toHaveBeenCalledWith(
+        'ws://localhost:8333'
+      );
+      expect(createWs).not.toHaveBeenCalled();
+      expect(provider.getSyncState()).toBe(DocumentSyncState.Local);
+    });
+
+    it('retries only while the active profile is still on that server', async () => {
+      setOnline(false);
+      createWs.mockRejectedValueOnce(offlineError);
+      await provider.connect(config);
+      expect(createWs).toHaveBeenCalledTimes(1);
+
+      // The active profile moves to another server before the network returns
+      authTokenService.getTokenForUrl.mockReturnValue(null);
+      setOnline(true);
+      globalThis.dispatchEvent(new Event('online'));
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(authTokenService.getTokenForUrl).toHaveBeenLastCalledWith(
+        'ws://localhost:8333/api/v1/ws/yjs?documentId=testuser:test-project:elements'
+      );
+      expect(createWs).toHaveBeenCalledTimes(1);
+      expect(provider.getSyncState()).toBe(DocumentSyncState.Local);
+    });
+
+    it("re-authenticates only with the token of the socket's server", async () => {
+      createWs.mockResolvedValue(websocketProvider);
+      await provider.connect(config);
+      const statusHandlers = websocketProvider.on.mock.calls
+        .filter(([event]) => event === 'status')
+        .map(([, handler]) => handler as (e: { status: string }) => void);
+      expect(statusHandlers.length).toBeGreaterThan(0);
+
+      // The socket drops and comes back: it signs in again
+      authTokenService.getTokenForUrl.mockClear();
+      for (const handler of statusHandlers) handler({ status: 'disconnected' });
+      for (const handler of statusHandlers) handler({ status: 'connected' });
+
+      expect(authTokenService.getTokenForUrl).toHaveBeenCalledWith(
+        'ws://localhost:8333/api/v1/ws/yjs?documentId=testuser:test-project:elements'
+      );
+      expect(websocketProvider.ws?.send).toHaveBeenCalledWith('token');
     });
 
     it('keeps retrying with backoff while the server stays unreachable', async () => {

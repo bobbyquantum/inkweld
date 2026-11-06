@@ -1226,6 +1226,25 @@ describe('ProjectService', () => {
       expect(projectSync.markPendingUpload).not.toHaveBeenCalled();
     });
 
+    it('keeps the username and slug in their own path segments', async () => {
+      setup.getMode.mockReturnValue('server');
+      localStorage.saveMedia.mockResolvedValue(undefined);
+
+      const uploadPromise = service.uploadProjectCover(
+        'a/b',
+        'x?y',
+        new Blob(['test cover'], { type: 'image/png' })
+      );
+
+      const req = httpMock.expectOne(
+        req =>
+          req.url.endsWith('/api/v1/projects/a%2Fb/x%3Fy/cover') &&
+          req.method === 'POST'
+      );
+      req.flush({ message: 'ok', coverImage: 'cover-1.jpg' });
+      await expect(uploadPromise).resolves.toBe('cover-1.jpg');
+    });
+
     it('falls back to local save + queued sync when the server 404s the cover upload', async () => {
       // The "server lost the project record" incident: the upload endpoint
       // 404s. Local-first means the cover blob (the user's data) must be

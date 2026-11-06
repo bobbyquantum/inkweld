@@ -9,10 +9,10 @@
  * so we skip dotenv loading entirely and rely on wrangler.toml vars.
  */
 
+import { configuredNodeEnv, isCloudflareWorkers as detectCloudflareWorkers } from './runtime-env';
+
 // Detect if we're in Cloudflare Workers (no import.meta.url or process.cwd)
-const isCloudflareWorkers =
-  (globalThis as Record<string, unknown>).caches !== undefined &&
-  (globalThis as Record<string, unknown>).WebSocketPair !== undefined;
+const isCloudflareWorkers = detectCloudflareWorkers();
 
 // Only load dotenv in Node.js/Bun environments (synchronously, before config is read)
 if (!isCloudflareWorkers) {
@@ -93,9 +93,9 @@ if (!isCloudflareWorkers) {
 
 /**
  * NODE_ENV values allowed to run without an explicit signing secret. Anything
- * else (production, staging, preview, unset-and-overridden, typos…) must set
- * DATABASE_KEY or SESSION_SECRET. An unset NODE_ENV is treated as development,
- * matching `config.nodeEnv` below.
+ * else (production, staging, preview, typos…) must set DATABASE_KEY or
+ * SESSION_SECRET. An unset NODE_ENV is treated as development, matching
+ * `config.nodeEnv` below.
  */
 export function isDevOnlyNodeEnv(nodeEnv: string | undefined = 'development'): boolean {
   // An empty NODE_ENV is treated like an unset one.
@@ -105,20 +105,161 @@ export function isDevOnlyNodeEnv(nodeEnv: string | undefined = 'development'): b
 /**
  * Well-known key used ONLY when no secret is configured in development/test.
  * It is public (it lives in this repository), so it must never be accepted
- * outside those environments — see `databaseKey` below.
+ * outside those environments — see `signingKeyProblem` below.
  */
 export const DEV_FALLBACK_SECRET = 'fallback-secret-for-development-only';
+
+/**
+ * SESSION_SECRET sample values that appear, or have appeared, in this
+ * repository's docs and example files. Like the development key, they are
+ * only accepted in development and test.
+ */
+export const SAMPLE_SECRETS: readonly string[] = [
+  'placeholder-set-via-wrangler-secret',
+  'placeholder-set-via-wrangler-secret-put',
+  'change-me-to-a-long-random-string',
+  'local-dev-session-secret-for-testing-minimum-32-chars',
+];
+
+/** Keys published in this repository: the development key and the sample values. */
+export const PUBLISHED_KEYS: readonly string[] = [DEV_FALLBACK_SECRET, ...SAMPLE_SECRETS];
+
+/** Shortest DATABASE_KEY / SESSION_SECRET accepted for signing. */
+export const MIN_SIGNING_KEY_LENGTH = 32;
+
+const GENERATE_KEY_HINT = 'Generate a key with: openssl rand -hex 32';
+
+/**
+ * Why a DATABASE_KEY that is only too short cannot sign tokens. It never says
+ * to replace the key: DATABASE_KEY also encrypts the stored settings, which a
+ * new key could not read.
+ */
+const SHORT_DATABASE_KEY_PROBLEM =
+  `DATABASE_KEY has fewer than ${MIN_SIGNING_KEY_LENGTH} characters, too few to sign tokens. ` +
+  'Keep it, because it encrypts stored settings, and set SESSION_SECRET to a random value of ' +
+  `at least ${MIN_SIGNING_KEY_LENGTH} characters, which then signs tokens. ${GENERATE_KEY_HINT}`;
+
+/**
+ * Why `key` cannot sign tokens when NODE_ENV is `nodeEnv`, or undefined when
+ * it can. `key` is undefined when neither DATABASE_KEY nor SESSION_SECRET is
+ * set; `name` is the variable it came from, for the message. The start-up
+ * check below and `chooseSigningKey()` both apply it.
+ *
+ * - No key, the development key, or a sample value from the docs: accepted
+ *   only in development and test.
+ * - Any other key must be at least 32 characters, in every environment.
+ */
+export function signingKeyProblem(
+  key: string | undefined,
+  nodeEnv: string | undefined,
+  name = 'DATABASE_KEY or SESSION_SECRET'
+): string | undefined {
+  const onlyInDevelopment = `which is only accepted when NODE_ENV is development or test (NODE_ENV is "${nodeEnv}")`;
+  if (!key) {
+    if (isDevOnlyNodeEnv(nodeEnv)) return undefined;
+    return (
+      `DATABASE_KEY or SESSION_SECRET must be set when NODE_ENV is "${nodeEnv}" ` +
+      `(the built-in development key is only used in development and test). ${GENERATE_KEY_HINT}`
+    );
+  }
+  if (key === DEV_FALLBACK_SECRET) {
+    if (isDevOnlyNodeEnv(nodeEnv)) return undefined;
+    return `${name} is set to the built-in development key, ${onlyInDevelopment}. ${GENERATE_KEY_HINT}`;
+  }
+  if (SAMPLE_SECRETS.includes(key)) {
+    if (isDevOnlyNodeEnv(nodeEnv)) return undefined;
+    return (
+      `${name} is set to a sample value from the Inkweld documentation, ${onlyInDevelopment}. ` +
+      GENERATE_KEY_HINT
+    );
+  }
+  if (key.length < MIN_SIGNING_KEY_LENGTH) {
+    return `${name} must be at least ${MIN_SIGNING_KEY_LENGTH} characters. ${GENERATE_KEY_HINT}`;
+  }
+  return undefined;
+}
+
+/** DATABASE_KEY and SESSION_SECRET, as a runtime provides them. */
+export interface SigningKeySources {
+  DATABASE_KEY?: unknown;
+  SESSION_SECRET?: unknown;
+}
+
+/** The signing key, with a warning to log when it is not the one set first; or why there is none. */
+export type SigningKeyChoice = { key: string; warning?: string } | { problem: string };
+
+function nonEmptyString(value: unknown): string | undefined {
+  return typeof value === 'string' && value !== '' ? value : undefined;
+}
+
+/**
+ * The key that signs tokens: DATABASE_KEY, else SESSION_SECRET (an empty value
+ * counts as unset), else the development key where `signingKeyProblem` allows
+ * it. When the chosen key cannot be used, the problem is returned instead.
+ *
+ * One exception: a DATABASE_KEY that is only too short is passed over for a
+ * usable SESSION_SECRET, with a warning; without one, the problem asks for a
+ * SESSION_SECRET rather than a new DATABASE_KEY. That DATABASE_KEY still
+ * encrypts the stored settings (config.service.ts), and replacing it would
+ * make them unreadable, while signing does not depend on it.
+ */
+export function chooseSigningKey(
+  sources: SigningKeySources,
+  nodeEnv: string | undefined
+): SigningKeyChoice {
+  const databaseKey = nonEmptyString(sources.DATABASE_KEY);
+  const sessionSecret = nonEmptyString(sources.SESSION_SECRET);
+
+  if (databaseKey) {
+    const problem = signingKeyProblem(databaseKey, nodeEnv, 'DATABASE_KEY');
+    if (!problem) return { key: databaseKey };
+    // Any other problem is a published key, and those are all long enough.
+    if (databaseKey.length >= MIN_SIGNING_KEY_LENGTH) return { problem };
+    if (
+      sessionSecret !== undefined &&
+      !signingKeyProblem(sessionSecret, nodeEnv, 'SESSION_SECRET')
+    ) {
+      return {
+        key: sessionSecret,
+        warning:
+          `DATABASE_KEY is shorter than ${MIN_SIGNING_KEY_LENGTH} characters, so tokens are ` +
+          'signed with SESSION_SECRET. Stored settings stay encrypted with DATABASE_KEY.',
+      };
+    }
+    return { problem: SHORT_DATABASE_KEY_PROBLEM };
+  }
+  if (sessionSecret) {
+    const problem = signingKeyProblem(sessionSecret, nodeEnv, 'SESSION_SECRET');
+    return problem ? { problem } : { key: sessionSecret };
+  }
+  const problem = signingKeyProblem(undefined, nodeEnv);
+  return problem ? { problem } : { key: DEV_FALLBACK_SECRET };
+}
+
+/**
+ * DATABASE_KEY and SESSION_SECRET from the process environment, read once
+ * after the .env files above, like the rest of `config`. Bun and Node sign
+ * with these; Cloudflare Workers keep their secrets in the request bindings.
+ */
+export const processSigningKeys: Readonly<SigningKeySources> = Object.freeze({
+  DATABASE_KEY: process.env.DATABASE_KEY,
+  SESSION_SECRET: process.env.SESSION_SECRET,
+});
+
+// NODE_ENV as the process was started with (read after the .env files above).
+// See runtime-env.ts for why it is not read as `process.env.NODE_ENV`.
+const startupNodeEnv = configuredNodeEnv();
 
 export const config = {
   // Server
   port: Number.parseInt(process.env.PORT || '8333', 10),
-  nodeEnv: process.env.NODE_ENV || 'development',
-  version: process.env.INKWELD_VERSION || '1.0.0-beta.4', // x-release-please-version
+  nodeEnv: startupNodeEnv ?? 'development',
+  version: process.env.INKWELD_VERSION || '1.0.0-beta.5', // x-release-please-version
 
   // Logging
   // LOG_LEVEL: 'debug' | 'info' | 'warn' | 'error' | 'none'
   // Defaults to 'debug' in development, 'info' in production
-  logLevel: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
+  logLevel: process.env.LOG_LEVEL || (startupNodeEnv === 'production' ? 'info' : 'debug'),
 
   // Database
   database: {
@@ -126,33 +267,29 @@ export const config = {
     // SQLite/D1 only - Postgres support removed
   },
 
-  // Database encryption key (used for encrypting sensitive config values)
-  // Also used for session cookie signing.
+  // Database encryption key (used for encrypting sensitive config values).
+  // Session and MCP tokens are signed with the key signingSecret()
+  // (config/signing-secret.ts) chooses per request, which on Bun and Node is
+  // this same key once the check below has passed.
   //
   // DATABASE_KEY or SESSION_SECRET MUST be set for every NODE_ENV other than
   // `development` / `test` — the server refuses to start without it. The
   // check is deliberately an allow-list rather than `=== 'production'`: a
-  // deployment running with NODE_ENV unset-but-not-development, "staging",
-  // "preview", etc. must never silently sign sessions with the well-known
-  // development fallback below (anyone holding that string can mint an admin
-  // session).
+  // deployment running with NODE_ENV "staging", "preview", etc. must never
+  // sign sessions with a key published in this repository. Because this key
+  // also encrypts stored settings, a DATABASE_KEY shorter than 32 characters
+  // stops the server here rather than being passed over for SESSION_SECRET.
   //
   // On Cloudflare Workers, secrets are only available through c.env (not
-  // process.env), so module-level validation is skipped — runtime validation
-  // happens in middleware instead.
+  // process.env), so nothing is checked at start-up: signingSecret() applies
+  // the rule to each request that needs the key and fails it with a 500.
   databaseKey: (() => {
     const key = process.env.DATABASE_KEY || process.env.SESSION_SECRET;
-    if (!isCloudflareWorkers && !isDevOnlyNodeEnv(process.env.NODE_ENV)) {
-      if (!key) {
-        throw new Error(
-          `DATABASE_KEY or SESSION_SECRET must be set when NODE_ENV is "${process.env.NODE_ENV}". ` +
-            'Generate a secure random key of at least 32 characters (openssl rand -hex 32).'
-        );
-      }
-      if (key.length < 32) {
-        throw new Error(
-          `DATABASE_KEY or SESSION_SECRET must be at least 32 characters when NODE_ENV is "${process.env.NODE_ENV}".`
-        );
+    if (!isCloudflareWorkers && !isDevOnlyNodeEnv(startupNodeEnv)) {
+      const name = process.env.DATABASE_KEY ? 'DATABASE_KEY' : 'SESSION_SECRET';
+      const problem = signingKeyProblem(key, startupNodeEnv, name);
+      if (problem) {
+        throw new Error(problem);
       }
     }
     if (!key && !isCloudflareWorkers) {
@@ -167,7 +304,7 @@ export const config = {
   // Session (uses databaseKey for signing)
   session: {
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-    secure: process.env.NODE_ENV === 'production',
+    secure: startupNodeEnv === 'production',
     domain: process.env.COOKIE_DOMAIN,
   },
 
@@ -230,7 +367,7 @@ export const config = {
     // this check and let runtime validation in `rpFromContext` handle it.
     rpId: (() => {
       const rpId = process.env.WEBAUTHN_RP_ID;
-      if (!isCloudflareWorkers && process.env.NODE_ENV === 'production' && !rpId) {
+      if (!isCloudflareWorkers && startupNodeEnv === 'production' && !rpId) {
         throw new Error(
           'WEBAUTHN_RP_ID must be set in production. It cannot be changed ' +
             'after users register passkeys without invalidating their credentials.'

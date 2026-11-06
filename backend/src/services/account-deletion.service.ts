@@ -68,7 +68,7 @@ class AccountDeletionService {
     const db = c.get('db');
     const owned = await projectService.findByUserId(db, userId);
     await forEachSequential(owned, async (project) => {
-      await removeProjectData(c, username, project.slug);
+      await removeProjectData(c, username, project.slug, { skipUnstorableFiles: true });
       await projectService.delete(db, project.id, userId, project.slug);
     });
   }

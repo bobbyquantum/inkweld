@@ -16,6 +16,8 @@ Inkweld can run as a Home Assistant app (repository `bobbyquantum/addon-inkweld`
 
 - The served `index.html` gets `<base href="<prefix>/">` and an `inkweld-ingress` meta tag (`injectIngressBase`, applied inside `renderIndex` so the `ngsw.json` hash patch sees the same document).
 - **The frontend must work under a path prefix.** Use relative asset URLs (`assets/…`, not `/assets/…`) and `appUrl()` / `appOrigin()` from `frontend/src/app/utils/app-base.ts` for full-page navigations, new windows and server URLs. Stylesheet URLs to `public/` files stay relative and are listed in `externalDependencies` in `angular.json` so the build leaves them alone.
+- The server profile's address is `appOrigin()`, prefix included, and the session token is only sent to URLs inside that prefix (`AuthTokenService.getTokenForUrl`): a root-absolute `/api/…` on the Home Assistant origin is Home Assistant's own API and never gets it.
+- A new ingress path is a new server to the browser. Reinstalling the app gives it a new `<token>`, so the browser creates a new server profile and signs in through Home Assistant again. The profiles for the old path stay in the browser with their local data, but the switcher that would show them is hidden under ingress.
 
 ## Signing in
 

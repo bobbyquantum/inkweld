@@ -9,6 +9,7 @@ import {
   type UpdatePublishedFileRequest,
 } from '../../models/published-file';
 import { toReadableBlob } from '../../utils/readable-blob';
+import { encodePathSegment } from '../../utils/url-path';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { LoggerService } from '../core/logger.service';
 import { PublicProjectContextService } from '../core/public-project-context.service';
@@ -150,21 +151,35 @@ export class PublishedFilesService {
   }
 
   /**
-   * Headers for direct `fetch` calls to the API.
+   * Headers for a direct `fetch` call to `url` on the API.
    *
    * The API lives on a separate origin in hosted deployments, so cookies are
    * not sent; authentication is a bearer token, exactly as the HTTP
-   * interceptor attaches for HttpClient requests.
+   * interceptor attaches for HttpClient requests, and like it only for a URL
+   * on the active profile's server.
    */
-  private authHeaders(extra: Record<string, string> = {}): HeadersInit {
+  private authHeaders(
+    url: string,
+    extra: Record<string, string> = {}
+  ): HeadersInit {
     const headers: Record<string, string> = { ...extra };
     if (this.publicContext.active())
       return { ...headers, 'X-Inkweld-Public-View': 'true' };
-    const token = this.authTokenService.getToken();
+    const token = this.authTokenService.getTokenForUrl(url);
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
     return headers;
+  }
+
+  /**
+   * API URL of a project's published files, or of one of them, each path
+   * segment encoded.
+   */
+  private publishedUrl(projectKey: string, fileId?: string): string {
+    const [username, slug] = projectKey.split('/');
+    const base = `${this.getServerUrl()}/api/v1/projects/${encodePathSegment(username)}/${encodePathSegment(slug)}/published`;
+    return fileId ? `${base}/${encodePathSegment(fileId)}` : base;
   }
 
   /**
@@ -518,14 +533,11 @@ export class PublishedFilesService {
     projectKey: string
   ): Promise<PublishedFile[] | null> {
     try {
-      const [username, slug] = projectKey.split('/');
-      const response = await fetch(
-        `${this.getServerUrl()}/api/v1/projects/${username}/${slug}/published`,
-        {
-          headers: this.authHeaders(),
-          credentials: 'include',
-        }
-      );
+      const url = this.publishedUrl(projectKey);
+      const response = await fetch(url, {
+        headers: this.authHeaders(url),
+        credentials: 'include',
+      });
 
       if (!response.ok) {
         return null;
@@ -543,21 +555,18 @@ export class PublishedFilesService {
     request: CreatePublishedFileRequest
   ): Promise<PublishedFile | null> {
     try {
-      const [username, slug] = projectKey.split('/');
       const formData = new FormData();
       // Safari can send an IndexedDB Blob as an empty body; see toReadableBlob.
       formData.append('file', await toReadableBlob(blob), request.filename);
       formData.append('metadata', JSON.stringify(toWireRequest(request)));
 
-      const response = await fetch(
-        `${this.getServerUrl()}/api/v1/projects/${username}/${slug}/published`,
-        {
-          method: 'POST',
-          headers: this.authHeaders(),
-          body: formData,
-          credentials: 'include',
-        }
-      );
+      const url = this.publishedUrl(projectKey);
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: this.authHeaders(url),
+        body: formData,
+        credentials: 'include',
+      });
 
       if (!response.ok) {
         const body = await readErrorBody(response);
@@ -583,14 +592,11 @@ export class PublishedFilesService {
     fileId: string
   ): Promise<Blob | null> {
     try {
-      const [username, slug] = projectKey.split('/');
-      const response = await fetch(
-        `${this.getServerUrl()}/api/v1/projects/${username}/${slug}/published/${fileId}`,
-        {
-          headers: this.authHeaders(),
-          credentials: 'include',
-        }
-      );
+      const url = this.publishedUrl(projectKey, fileId);
+      const response = await fetch(url, {
+        headers: this.authHeaders(url),
+        credentials: 'include',
+      });
 
       if (!response.ok) {
         return null;
@@ -607,16 +613,13 @@ export class PublishedFilesService {
     fileId: string,
     request: UpdatePublishedFileRequest
   ): Promise<PublishedFile> {
-    const [username, slug] = projectKey.split('/');
-    const response = await fetch(
-      `${this.getServerUrl()}/api/v1/projects/${username}/${slug}/published/${fileId}`,
-      {
-        method: 'PATCH',
-        headers: this.authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify(request),
-        credentials: 'include',
-      }
-    );
+    const url = this.publishedUrl(projectKey, fileId);
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: this.authHeaders(url, { 'Content-Type': 'application/json' }),
+      body: JSON.stringify(request),
+      credentials: 'include',
+    });
     if (!response.ok) {
       throw new Error(describeFailure(response, await readErrorBody(response)));
     }
@@ -627,15 +630,12 @@ export class PublishedFilesService {
     projectKey: string,
     fileId: string
   ): Promise<void> {
-    const [username, slug] = projectKey.split('/');
-    const response = await fetch(
-      `${this.getServerUrl()}/api/v1/projects/${username}/${slug}/published/${fileId}`,
-      {
-        method: 'DELETE',
-        headers: this.authHeaders(),
-        credentials: 'include',
-      }
-    );
+    const url = this.publishedUrl(projectKey, fileId);
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: this.authHeaders(url),
+      credentials: 'include',
+    });
     // 404: already deleted, or saved here while its upload failed
     if (!response.ok && response.status !== 404) {
       throw new Error(describeFailure(response, await readErrorBody(response)));

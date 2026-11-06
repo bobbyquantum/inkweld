@@ -6,13 +6,68 @@
  * centralise parsing so each caller doesn't re-implement the same logic.
  */
 
+import { encodePathSegment } from './url-path';
+
 /**
  * Extract the filename from a media reference.
  * Returns the input unchanged when it isn't a `media://` reference.
+ *
+ * The result is not checked: use {@link safeMediaReferenceFilename} before
+ * the filename names a file on the server.
  */
 export function mediaReferenceFilename(reference: string): string {
   if (!reference.startsWith('media://')) return reference;
   return reference.substring('media://'.length);
+}
+
+/**
+ * Path separators (`\` too: URL parsing treats it as `/`), the query and
+ * fragment delimiters, percent-escapes (the server decodes them) and control
+ * characters (URL parsing drops tab and newline).
+ */
+const UNSAFE_MEDIA_FILENAME = /[/\\?#]|%[\da-f]{2}|\p{Cc}/iu;
+
+/**
+ * Whether `filename` names one file of a project's media: a string that is a
+ * single plain path segment, never `.` or `..`. Filenames the server and this
+ * app create always pass. Takes `unknown` because values read from project
+ * data are not type-checked at run time.
+ */
+export function isSafeMediaFilename(filename: unknown): filename is string {
+  return (
+    typeof filename === 'string' &&
+    filename !== '' &&
+    filename !== '.' &&
+    filename !== '..' &&
+    !UNSAFE_MEDIA_FILENAME.test(filename)
+  );
+}
+
+/**
+ * The filename of a `media://` reference when it names a single media file
+ * ({@link isSafeMediaFilename}), or null. A reference that fails resolves to
+ * no image, without a request.
+ */
+export function safeMediaReferenceFilename(reference: unknown): string | null {
+  if (typeof reference !== 'string' || !reference.startsWith('media://')) {
+    return null;
+  }
+  const filename = reference.substring('media://'.length);
+  return isSafeMediaFilename(filename) ? filename : null;
+}
+
+/** Server path of a project's media, with each segment encoded. */
+export function projectMediaPath(username: string, slug: string): string {
+  return `/api/v1/media/${encodePathSegment(username)}/${encodePathSegment(slug)}`;
+}
+
+/** Server path of one project media file, with each segment encoded. */
+export function mediaFilePath(
+  username: string,
+  slug: string,
+  filename: string
+): string {
+  return `${projectMediaPath(username, slug)}/${encodePathSegment(filename)}`;
 }
 
 /**

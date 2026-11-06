@@ -100,6 +100,15 @@ describe('POST /api/v1/auth/ingress', () => {
     expect(((await response.json()) as SignInBody).user.username).toBe(`eve${run}-2`);
   });
 
+  it('gives a username that matches an existing account ignoring case a numeric suffix', async () => {
+    await userService.create(getDatabase(), { username: `Grace${run}` }, { autoApprove: true });
+    const response = await signIn({
+      'X-Remote-User-Id': haId('grace'),
+      'X-Remote-User-Name': `grace${run}`,
+    });
+    expect(((await response.json()) as SignInBody).user.username).toBe(`grace${run}-2`);
+  });
+
   it('refuses a disabled account', async () => {
     const created = (await (
       await signIn({ 'X-Remote-User-Id': haId('frank'), 'X-Remote-User-Name': `frank${run}` })
