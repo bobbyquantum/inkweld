@@ -44,6 +44,14 @@
         "lib0": "^0.2.117",
       },
     },
+    "packages/inkweld-project-library": {
+      "name": "@inkweld/project-library",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@vitest/coverage-v8": "^5.0.0",
+        "vitest": "^5.0.0",
+      },
+    },
     "packages/inkweld-prosemirror": {
       "name": "@inkweld/prosemirror",
       "version": "0.1.0",
@@ -115,6 +123,8 @@
     "@inkweld/canvas": ["@inkweld/canvas@workspace:packages/inkweld-canvas"],
 
     "@inkweld/presence": ["@inkweld/presence@workspace:packages/inkweld-presence"],
+
+    "@inkweld/project-library": ["@inkweld/project-library@workspace:packages/inkweld-project-library"],
 
     "@inkweld/prosemirror": ["@inkweld/prosemirror@workspace:packages/inkweld-prosemirror"],
 

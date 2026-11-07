@@ -16,7 +16,7 @@ tool hasn't loaded them already. Longer design notes are in the developer docs
   Rules: `backend/AGENTS.md`.
 - **Real-time**: Yjs CRDTs over WebSocket, offline-first with IndexedDB.
 - **Shared packages** (`packages/`): `inkweld-async`, `inkweld-canvas`,
-  `inkweld-presence`, `inkweld-prosemirror`.
+  `inkweld-presence`, `inkweld-project-library`, `inkweld-prosemirror`.
 
 ## Rules for every change
 

@@ -13,9 +13,11 @@ import { MCP_PERMISSIONS } from '../src/mcp/mcp-permissions';
 /** The only tools that delete or wholesale replace project data. */
 const DESTRUCTIVE_TOOLS = [
   'delete_element',
+  'delete_generator',
   'delete_relationship',
   'delete_schema',
   'delete_tag',
+  'delete_time_system',
   'replace_all_elements',
 ];
 
@@ -98,6 +100,8 @@ describe('MCP tool annotations', () => {
       'update_document_content',
       'update_document_section',
       'update_schema',
+      'update_time_system',
+      'update_generator',
       'edit_canvas',
     ]) {
       const tool = tools.find((t) => t.name === name);

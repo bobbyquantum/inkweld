@@ -23,6 +23,7 @@
       "@inkweld/presence": ["../packages/inkweld-presence/src/index"],
       "@inkweld/async": ["../packages/inkweld-async/src/index"],
       "@inkweld/canvas": ["../packages/inkweld-canvas/src/index"],
+      "@inkweld/project-library": ["../packages/inkweld-project-library/src/index"],
       "@inkweld/presence/*": ["../packages/inkweld-presence/src/*/index"],
       "@inkweld/*": ["./src/api-client/*"],
       "@components/*": ["./src/app/components/*"],

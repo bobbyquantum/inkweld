@@ -328,6 +328,12 @@ Docs: `docs/site/docs/developer/mcp-oauth.md`.
   assignment per element and tag: `tag-store.ts` here and
   `frontend/src/app/utils/unique-tags.ts` in the app's sync provider. Tag
   writes delete the duplicates they see.
+- **MCP time system and generator tools** (`mcp/tools/time-system.tools.ts`,
+  `generator.tools.ts`, plumbing in `library-store.ts`) edit the elements
+  doc's `timeSystems` and `generators` arrays one row at a time, with the same
+  first-row-per-id reading and cleanup as the tags. Validation, templates and
+  the roll engine come from `@inkweld/project-library`, which the app uses
+  too; never copy that logic here, or MCP and the app drift apart.
 
 ## Sync socket input
 
