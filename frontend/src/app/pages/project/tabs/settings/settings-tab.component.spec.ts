@@ -544,13 +544,13 @@ describe('SettingsTabComponent', () => {
           ?.querySelector('button')
           ?.getAttribute('aria-checked')
       ).toBe('true');
+      const url = component['publicShareUrl']();
+      expect(url).toContain('/public/testuser/test-project');
       const box = query('public-share-url');
-      expect(box?.querySelector('code')?.textContent?.trim()).toMatch(
-        /\/public\/testuser\/test-project$/
+      expect(box?.querySelector('code')?.textContent?.trim()).toBe(url);
+      expect(query('open-public-share-link-button')?.getAttribute('href')).toBe(
+        url
       );
-      expect(
-        query('open-public-share-link-button')?.getAttribute('href')
-      ).toMatch(/\/public\/testuser\/test-project$/);
       expect(query('copy-public-share-link-button')).not.toBeNull();
     });
 
