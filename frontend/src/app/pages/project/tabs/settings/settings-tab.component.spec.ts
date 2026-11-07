@@ -378,9 +378,21 @@ describe('SettingsTabComponent', () => {
       expect(component['publicShareUrl']()).toBeNull();
     });
 
-    it('builds an encoded /public link once the project is public', () => {
+    it('builds an encoded /public link naming the owner’s server', () => {
       projectSignal.set({ ...publicProject, username: 'a b', slug: 'c/d' });
-      expect(component['publicShareUrl']()).toMatch(/\/public\/a%20b\/c%2Fd$/);
+      expect(component['publicShareUrl']()).toMatch(
+        /\/public\/a%20b\/c%2Fd\?server=https%3A%2F%2Finkweld\.test$/
+      );
+    });
+
+    it('leaves the server out when the page can work it out', () => {
+      vi.mocked(setupService.getServerUrl!).mockReturnValue(
+        'http://localhost:8333'
+      );
+      projectSignal.set(publicProject);
+      expect(component['publicShareUrl']()).toMatch(
+        /\/public\/testuser\/test-project$/
+      );
     });
 
     it('lets the owner make the project public', async () => {
@@ -470,7 +482,9 @@ describe('SettingsTabComponent', () => {
       await component.copyPublicShareLink();
 
       expect(writeText).toHaveBeenCalledWith(
-        expect.stringMatching(/\/public\/testuser\/test-project$/)
+        expect.stringMatching(
+          /\/public\/testuser\/test-project\?server=https%3A%2F%2Finkweld\.test$/
+        )
       );
       expect(snackBar.open).toHaveBeenCalledWith(
         'Public project link copied',

@@ -26,6 +26,8 @@ describe('PublicProjectContextService', () => {
       base.setAttribute('href', originalHref);
     history.replaceState(null, '', originalUrl);
     TestBed.resetTestingModule();
+    sessionStorage.clear();
+    vi.unstubAllGlobals();
   });
 
   it('recognizes initial public deep links without configuring a profile', () => {
@@ -69,5 +71,220 @@ describe('PublicProjectContextService', () => {
     expect(context.active()).toBe(true);
     events.next(new NavigationEnd(3, '/', '/'));
     expect(context.active()).toBe(false);
+  });
+  describe('the server a link names', () => {
+    const API = 'https://api.example.com';
+    const linkSearch = `?server=${encodeURIComponent(API)}`;
+
+    function withRouter(url: string): Subject<NavigationStart | NavigationEnd> {
+      const events = new Subject<NavigationStart | NavigationEnd>();
+      TestBed.configureTestingModule({
+        providers: [{ provide: Router, useValue: { events, url } }],
+      });
+      return events;
+    }
+
+    it('reads the project from the server in the link', () => {
+      vi.stubGlobal('location', {
+        ...location,
+        pathname: '/public/bobbyquantum/dustmote-rising',
+        search: linkSearch,
+      });
+      const context = TestBed.inject(PublicProjectContextService);
+
+      expect(context.serverUrl()).toBe(API);
+      expect(context.storagePrefix()).toBe(
+        `public:${encodeURIComponent(API)}:`
+      );
+    });
+
+    it('keeps that server while moving around the project', () => {
+      vi.stubGlobal('location', { ...location, pathname: '/', search: '' });
+      const events = withRouter('/');
+      const context = TestBed.inject(PublicProjectContextService);
+
+      events.next(new NavigationStart(1, `/public/alice/story${linkSearch}`));
+      events.next(
+        new NavigationEnd(
+          2,
+          '/public/alice/story/document/chapter',
+          '/public/alice/story/document/chapter'
+        )
+      );
+
+      expect(context.serverUrl()).toBe(API);
+    });
+
+    it('still knows the server after a reload deeper in the project', () => {
+      vi.stubGlobal('location', {
+        ...location,
+        pathname: '/public/alice/story',
+        search: linkSearch,
+      });
+      TestBed.inject(PublicProjectContextService);
+      TestBed.resetTestingModule();
+      vi.stubGlobal('location', {
+        ...location,
+        pathname: '/public/alice/story/media',
+        search: '',
+      });
+
+      expect(TestBed.inject(PublicProjectContextService).serverUrl()).toBe(API);
+    });
+
+    it("uses the build's server for a project whose link named none", () => {
+      vi.stubGlobal('location', {
+        ...location,
+        pathname: '/public/alice/story',
+        search: linkSearch,
+      });
+      TestBed.inject(PublicProjectContextService);
+      TestBed.resetTestingModule();
+      vi.stubGlobal('location', {
+        ...location,
+        pathname: '/public/carol/other',
+        search: '',
+      });
+
+      expect(TestBed.inject(PublicProjectContextService).serverUrl()).not.toBe(
+        API
+      );
+    });
+
+    function loadedAs(type: string): void {
+      vi.spyOn(performance, 'getEntriesByType').mockReturnValue([
+        { type } as unknown as PerformanceEntry,
+      ]);
+    }
+
+    function storedServers(): unknown {
+      return JSON.parse(
+        sessionStorage.getItem('inkweld-public-link-servers') ?? 'null'
+      );
+    }
+
+    it('uses a navigation’s server only once it succeeds', () => {
+      vi.stubGlobal('location', { ...location, pathname: '/', search: '' });
+      const events = new Subject<
+        NavigationStart | NavigationEnd | NavigationCancel
+      >();
+      TestBed.configureTestingModule({
+        providers: [{ provide: Router, useValue: { events, url: '/' } }],
+      });
+      const context = TestBed.inject(PublicProjectContextService);
+
+      events.next(new NavigationStart(1, `/public/alice/story${linkSearch}`));
+      // Guards and resolvers already read from it while it runs
+      expect(context.serverUrl()).toBe(API);
+      events.next(
+        new NavigationCancel(1, `/public/alice/story${linkSearch}`, 'no')
+      );
+
+      expect(storedServers()).toBeNull();
+      events.next(new NavigationStart(2, '/public/alice/story'));
+      expect(context.serverUrl()).not.toBe(API);
+    });
+
+    it('goes back to the build’s server for a link opened afresh without one', () => {
+      sessionStorage.setItem(
+        'inkweld-public-link-servers',
+        JSON.stringify({ 'alice/story': API, 'bob/other': API })
+      );
+      loadedAs('navigate');
+      vi.stubGlobal('location', {
+        ...location,
+        pathname: '/public/alice/story',
+        search: '',
+      });
+
+      expect(TestBed.inject(PublicProjectContextService).serverUrl()).not.toBe(
+        API
+      );
+      // Other projects' servers are kept
+      expect(storedServers()).toEqual({ 'bob/other': API });
+    });
+
+    it('keeps the server when the page is reloaded', () => {
+      sessionStorage.setItem(
+        'inkweld-public-link-servers',
+        JSON.stringify({ 'alice/story': API })
+      );
+      loadedAs('reload');
+      vi.stubGlobal('location', {
+        ...location,
+        pathname: '/public/alice/story/media',
+        search: '',
+      });
+
+      expect(TestBed.inject(PublicProjectContextService).serverUrl()).toBe(API);
+    });
+
+    it('drops stored servers that are not server addresses', () => {
+      sessionStorage.setItem(
+        'inkweld-public-link-servers',
+        JSON.stringify({
+          'alice/story': 42,
+          'bob/other': 'javascript:alert(1)',
+          'carol/third': `${API}/`,
+        })
+      );
+      vi.stubGlobal('location', {
+        ...location,
+        pathname: '/public/alice/story',
+        search: '',
+      });
+      const defaultServer = TestBed.inject(
+        PublicProjectContextService
+      ).serverUrl();
+
+      expect(defaultServer).toMatch(/^https?:\/\//);
+      expect(defaultServer).not.toBe(API);
+      TestBed.resetTestingModule();
+      vi.stubGlobal('location', {
+        ...location,
+        pathname: '/public/carol/third',
+        search: '',
+      });
+      expect(TestBed.inject(PublicProjectContextService).serverUrl()).toBe(API);
+    });
+
+    it('ignores stored servers that are not a map', () => {
+      sessionStorage.setItem('inkweld-public-link-servers', '["x"]');
+      vi.stubGlobal('location', {
+        ...location,
+        pathname: '/public/alice/story',
+        search: '',
+      });
+
+      expect(() =>
+        TestBed.inject(PublicProjectContextService).serverUrl()
+      ).not.toThrow();
+    });
+
+    it('ignores a server that is not an http(s) URL', () => {
+      vi.stubGlobal('location', {
+        ...location,
+        pathname: '/public/alice/story',
+        search: '?server=javascript%3Aalert(1)',
+      });
+
+      expect(
+        TestBed.inject(PublicProjectContextService).serverUrl()
+      ).not.toContain('javascript');
+      expect(sessionStorage.getItem('inkweld-public-link-servers')).toBeNull();
+    });
+
+    it('survives unreadable stored servers', () => {
+      sessionStorage.setItem('inkweld-public-link-servers', '{not json');
+      vi.stubGlobal('location', {
+        ...location,
+        pathname: '/public/alice/story',
+        search: '',
+      });
+
+      expect(() =>
+        TestBed.inject(PublicProjectContextService).serverUrl()
+      ).not.toThrow();
+    });
   });
 });
