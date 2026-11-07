@@ -1,12 +1,13 @@
 {
   "publicSharing": {
     "title": "Public project link",
-    "description": "Share a live, read-only view of this project. Visitors do not need an account or server setup.",
+    "description": "Share a live, read-only view of this project. Viewers do not need an account.",
     "publicWarning": "This project is completely public. Anyone with the link can view all of its contents.",
     "privateNotice": "This project is private. No one can open it without access.",
-    "enable": "Make project public",
-    "disable": "Turn off public access",
+    "toggleLabel": "Public access",
+    "stateOn": "Anyone with the link can view this project.",
     "copyLink": "Copy link",
+    "openLink": "Open public view in a new tab",
     "linkCopied": "Public project link copied",
     "copyFailed": "Could not copy the link. Copy it from the address above.",
     "updateFailed": "Could not update public access."

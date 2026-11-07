@@ -18,9 +18,14 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
+import {
+  type MatSlideToggleChange,
+  MatSlideToggleModule,
+} from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -84,9 +89,11 @@ import { TimeSystemsSettingsComponent } from './time-systems-settings/time-syste
     MatIconModule,
     MatInputModule,
     MatListModule,
+    MatMenuModule,
     MatProgressBarModule,
     MatProgressSpinnerModule,
     MatSelectModule,
+    MatSlideToggleModule,
     MatTooltipModule,
     NgTemplateOutlet,
     TranslocoModule,
@@ -225,20 +232,28 @@ export class SettingsTabComponent implements OnDestroy {
   protected readonly roleOptions = [
     {
       value: CollaboratorRole.Viewer,
-      label: 'Viewer',
-      description: 'Can view project content',
+      label: 'settings.collaboration.roles.viewer',
+      description: 'settings.collaboration.roles.viewerDesc',
     },
     {
       value: CollaboratorRole.Editor,
-      label: 'Editor',
-      description: 'Can view and edit content',
+      label: 'settings.collaboration.roles.editor',
+      description: 'settings.collaboration.roles.editorDesc',
     },
     {
       value: CollaboratorRole.Admin,
-      label: 'Admin',
-      description: 'Full access including settings',
+      label: 'settings.collaboration.roles.admin',
+      description: 'settings.collaboration.roles.adminDesc',
     },
   ];
+
+  /** Transloco key for a role's name, for the role menu button. */
+  protected roleLabel(role: CollaboratorRole): string {
+    return (
+      this.roleOptions.find(opt => opt.value === role)?.label ??
+      'settings.collaboration.roles.viewer'
+    );
+  }
 
   // Media sync state
   protected readonly projectKey = computed(() => {
@@ -427,7 +442,10 @@ export class SettingsTabComponent implements OnDestroy {
       const updated = await this.projectService.updateProject(
         project.username,
         project.slug,
-        { isPublic: !project.isPublic }
+        { isPublic: !project.isPublic },
+        // Visibility must never look saved before the server has it: a queued
+        // "turn off" would leave the project public while showing it private.
+        { queueIfOffline: false }
       );
       if (this.projectState.project()?.id === project.id) {
         this.projectState.updateProject(updated);
@@ -442,6 +460,12 @@ export class SettingsTabComponent implements OnDestroy {
     } finally {
       this.isUpdatingPublicSharing.set(false);
     }
+  }
+
+  /** The switch stays bound to the project, so snap it back if nothing changed. */
+  async onPublicSharingToggle(event: MatSlideToggleChange): Promise<void> {
+    await this.togglePublicSharing();
+    event.source.checked = !!this.projectState.project()?.isPublic;
   }
 
   async copyPublicShareLink(): Promise<void> {
@@ -526,7 +550,8 @@ export class SettingsTabComponent implements OnDestroy {
     newRole: CollaboratorRole
   ): Promise<void> {
     const project = this.projectState.project();
-    if (!project) return;
+    // Picking the role someone already has is a no-op, not a request
+    if (!project || collaborator.role === newRole) return;
 
     try {
       await firstValueFrom(
@@ -595,14 +620,15 @@ export class SettingsTabComponent implements OnDestroy {
     }
   }
 
+  /** People only: connected apps are listed (and counted) in their own card. */
   getActiveCollaboratorsCount(): number {
-    return this.collaborators().filter(
+    return this.humanCollaborators().filter(
       c => c.status === InvitationStatus.Accepted
     ).length;
   }
 
   getPendingInvitationsCount(): number {
-    return this.collaborators().filter(
+    return this.humanCollaborators().filter(
       c => c.status === InvitationStatus.Pending
     ).length;
   }

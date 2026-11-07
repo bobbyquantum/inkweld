@@ -14,6 +14,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
+import type { MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -24,6 +25,7 @@ import { CollaborationService as CollaborationApiService } from '@inkweld/api/co
 import { ProjectsService } from '@inkweld/api/projects.service';
 import {
   type Collaborator,
+  CollaboratorCollaboratorType,
   CollaboratorRole,
   InvitationStatus,
 } from '@inkweld/index';
@@ -406,7 +408,8 @@ describe('SettingsTabComponent', () => {
       expect(projectService.updateProject).toHaveBeenCalledWith(
         'testuser',
         'test-project',
-        { isPublic: true }
+        { isPublic: true },
+        { queueIfOffline: false }
       );
       expect(updateProjectState).toHaveBeenCalledWith(updated);
       expect(component['isUpdatingPublicSharing']()).toBe(false);
@@ -423,7 +426,8 @@ describe('SettingsTabComponent', () => {
       expect(projectService.updateProject).toHaveBeenCalledWith(
         'testuser',
         'test-project',
-        { isPublic: false }
+        { isPublic: false },
+        { queueIfOffline: false }
       );
     });
 
@@ -514,6 +518,91 @@ describe('SettingsTabComponent', () => {
         'Close',
         { duration: 5000 }
       );
+    });
+
+    function query(testId: string): HTMLElement | null {
+      return fixture.nativeElement.querySelector(`[data-testid="${testId}"]`);
+    }
+
+    it('shows an off switch and no link while private', () => {
+      fixture.detectChanges();
+
+      const toggle = query('toggle-public-sharing');
+      expect(toggle).not.toBeNull();
+      expect(
+        toggle?.querySelector('button')?.getAttribute('aria-checked')
+      ).toBe('false');
+      expect(query('public-share-url')).toBeNull();
+    });
+
+    it('shows the link in a URL box once public', () => {
+      projectSignal.set(publicProject);
+      fixture.detectChanges();
+
+      expect(
+        query('toggle-public-sharing')
+          ?.querySelector('button')
+          ?.getAttribute('aria-checked')
+      ).toBe('true');
+      const url = component['publicShareUrl']();
+      expect(url).toContain('/public/testuser/test-project');
+      const box = query('public-share-url');
+      expect(box?.querySelector('code')?.textContent?.trim()).toBe(url);
+      expect(query('open-public-share-link-button')?.getAttribute('href')).toBe(
+        url
+      );
+      expect(query('copy-public-share-link-button')).not.toBeNull();
+    });
+
+    it('disables the switch for a collaborator who is not the owner', () => {
+      (projectStateService.isOwner as ReturnType<typeof signal<boolean>>).set(
+        false
+      );
+      fixture.detectChanges();
+
+      expect(
+        query('toggle-public-sharing')
+          ?.querySelector('button')
+          ?.hasAttribute('disabled')
+      ).toBe(true);
+    });
+
+    it('flipping the switch updates the project and keeps it in step', async () => {
+      Object.assign(projectService, {
+        updateProject: vi.fn().mockResolvedValue(publicProject),
+      });
+      updateProjectState.mockImplementation((p: unknown) =>
+        projectSignal.set(p)
+      );
+      const source = { checked: true };
+
+      await component.onPublicSharingToggle({
+        source,
+        checked: true,
+      } as unknown as MatSlideToggleChange);
+
+      expect(projectService.updateProject).toHaveBeenCalledWith(
+        'testuser',
+        'test-project',
+        { isPublic: true },
+        { queueIfOffline: false }
+      );
+      expect(source.checked).toBe(true);
+    });
+
+    it('snaps the switch back when the change fails', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      Object.assign(projectService, {
+        updateProject: vi.fn().mockRejectedValue(new Error('offline')),
+      });
+      const source = { checked: true };
+
+      await component.onPublicSharingToggle({
+        source,
+        checked: true,
+      } as unknown as MatSlideToggleChange);
+
+      expect(source.checked).toBe(false);
     });
   });
 
@@ -893,6 +982,149 @@ describe('SettingsTabComponent', () => {
       await fixture.whenStable();
 
       expect(component.getPendingInvitationsCount()).toBe(1);
+    });
+
+    describe('cards', () => {
+      const connectedApp: Collaborator = {
+        ...mockCollaborators[0],
+        userId: 'user-1',
+        username: 'testuser',
+        name: null,
+        collaboratorType: CollaboratorCollaboratorType.OauthApp,
+        clientName: 'Claude',
+        role: CollaboratorRole.Admin,
+        acceptedAt: Date.UTC(2026, 9, 25, 12),
+      };
+
+      function query(testId: string): HTMLElement | null {
+        return fixture.nativeElement.querySelector(`[data-testid="${testId}"]`);
+      }
+
+      function show(collaborators: Collaborator[]): void {
+        component['collaborators'].set(collaborators);
+        component['isLoadingCollaborators'].set(false);
+        component['collaboratorsError'].set(null);
+        fixture.detectChanges();
+      }
+
+      it('counts people only, not connected apps', () => {
+        show([
+          mockCollaborators[1],
+          connectedApp,
+          { ...connectedApp, userId: 'u3' },
+        ]);
+
+        expect(component.getActiveCollaboratorsCount()).toBe(0);
+        expect(component.getPendingInvitationsCount()).toBe(1);
+        expect(query('collaborators-count')?.textContent?.trim()).toBe('1');
+        expect(
+          fixture.nativeElement.querySelectorAll(
+            '[data-testid="collaborator-item"]'
+          )
+        ).toHaveLength(1);
+        expect(
+          fixture.nativeElement.querySelectorAll(
+            '[data-testid="connected-app-item"]'
+          )
+        ).toHaveLength(2);
+      });
+
+      it('writes the invite line as one sentence', () => {
+        show([mockCollaborators[1]]);
+
+        const meta =
+          query('collaborator-item')?.querySelector('.collaborator-meta');
+        expect(meta?.textContent?.replaceAll(/\s+/g, ' ').trim()).toMatch(
+          /^Invited .+ by testuser$/
+        );
+      });
+
+      it('falls back to the invite date when an accepted collaborator has no join date', () => {
+        show([{ ...mockCollaborators[0], acceptedAt: null }]);
+
+        const meta =
+          query('collaborator-item')?.querySelector('.collaborator-meta');
+        expect(meta?.textContent?.replaceAll(/\s+/g, ' ').trim()).toMatch(
+          /^Invited .+ by testuser$/
+        );
+      });
+
+      it('writes the app line as one sentence', () => {
+        show([connectedApp]);
+
+        const meta =
+          query('connected-app-item')?.querySelector('.collaborator-meta');
+        expect(meta?.textContent?.replaceAll(/\s+/g, ' ').trim()).toMatch(
+          /^Authorized by testuser on .+2026$/
+        );
+      });
+
+      it('keeps the card, with an invite button, when no one else has access', () => {
+        show([connectedApp]);
+
+        expect(query('collaborators-card')).not.toBeNull();
+        expect(query('collaborators-empty')).not.toBeNull();
+        expect(
+          query('collaborators-card')?.querySelector(
+            '[data-testid="show-invite-form-button"]'
+          )
+        ).not.toBeNull();
+      });
+
+      it('shows the role as a menu button and ticks it in the menu', async () => {
+        show([mockCollaborators[0]]);
+
+        const button = query('collaborator-role-button');
+        expect(button?.textContent).toContain('Editor');
+        expect(button?.getAttribute('aria-label')).toBe(
+          'Role for collaborator1: Editor'
+        );
+
+        button?.click();
+        fixture.detectChanges();
+        await fixture.whenStable();
+
+        const options = Array.from(
+          document.querySelectorAll<HTMLElement>(
+            '[data-testid="collaborator-role-option"]'
+          )
+        );
+        expect(options.map(o => o.getAttribute('aria-checked'))).toEqual([
+          'false',
+          'true',
+          'false',
+        ]);
+        expect(options[2].textContent).toContain(
+          'Full access including settings'
+        );
+
+        options[2].click();
+        await fixture.whenStable();
+        expect(collaborationService.updateCollaborator).toHaveBeenCalledWith(
+          'testuser',
+          'test-project',
+          'user-1',
+          { role: CollaboratorRole.Admin }
+        );
+      });
+
+      it('does not call the server when the same role is picked again', async () => {
+        await component.updateCollaboratorRole(
+          mockCollaborators[0],
+          CollaboratorRole.Editor
+        );
+
+        expect(collaborationService.updateCollaborator).not.toHaveBeenCalled();
+      });
+
+      it('hides the invite button while the invite form is open', () => {
+        show([]);
+        component.toggleInviteForm();
+        fixture.detectChanges();
+
+        expect(query('show-invite-form-button')).toBeNull();
+        expect(query('invite-username-input')).not.toBeNull();
+      });
     });
 
     it('should invite a collaborator', async () => {

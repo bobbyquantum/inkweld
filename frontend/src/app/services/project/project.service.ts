@@ -444,11 +444,19 @@ export class ProjectService {
     await this.replaceInProjectList(username, slug, serverProject);
   }
 
+  /**
+   * Saves project metadata. A recoverable network or server error normally
+   * keeps the change locally and queues it for later (offline-first). Pass
+   * `queueIfOffline: false` for changes that must not look saved before the
+   * server has them, such as turning public access off: those reject instead.
+   */
   async updateProject(
     username: string,
     slug: string,
-    Project: Partial<Pick<Project, 'title' | 'description' | 'isPublic'>>
+    Project: Partial<Pick<Project, 'title' | 'description' | 'isPublic'>>,
+    options: { queueIfOffline?: boolean } = {}
   ): Promise<Project> {
+    const queueIfOffline = options.queueIfOffline ?? true;
     this.isLoading.set(true);
     this.error.set(undefined);
 
@@ -483,7 +491,7 @@ export class ProjectService {
           e instanceof ProjectServiceError ? e : this.formatError(e);
 
         // For recoverable network/server errors, update cache locally and queue metadata sync
-        if (formatted.canUseCache) {
+        if (queueIfOffline && formatted.canUseCache) {
           const cacheKey = `${username}/${slug}`;
           const existing = await this.getCachedProject(cacheKey);
           const updated: Project = {
