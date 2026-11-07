@@ -10,7 +10,7 @@ titles.
 
 ### Bug Fixes
 
-* **collab:** public links work when the app is served from a different address than the server ([#1736](https://github.com/bobbyquantum/inkweld/issues/1736)) ([b41fb98](https://github.com/bobbyquantum/inkweld/commit/b41fb98e188415730a639715ed875007f46d0864))
+* 👥 **collab:** public links work when the app is served from a different address than the server ([#1736](https://github.com/bobbyquantum/inkweld/issues/1736)) ([b41fb98](https://github.com/bobbyquantum/inkweld/commit/b41fb98e188415730a639715ed875007f46d0864))
 
 ## [1.0.0-beta.6](https://github.com/bobbyquantum/inkweld/compare/v1.0.0-beta.5...v1.0.0-beta.6) (2026-11-06)
 
