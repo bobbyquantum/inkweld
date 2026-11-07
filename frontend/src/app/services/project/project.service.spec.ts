@@ -761,6 +761,26 @@ describe('ProjectService', () => {
       expect(service.error()).toBeUndefined();
     });
 
+    it('rejects instead of queueing when asked not to queue', async () => {
+      // Turning public access off must not look saved while the server
+      // still serves the project publicly.
+      api.updateProject.mockReturnValue(
+        apiErr(new HttpErrorResponse({ status: 0 }))
+      );
+
+      await expect(
+        service.updateProject(
+          'alice',
+          'project-1',
+          { isPublic: false },
+          { queueIfOffline: false }
+        )
+      ).rejects.toBeInstanceOf(ProjectServiceError);
+
+      expect(projectSync.markPendingMetadata).not.toHaveBeenCalled();
+      expect(service.error()).toBeDefined();
+    });
+
     it('updates the cached list when this session has not loaded it', async () => {
       // Saving from inside a project on a fresh load: nothing has populated
       // the in-memory list yet. Working from that empty snapshot replaced the

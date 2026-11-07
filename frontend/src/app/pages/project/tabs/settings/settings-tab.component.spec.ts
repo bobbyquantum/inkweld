@@ -396,7 +396,8 @@ describe('SettingsTabComponent', () => {
       expect(projectService.updateProject).toHaveBeenCalledWith(
         'testuser',
         'test-project',
-        { isPublic: true }
+        { isPublic: true },
+        { queueIfOffline: false }
       );
       expect(updateProjectState).toHaveBeenCalledWith(updated);
       expect(component['isUpdatingPublicSharing']()).toBe(false);
@@ -413,7 +414,8 @@ describe('SettingsTabComponent', () => {
       expect(projectService.updateProject).toHaveBeenCalledWith(
         'testuser',
         'test-project',
-        { isPublic: false }
+        { isPublic: false },
+        { queueIfOffline: false }
       );
     });
 
@@ -568,7 +570,8 @@ describe('SettingsTabComponent', () => {
       expect(projectService.updateProject).toHaveBeenCalledWith(
         'testuser',
         'test-project',
-        { isPublic: true }
+        { isPublic: true },
+        { queueIfOffline: false }
       );
       expect(source.checked).toBe(true);
     });
@@ -1014,6 +1017,16 @@ describe('SettingsTabComponent', () => {
 
       it('writes the invite line as one sentence', () => {
         show([mockCollaborators[1]]);
+
+        const meta =
+          query('collaborator-item')?.querySelector('.collaborator-meta');
+        expect(meta?.textContent?.replaceAll(/\s+/g, ' ').trim()).toMatch(
+          /^Invited .+ by testuser$/
+        );
+      });
+
+      it('falls back to the invite date when an accepted collaborator has no join date', () => {
+        show([{ ...mockCollaborators[0], acceptedAt: null }]);
 
         const meta =
           query('collaborator-item')?.querySelector('.collaborator-meta');

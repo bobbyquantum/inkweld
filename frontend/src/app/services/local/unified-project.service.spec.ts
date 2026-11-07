@@ -272,7 +272,8 @@ describe('UnifiedProjectService', () => {
       expect(projectService.updateProject).toHaveBeenCalledWith(
         'testuser',
         'test-project-1',
-        updates
+        updates,
+        undefined
       );
     });
 

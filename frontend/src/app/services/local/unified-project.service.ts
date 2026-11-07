@@ -492,7 +492,8 @@ export class UnifiedProjectService {
   updateProject(
     username: string,
     slug: string,
-    updates: Partial<Project>
+    updates: Partial<Project>,
+    options?: { queueIfOffline?: boolean }
   ): Promise<Project> {
     const mode = this.setupService.getMode();
     if (isLocalOrCloudMode(mode)) {
@@ -510,7 +511,12 @@ export class UnifiedProjectService {
     if (mode === 'server') {
       // Only the changed fields are sent, so a partial update (such as
       // visibility alone) never overwrites other fields with stale values.
-      return this.projectService.updateProject(username, slug, updates);
+      return this.projectService.updateProject(
+        username,
+        slug,
+        updates,
+        options
+      );
     }
     return Promise.reject(new Error('No mode configured'));
   }

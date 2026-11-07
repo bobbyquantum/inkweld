@@ -748,7 +748,9 @@
                           }
                         </div>
                         <div class="collaborator-meta">
-                          @if (collab.status === 'accepted') {
+                          @if (
+                            collab.status === 'accepted' && collab.acceptedAt
+                          ) {
                             {{
                               'settings.collaboration.joined'
                                 | transloco

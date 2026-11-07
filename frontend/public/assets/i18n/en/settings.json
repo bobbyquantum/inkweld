@@ -404,7 +404,7 @@
     "collaboratorsTitle": "Collaborators",
     "pendingCount": "{{count}} pending",
     "pending": "Pending",
-    "noCollaborators": "No one else has access yet. Invite someone to write with you.",
+    "noCollaborators": "No collaborators yet. Invite someone to write with you.",
     "joined": "Joined {{date}}",
     "invited": "Invited {{date}}",
     "invitedBy": "Invited {{date}} by {{name}}",

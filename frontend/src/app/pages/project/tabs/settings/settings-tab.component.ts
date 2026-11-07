@@ -435,7 +435,10 @@ export class SettingsTabComponent implements OnDestroy {
       const updated = await this.projectService.updateProject(
         project.username,
         project.slug,
-        { isPublic: !project.isPublic }
+        { isPublic: !project.isPublic },
+        // Visibility must never look saved before the server has it: a queued
+        // "turn off" would leave the project public while showing it private.
+        { queueIfOffline: false }
       );
       if (this.projectState.project()?.id === project.id) {
         this.projectState.updateProject(updated);
