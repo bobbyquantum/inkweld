@@ -42,6 +42,9 @@ export function injectCustomHtml(html: string, headExtra: string, bodyExtra: str
 /** The built document's base element (`<base href="/" />` in index.html). */
 const ROOT_BASE_ELEMENT = /<base\s+href="\/"\s*\/?>/;
 
+/** The closing head tag, where the ingress marker goes when there is no root base. */
+const HEAD_CLOSE = /<\/head>/i;
+
 /**
  * Meta tag telling the frontend it is served through Home Assistant ingress,
  * so it should configure itself for this server and sign in through
@@ -53,15 +56,22 @@ export const INGRESS_META = '<meta name="inkweld-ingress" content="home-assistan
  * Re-root the app under a Home Assistant ingress prefix: point `<base href>`
  * at it (Angular resolves routes and relative asset URLs against it) and add
  * {@link INGRESS_META}. `ingressPath` must already be validated (see
- * utils/ingress.ts). Returns the document unchanged when there is no prefix
- * or no root base element to replace.
+ * utils/ingress.ts). Returns the document unchanged when there is no prefix.
+ *
+ * The marker does not depend on the base being replaced: a shell built with
+ * some other base keeps it, but is still marked, so the frontend's ingress
+ * behaviour (sign-in, no service worker) does not hinge on the build's base.
  */
 export function injectIngressBase(html: string, ingressPath: string | null): string {
-  if (!ingressPath || !ROOT_BASE_ELEMENT.test(html)) return html;
-  return html.replace(
-    ROOT_BASE_ELEMENT,
-    () => `<base href="${ingressPath}/" />\n    ${INGRESS_META}`
-  );
+  if (!ingressPath) return html;
+  if (ROOT_BASE_ELEMENT.test(html)) {
+    return html.replace(
+      ROOT_BASE_ELEMENT,
+      () => `<base href="${ingressPath}/" />\n    ${INGRESS_META}`
+    );
+  }
+  if (html.includes(INGRESS_META) || !HEAD_CLOSE.test(html)) return html;
+  return html.replace(HEAD_CLOSE, (close) => `  ${INGRESS_META}\n  ${close}`);
 }
 
 /**
