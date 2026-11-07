@@ -1,7 +1,7 @@
 ---
 id: canvas
 title: Canvas
-description: A freeform infinite canvas for maps, diagrams, and visual worldbuilding — with layers, drawing tools, crop frames, and image placement.
+description: A freeform infinite canvas for maps, diagrams, and visual worldbuilding, with layers, drawing tools, crop frames, and image placement.
 sidebar_position: 5
 ---
 

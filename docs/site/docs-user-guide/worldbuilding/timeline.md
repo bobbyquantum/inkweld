@@ -1,7 +1,7 @@
 ---
 id: timeline
 title: Timeline
-description: Plot events, eras, and character arcs against flexible time systems — fantasy calendars included.
+description: Plot events, eras and character arcs against any calendar, including ones you invent.
 sidebar_position: 6
 ---
 

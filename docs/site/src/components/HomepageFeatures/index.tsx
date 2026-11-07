@@ -19,8 +19,8 @@ const FeatureList: FeatureItem[] = [
     description: (
       <>
         Write together with your co-authors in real-time. See changes as they
-        happen, with conflict-free editing powered by CRDT technology. No more
-        emailing draft versions back and forth.
+        happen, with conflict-free editing powered by CRDT technology. You don't
+        need to email drafts back and forth.
       </>
     ),
     linkLabel: 'Learn about collaboration →',
@@ -31,9 +31,9 @@ const FeatureList: FeatureItem[] = [
     icon: '🔒',
     description: (
       <>
-        Your stories, your server. Deploy Inkweld on your own infrastructure
-        with Docker or Docker Compose. Complete control over your data and
-        privacy—no cloud service required.
+        Deploy Inkweld on your own infrastructure with Docker or Docker Compose.
+        You keep complete control over your data and privacy, with no cloud
+        service required.
       </>
     ),
     linkLabel: 'Start hosting →',
@@ -46,7 +46,7 @@ const FeatureList: FeatureItem[] = [
       <>
         Organize novels with chapters and scenes. Build detailed worlds with
         character profiles, locations, and lore. Work offline and sync when
-        you're ready. Everything a creative writer needs.
+        you're ready.
       </>
     ),
     linkLabel: 'Explore features →',
@@ -161,7 +161,7 @@ function ShowcaseSection(): ReactNode {
               <Heading as="h3">Write Anywhere</Heading>
               <p>
                 Fully responsive design means you can write on desktop, tablet,
-                or phone. Your stories go where you go.
+                or phone.
               </p>
             </div>
           </div>

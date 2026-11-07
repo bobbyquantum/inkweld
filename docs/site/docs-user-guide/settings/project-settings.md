@@ -143,19 +143,8 @@ Renaming is available on an **Inkweld Server** profile, where the server moves t
 1. Open your project and click **Project Settings** at the bottom of the sidebar
 2. Open the **Danger Zone** section
 3. Find the **Rename Project URL** card and click the **Rename Project** button
-
-<ThemedImage
-  src="/img/features/project-rename-card"
-  alt="Rename project card in the Danger Zone"
-/>
-
 4. Enter the **New Project Slug** (lowercase letters, numbers, and hyphens only)
 5. Click **Rename Project** to confirm
-
-<ThemedImage
-  src="/img/features/project-rename-form"
-  alt="Rename form with new slug entered"
-/>
 
 After renaming, you'll be automatically redirected to the new project URL. All your documents, worldbuilding elements, and media will be preserved.
 

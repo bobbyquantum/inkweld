@@ -13,7 +13,7 @@ Anyone who can sign up must be able to delete their own server account, both in 
 - `DELETE /api/v1/users/me` with `{ confirmUsername }` (case-insensitive). It refuses with 409 when the caller is the last enabled administrator; the admin "Delete user" route does the same.
 - `accountDeletionService.deleteAccount()` (`backend/src/services/account-deletion.service.ts`) is shared with the admin "Delete user" route.
 
-## What deletion does, in order
+## Deletion steps
 
 1. `userService.reserveForDeletion()` — one conditional UPDATE that drops the admin flag only while another active admin remains, so two admins deleting themselves at once cannot both succeed. **Do not reserve by disabling the account**: the Durable Object refuses a disabled owner's token, which breaks the wipe on Workers.
 2. Each owned project is torn down exactly like `DELETE /projects/:u/:s` (`removeProjectData`: Yjs documents, storage directory, Durable Object; then row + tombstone) **before** the user row is deleted. The row cascade alone would leave project content on disk or in R2. For an account whose username or project slug can't be one storage path segment (a name from before the username rule, containing `/`, `\` or `..`), `skipUnstorableFiles` leaves the stored files in place instead of failing, so the account can still be deleted (see `backend/AGENTS.md`).

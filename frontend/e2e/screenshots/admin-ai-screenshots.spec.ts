@@ -4,7 +4,7 @@
  * Captures screenshots of the AI image generation settings page for
  * documentation. Consolidated 11 → 6 tests:
  *  - Admin AI Settings: 5 → 2 (one per color scheme; covers overview,
- *    all-providers, openai-card, openai/openrouter provider configs)
+ *    all-providers, openai/openrouter provider configs)
  *  - Image Model Profiles: 4 → 2 (one per color scheme; covers grid + dialog)
  *  - Image Generation Dialog: 2 → 2 (unchanged; uses authenticatedPage fixture)
  */
@@ -92,19 +92,7 @@ test.describe('Admin AI Settings Screenshots', () => {
       });
     });
 
-    await test.step('provider cards — all providers + openai card', async () => {
-      const providerCards = adminPage.locator(
-        '[data-testid^="ai-provider-card-"]'
-      );
-      const cardCount = await providerCards.count();
-
-      if (cardCount > 0) {
-        const firstCard = providerCards.first();
-        await firstCard.screenshot({
-          path: path.join(SCREENSHOTS_DIR, 'admin-ai-openai-card.png'),
-        });
-      }
-
+    await test.step('settings page — full height', async () => {
       await adminPage.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
       });

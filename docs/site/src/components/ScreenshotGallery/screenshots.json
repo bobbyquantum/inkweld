@@ -874,34 +874,9 @@
     ]
   },
   {
-    "title": "Project Rename & Danger Zone",
-    "description": "The project rename card, expanded form, danger zone, and delete card.",
+    "title": "Project Danger Zone",
+    "description": "The danger zone overview and the delete project card.",
     "screenshots": [
-      {
-        "file": "project-rename-card-light.png",
-        "dir": "features",
-        "label": "Rename card (collapsed) — light"
-      },
-      {
-        "file": "project-rename-card-dark.png",
-        "dir": "features",
-        "label": "Rename card (collapsed) — dark"
-      },
-      {
-        "file": "project-rename-form-light.png",
-        "dir": "features",
-        "label": "Rename form expanded — light"
-      },
-      {
-        "file": "project-rename-form-dark.png",
-        "dir": "features",
-        "label": "Rename form expanded — dark"
-      },
-      {
-        "file": "project-rename-filled-light.png",
-        "dir": "features",
-        "label": "Rename form filled — light"
-      },
       {
         "file": "danger-zone-overview-light.png",
         "dir": "features",
@@ -1030,11 +1005,6 @@
         "file": "admin-ai-all-providers.png",
         "dir": "features",
         "label": "AI provider cards (all)"
-      },
-      {
-        "file": "admin-ai-openai-card.png",
-        "dir": "features",
-        "label": "OpenAI provider card"
       },
       {
         "file": "admin-ai-openai-model-config.png",
