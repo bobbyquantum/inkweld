@@ -202,18 +202,81 @@ mat-expansion-panel {
   color: var(--sys-on-surface-variant);
 }
 
+// Public project link: same URL box as the MCP endpoint
 .public-sharing-card {
-  .public-share-link {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
-    overflow-wrap: anywhere;
+  background: var(--sys-surface-container);
+  border: 1px solid var(--sys-outline-variant);
+
+  mat-card-title mat-icon {
+    color: var(--sys-tertiary);
   }
 
-  .warning-text {
+  .public-sharing-description {
+    margin: 0 0 12px;
+    font-size: 14px;
+    color: var(--sys-on-surface-variant);
+  }
+
+  .public-sharing-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+  }
+
+  .public-sharing-toggle-label {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .public-sharing-toggle-title {
+    font-weight: 500;
+    color: var(--sys-on-surface);
+  }
+
+  .public-sharing-toggle-state {
+    font-size: 13px;
+    color: var(--sys-on-surface-variant);
+  }
+
+  .public-share-url-display {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--sys-surface);
+    padding: 4px 4px 4px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--sys-outline-variant);
+    margin: 4px 0 12px;
+  }
+
+  .public-share-url {
+    flex: 1;
+    min-width: 0;
+    font-family: monospace;
+    font-size: 13px;
+    word-break: break-all;
+    color: var(--sys-on-surface);
+    user-select: all;
+  }
+
+  .public-sharing-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0;
+    font-size: 13px;
     color: var(--sys-error);
+
+    mat-icon {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      font-size: 18px;
+    }
   }
 }
 

@@ -604,49 +604,70 @@
           </mat-card-title>
         </mat-card-header>
         <mat-card-content>
-          <p>{{ 'project.publicSharing.description' | transloco }}</p>
-          @if (projectState.project()?.isPublic) {
-            <p class="warning-text">
-              {{ 'project.publicSharing.publicWarning' | transloco }}
-            </p>
-            @if (publicShareUrl(); as url) {
-              <div class="public-share-link">
-                <a [href]="url" target="_blank" rel="noopener noreferrer">
-                  {{ url }}
-                </a>
-                <button
-                  mat-stroked-button
-                  (click)="copyPublicShareLink()"
-                  data-testid="copy-public-share-link-button">
-                  <mat-icon>content_copy</mat-icon>
-                  {{ 'project.publicSharing.copyLink' | transloco }}
-                </button>
-              </div>
-            }
-          } @else {
-            <p>{{ 'project.publicSharing.privateNotice' | transloco }}</p>
-          }
-          <button
-            mat-raised-button
-            [color]="projectState.project()?.isPublic ? 'warn' : 'primary'"
-            [disabled]="isUpdatingPublicSharing()"
-            (click)="togglePublicSharing()"
-            data-testid="toggle-public-sharing-button">
+          <p class="public-sharing-description">
+            {{ 'project.publicSharing.description' | transloco }}
+          </p>
+          <div class="public-sharing-toggle-row">
+            <div class="public-sharing-toggle-label">
+              <span class="public-sharing-toggle-title">
+                {{ 'project.publicSharing.toggleLabel' | transloco }}
+              </span>
+              <span class="public-sharing-toggle-state">
+                {{
+                  (projectState.project()?.isPublic
+                    ? 'project.publicSharing.stateOn'
+                    : 'project.publicSharing.privateNotice'
+                  ) | transloco
+                }}
+              </span>
+            </div>
             @if (isUpdatingPublicSharing()) {
-              <mat-progress-spinner diameter="20" mode="indeterminate">
+              <mat-progress-spinner
+                diameter="20"
+                mode="indeterminate"
+                data-testid="public-sharing-spinner">
               </mat-progress-spinner>
-            } @else {
-              <mat-icon>
-                {{ projectState.project()?.isPublic ? 'public_off' : 'public' }}
-              </mat-icon>
-              {{
-                (projectState.project()?.isPublic
-                  ? 'project.publicSharing.disable'
-                  : 'project.publicSharing.enable'
-                ) | transloco
-              }}
             }
-          </button>
+            <mat-slide-toggle
+              [checked]="!!projectState.project()?.isPublic"
+              [disabled]="isUpdatingPublicSharing() || !projectState.isOwner()"
+              [attr.aria-label]="
+                'project.publicSharing.toggleLabel' | transloco
+              "
+              (change)="onPublicSharingToggle($event)"
+              data-testid="toggle-public-sharing"></mat-slide-toggle>
+          </div>
+          @if (publicShareUrl(); as url) {
+            <div
+              class="public-share-url-display"
+              data-testid="public-share-url">
+              <code class="public-share-url">{{ url }}</code>
+              <a
+                mat-icon-button
+                appTooltipAriaLabel
+                [href]="url"
+                target="_blank"
+                rel="noopener noreferrer"
+                [matTooltip]="'project.publicSharing.openLink' | transloco"
+                data-testid="open-public-share-link-button">
+                <mat-icon>open_in_new</mat-icon>
+              </a>
+              <button
+                mat-icon-button
+                appTooltipAriaLabel
+                [matTooltip]="'project.publicSharing.copyLink' | transloco"
+                (click)="copyPublicShareLink()"
+                data-testid="copy-public-share-link-button">
+                <mat-icon>content_copy</mat-icon>
+              </button>
+            </div>
+            <p class="public-sharing-warning">
+              <mat-icon>warning</mat-icon>
+              <span>{{
+                'project.publicSharing.publicWarning' | transloco
+              }}</span>
+            </p>
+          }
         </mat-card-content>
       </mat-card>
     }

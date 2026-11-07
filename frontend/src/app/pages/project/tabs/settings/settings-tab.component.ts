@@ -21,6 +21,10 @@ import { MatListModule } from '@angular/material/list';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
+import {
+  type MatSlideToggleChange,
+  MatSlideToggleModule,
+} from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -86,6 +90,7 @@ import { TimeSystemsSettingsComponent } from './time-systems-settings/time-syste
     MatProgressBarModule,
     MatProgressSpinnerModule,
     MatSelectModule,
+    MatSlideToggleModule,
     MatTooltipModule,
     NgTemplateOutlet,
     TranslocoModule,
@@ -435,6 +440,12 @@ export class SettingsTabComponent implements OnDestroy {
     } finally {
       this.isUpdatingPublicSharing.set(false);
     }
+  }
+
+  /** The switch stays bound to the project, so snap it back if nothing changed. */
+  async onPublicSharingToggle(event: MatSlideToggleChange): Promise<void> {
+    await this.togglePublicSharing();
+    event.source.checked = !!this.projectState.project()?.isPublic;
   }
 
   async copyPublicShareLink(): Promise<void> {

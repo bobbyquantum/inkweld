@@ -14,6 +14,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
+import type { MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -500,6 +501,90 @@ describe('SettingsTabComponent', () => {
         'Close',
         { duration: 5000 }
       );
+    });
+
+    function query(testId: string): HTMLElement | null {
+      return fixture.nativeElement.querySelector(`[data-testid="${testId}"]`);
+    }
+
+    it('shows an off switch and no link while private', () => {
+      fixture.detectChanges();
+
+      const toggle = query('toggle-public-sharing');
+      expect(toggle).not.toBeNull();
+      expect(
+        toggle?.querySelector('button')?.getAttribute('aria-checked')
+      ).toBe('false');
+      expect(query('public-share-url')).toBeNull();
+    });
+
+    it('shows the link in a URL box once public', () => {
+      projectSignal.set(publicProject);
+      fixture.detectChanges();
+
+      expect(
+        query('toggle-public-sharing')
+          ?.querySelector('button')
+          ?.getAttribute('aria-checked')
+      ).toBe('true');
+      const box = query('public-share-url');
+      expect(box?.querySelector('code')?.textContent?.trim()).toMatch(
+        /\/public\/testuser\/test-project$/
+      );
+      expect(
+        query('open-public-share-link-button')?.getAttribute('href')
+      ).toMatch(/\/public\/testuser\/test-project$/);
+      expect(query('copy-public-share-link-button')).not.toBeNull();
+    });
+
+    it('disables the switch for a collaborator who is not the owner', () => {
+      (projectStateService.isOwner as ReturnType<typeof signal<boolean>>).set(
+        false
+      );
+      fixture.detectChanges();
+
+      expect(
+        query('toggle-public-sharing')
+          ?.querySelector('button')
+          ?.hasAttribute('disabled')
+      ).toBe(true);
+    });
+
+    it('flipping the switch updates the project and keeps it in step', async () => {
+      Object.assign(projectService, {
+        updateProject: vi.fn().mockResolvedValue(publicProject),
+      });
+      updateProjectState.mockImplementation((p: unknown) =>
+        projectSignal.set(p)
+      );
+      const source = { checked: true };
+
+      await component.onPublicSharingToggle({
+        source,
+        checked: true,
+      } as unknown as MatSlideToggleChange);
+
+      expect(projectService.updateProject).toHaveBeenCalledWith(
+        'testuser',
+        'test-project',
+        { isPublic: true }
+      );
+      expect(source.checked).toBe(true);
+    });
+
+    it('snaps the switch back when the change fails', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      Object.assign(projectService, {
+        updateProject: vi.fn().mockRejectedValue(new Error('offline')),
+      });
+      const source = { checked: true };
+
+      await component.onPublicSharingToggle({
+        source,
+        checked: true,
+      } as unknown as MatSlideToggleChange);
+
+      expect(source.checked).toBe(false);
     });
   });
 
