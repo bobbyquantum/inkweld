@@ -51,6 +51,8 @@ docker run -d \
 
 Then open `http://localhost:8333` in your browser.
 
+🏠 **Home Assistant:** install Inkweld as an app from [bobbyquantum/addon-inkweld](https://github.com/bobbyquantum/addon-inkweld); it opens in the Home Assistant sidebar through ingress ([how it behaves](docs/site/docs/installation/home-assistant.md)).
+
 📖 **[Full deployment guide →](docs/site/docs/installation/index.md)**
 
 ---
@@ -116,7 +118,7 @@ Everything below ships in 1.0. New features are driven by what people using Inkw
 - **Publishing:** publish plans for EPUB, PDF (Typst), Markdown, HTML and a multi-page website, with typography presets, per-section style overrides, two-column layouts, full-page covers and sourcebook-style worldbuilding entries.
 - **Accounts and security:** passkeys by default, with optional magic-link recovery, passwords (with email reset) and GitHub sign-in; user approval; CSRF protection and a Content-Security-Policy.
 - **Administration:** admin dashboard for users, settings, AI providers and announcements; custom branding and legal pages; per-user storage quotas; production logging.
-- **Self-hosting:** Docker image and Compose, native Bun server, or Cloudflare Workers; Home Assistant app; installable web app (PWA) on desktop and mobile, with an in-app install prompt.
+- **Self-hosting:** Docker image and Compose, native Bun server, or Cloudflare Workers; [Home Assistant app](https://github.com/bobbyquantum/addon-inkweld); installable web app (PWA) on desktop and mobile, with an in-app install prompt.
 - **Optional AI features** (off by default: an admin enables them and each user opts in with Allow AI; see [AI stance](#data-security--ai-stance)): image generation (OpenAI, OpenRouter, Fal.ai, Stable Diffusion) with model profiles, worldbuilding context and reference images; prompt optimisation; grammar and style suggestions; an MCP server for AI assistants; WebMCP tools for AI agents built into the browser.
 
 ---
