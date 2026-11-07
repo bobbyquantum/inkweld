@@ -95,6 +95,14 @@ export function registerTool(handler: ToolHandler): void {
   toolRegistry.set(handler.tool.name, handler);
 }
 
+/**
+ * Remove a registered tool. The registry is process-wide, so tests that
+ * register throwaway tools use this to keep them out of other test files.
+ */
+export function unregisterTool(name: string): void {
+  toolRegistry.delete(name);
+}
+
 // ============================================
 // Method Handlers
 // ============================================
