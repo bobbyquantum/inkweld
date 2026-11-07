@@ -704,6 +704,6 @@ describe('on Workers', () => {
         .toArray()
         .map((s) => s.id)
     ).toEqual(['mission-day']);
-    expect(server.getArray('generators').length).toBe(1);
+    expect(server.getArray('generators').toArray()).toHaveLength(1);
   });
 });

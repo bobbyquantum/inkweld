@@ -132,7 +132,7 @@ function fieldsUsing(doc: Y.Doc, generatorId: string): string[] {
     if (!value || typeof value !== 'object') return;
     const record = value as Record<string, unknown>;
     if (record.generatorId === generatorId) {
-      const label = typeof record.label === 'string' ? record.label : String(record.key ?? '');
+      const label = [record.label, record.key].find((v) => typeof v === 'string') ?? '';
       found.push(`${schemaName} → ${label}`);
     }
     for (const child of Object.values(record)) visit(child, schemaName);
