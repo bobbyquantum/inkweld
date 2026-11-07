@@ -34,7 +34,7 @@ const appUrl = resolveAppUrl(siteUrl);
 
 const config: Config = {
   title: 'Inkweld Docs',
-  tagline: 'Collaborative writing, explained.',
+  tagline: 'Guides for writing with, hosting and developing Inkweld',
   favicon: 'img/favicon.ico',
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future

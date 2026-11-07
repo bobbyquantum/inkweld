@@ -454,7 +454,7 @@ sequenceDiagram
     Backend-->>Browser: User profile
 ```
 
-### Tokens, Not Server Sessions
+### Signed Tokens Instead of Server Sessions {/* #tokens-not-server-sessions */}
 
 - **JWT bearer tokens** - sign-in returns `{ user, token }`; the client stores the token (`AuthTokenService`) and sends `Authorization: Bearer <token>`. Tokens are HS256-signed with `DATABASE_KEY` / `SESSION_SECRET` and last 30 days. WebSockets authenticate with the same token as their first message.
 - **Each token stays with its server** - the client keeps one token per profile, stored with the address of the server it belongs to, and sends it only to that profile's server while it is the active one: same origin and, for a server under a path prefix, a path inside it (`AuthTokenService.getTokenForUrl`, used by the HTTP interceptor, direct `fetch` calls and WebSocket sign-in). Requests to any other server, such as one being added in the profile manager, go out without it.

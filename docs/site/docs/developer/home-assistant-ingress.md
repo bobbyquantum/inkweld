@@ -8,7 +8,7 @@ description: How Inkweld runs behind Home Assistant ingress, trusts its headers 
 
 Inkweld can run as a Home Assistant app (repository `bobbyquantum/addon-inkweld`, a thin layer over the published image). Installation is covered in [Home Assistant](../installation/home-assistant.md). Home Assistant serves the UI at `/api/hassio_ingress/<token>/…`, strips the prefix, and sends it as `X-Ingress-Path` along with the signed-in Home Assistant user (`X-Remote-User-Id`, `-Name`, `-Display-Name`).
 
-## Trust is by TCP peer, never by header
+## Headers are trusted only from the proxy's address {/* #trust-is-by-tcp-peer-never-by-header */}
 
 `backend/src/utils/ingress.ts` honours those headers only with `INGRESS_ENABLED=true` and when the socket address is `INGRESS_TRUSTED_PROXY` (no default; the Home Assistant app sets the Supervisor's `172.30.32.2`). Don't switch it to `getClientIp()` / `X-Forwarded-For`: a client connecting to the port directly controls those.
 

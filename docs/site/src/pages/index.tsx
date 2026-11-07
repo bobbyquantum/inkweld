@@ -21,8 +21,8 @@ function HomepageHeader(): ReactNode {
             </Heading>
             <p className={clsx('hero__subtitle', styles.heroSubtitle)}>
               The self-hosted collaborative writing platform for novelists,
-              screenwriters, and creative teams. Real-time collaboration meets
-              complete data ownership.
+              screenwriters, and creative teams. Write together in real time on
+              a server you control.
             </p>
             <div className={styles.buttons}>
               <Link

@@ -1,7 +1,7 @@
 ---
 id: interactive-maps
 title: Interactive Maps
-description: Turn a canvas into a clickable map — background images, and pins and regions linked to your elements.
+description: Turn a canvas into a clickable map by adding a background image and linking pins and regions to your elements.
 sidebar_position: 6
 ---
 

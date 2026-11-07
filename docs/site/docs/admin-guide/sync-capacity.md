@@ -49,7 +49,7 @@ Avatars, profile banners and backgrounds are not counted.
 
 ---
 
-## What is blocked, and what never is
+## What the quota blocks and allows {/* #what-is-blocked-and-what-never-is */}
 
 When an account is at its allowance, these are refused:
 

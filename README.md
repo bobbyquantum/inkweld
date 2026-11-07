@@ -5,8 +5,7 @@
 <h1 align="center">Inkweld</h1>
 
 <p align="center">
-  <strong>Self-hosted collaborative writing platform for novelists & worldbuilders</strong><br>
-  Your words, your server, your control.
+  <strong>Self-hosted collaborative writing platform for novelists & worldbuilders</strong>
 </p>
 
 <p align="center">
