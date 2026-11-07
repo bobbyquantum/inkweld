@@ -1,0 +1,20 @@
+{
+  "name": "@inkweld/project-library",
+  "version": "0.1.0",
+  "description": "Time systems (calendars) and random generators shared by the Inkweld frontend and backend: their data model, validation and the generator roll engine.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^5.0.0",
+    "vitest": "^5.0.0"
+  }
+}

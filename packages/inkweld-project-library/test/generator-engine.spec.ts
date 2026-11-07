@@ -1,4 +1,4 @@
-import { type Generator, type GeneratorRule } from '@models/generator';
+import { type Generator, type GeneratorRule } from '../src/generator';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -9,7 +9,7 @@ import {
   parseReferences,
   rollGenerator,
   validateGenerator,
-} from './generator-engine';
+} from '../src/generator-engine';
 
 function makeGenerator(
   template: string,

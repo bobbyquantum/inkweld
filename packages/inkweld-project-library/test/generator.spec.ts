@@ -8,7 +8,7 @@ import {
   type Generator,
   parseEntryLines,
   RULE_KEY_PATTERN,
-} from './generator';
+} from '../src/generator';
 
 describe('generator model', () => {
   describe('createEmptyGenerator', () => {

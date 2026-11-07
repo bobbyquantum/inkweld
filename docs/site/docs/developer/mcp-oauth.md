@@ -170,11 +170,31 @@ These need the `write:schemas` permission (editors and admins).
 | `update_schema` | Rename a schema, change its icon, description or defaults, and edit its tabs/fields |
 | `delete_schema` | Delete a schema (elements of that type keep their own copy and their data)          |
 
-`update_schema` takes either `operations` (applied in order: `add_tab`, `update_tab`, `remove_tab`, `move_tab`, `add_field`, `update_field`, `remove_field`, `move_field`) or `tabs` (replace every tab). Fields take the same properties as in the template editor (`label`, `key`, `type`, `placeholder`, `description`, `defaultValue`, `options`, `rows`, `icon`, `validation`, `layout`, and `targetSchemaId` / `multiple` / `inverseLabel` for relationship fields). A key left out is derived from the label (`"Eye Colour"` → `eyeColour`), and `description` / `image` are refused as new field keys because every element already has those identity fields. The edited schema is validated the way the template editor validates it (unique tab keys, field keys unique across the schema, no field clashing with a nested group); if any operation fails, nothing is written.
+`update_schema` takes either `operations` (applied in order: `add_tab`, `update_tab`, `remove_tab`, `move_tab`, `add_field`, `update_field`, `remove_field`, `move_field`) or `tabs` (replace every tab). Fields take the same properties as in the template editor (`label`, `key`, `type`, `placeholder`, `description`, `defaultValue`, `options`, `rows`, `icon`, `validation`, `layout`, `targetSchemaId` / `multiple` / `inverseLabel` for relationship fields, and `generatorId` for a text field's dice button; see `list_generators`). A key left out is derived from the label (`"Eye Colour"` → `eyeColour`), and `description` / `image` are refused as new field keys because every element already has those identity fields. The edited schema is validated the way the template editor validates it (unique tab keys, field keys unique across the schema, no field clashing with a nested group); if any operation fails, nothing is written.
 
 Like the template editor, the tools keep each relationship field's backing relationship type in step: creating or changing the field adds or updates the type, and removing the field (or changing its type, or deleting the schema) deletes the type and every relationship made through it.
 
 Existing elements keep their own copy of their schema, so editing a shared schema doesn't change them: each one shows that the shared schema was updated and can take the change with "Update from shared schema" in the element editor. Elements created afterwards use the new version.
+
+#### Time Systems and Generators
+
+A project's time systems (the calendars its timelines and date fields use) and random generators (Settings → Time Systems and Settings → Generators in the app) are project definitions like schemas, so reading them needs `read:schemas` and changing them `write:schemas`.
+
+| Tool                 | Description                                                                        |
+| -------------------- | ---------------------------------------------------------------------------------- |
+| `list_time_systems`  | The project's time systems with a sample date, and the templates it can install    |
+| `create_time_system` | Install a template (`gregorian`, `fantasy-seasons`, ...) or design a calendar      |
+| `update_time_system` | Rename a time system or change its units, subdivisions, format or per-unit lists   |
+| `delete_time_system` | Remove a time system (dates that use it show as an unknown system)                 |
+| `list_generators`    | The project's generators, or one in full with its problems and the fields using it |
+| `roll_generator`     | Roll a generator, optionally skipping names already used by elements               |
+| `create_generator`   | Create a generator from a template and rules; returns sample rolls                 |
+| `update_generator`   | Change a generator's name, template, rules, description, category or icon          |
+| `delete_generator`   | Delete a generator (template fields that offered it lose their dice button)        |
+
+Both live in the project elements document (`timeSystems` and `generators`), where the app reads them, and the tools change one entry at a time, so an edit merges with a collaborator's change to another. The data model, the validation and the roll engine are in `packages/inkweld-project-library`, shared with the app: a calendar the app's designer would reject (for example, `subdivisions` not one shorter than `unitLabels`) or a generator its editor wouldn't save (a `#rule#` with no rule, a rule that only refers back to itself) is refused with the same message and nothing is written. A roll gives what the app's dice button would, and each result's `seed` reproduces it.
+
+A template is installed under its own id, as in the app, so timelines can refer to well-known calendars by id. `update_time_system` doesn't touch dates already entered, so adding or removing units, or shrinking one, can leave timeline events and date fields invalid; the tool's description says so.
 
 #### Image Operations
 

@@ -22,6 +22,7 @@
       "@inkweld/presence": ["../packages/inkweld-presence/src/index"],
       "@inkweld/async": ["../packages/inkweld-async/src/index"],
       "@inkweld/canvas": ["../packages/inkweld-canvas/src/index"],
+      "@inkweld/project-library": ["../packages/inkweld-project-library/src/index"],
       "@inkweld/presence/*": ["../packages/inkweld-presence/src/*/index"]
     }
   },
@@ -35,7 +36,8 @@
     "../packages/inkweld-prosemirror/src/runtime/**/*",
     "../packages/inkweld-presence/src/**/*",
     "../packages/inkweld-async/src/**/*",
-    "../packages/inkweld-canvas/src/**/*"
+    "../packages/inkweld-canvas/src/**/*",
+    "../packages/inkweld-project-library/src/**/*"
   ],
   "exclude": [
     "node_modules",

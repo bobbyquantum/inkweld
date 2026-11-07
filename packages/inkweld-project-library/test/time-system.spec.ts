@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import {
   absoluteToTimePoint,
   assertValidTimeSystem,
@@ -20,7 +21,7 @@ import {
   unitMaxValue,
   unitMaxValueFor,
   unitMinValue,
-} from './time-system';
+} from '../src/time-system';
 
 describe('time-system', () => {
   describe('built-in systems', () => {
