@@ -1,5 +1,6 @@
 import React from 'react';
 import { useColorMode } from '@docusaurus/theme-common';
+import useBaseUrl from '@docusaurus/useBaseUrl';
 
 interface ThemedImageProps {
   /** Base path without -light.png or -dark.png suffix */
@@ -34,7 +35,9 @@ export default function ThemedImage({
 }: Readonly<ThemedImageProps>): React.ReactElement {
   const { colorMode } = useColorMode();
   const suffix = colorMode === 'dark' ? '-dark.png' : '-light.png';
-  const fullSrc = `${src}${suffix}`;
+  // Resolve against the site's baseUrl so images still load when the docs
+  // are served under a subpath.
+  const fullSrc = useBaseUrl(`${src}${suffix}`);
 
   return (
     <img src={fullSrc} alt={alt} width={width} style={style} loading="lazy" />
