@@ -93,6 +93,18 @@ describe('MCP stateless handler (2026-07-28)', () => {
     unregisterTool(THROWAWAY_TOOL);
   });
 
+  it('unregisterTool removes a tool from tools/list', async () => {
+    const listToolNames = async (): Promise<string[]> => {
+      const res = await handleMcpRequest(makeContext(metaBody('tools/list')) as never);
+      const json = await parseRpc(res);
+      return (json.result as { tools: Array<{ name: string }> }).tools.map((t) => t.name);
+    };
+
+    expect(await listToolNames()).toContain(THROWAWAY_TOOL);
+    unregisterTool(THROWAWAY_TOOL);
+    expect(await listToolNames()).not.toContain(THROWAWAY_TOOL);
+  });
+
   it('serves server/discover with supported versions, capabilities and identity', async () => {
     const c = makeContext(metaBody('server/discover'));
     const res = await handleMcpRequest(c as never);
