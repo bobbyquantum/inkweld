@@ -599,14 +599,15 @@ export class SettingsTabComponent implements OnDestroy {
     }
   }
 
+  /** People only: connected apps are listed (and counted) in their own card. */
   getActiveCollaboratorsCount(): number {
-    return this.collaborators().filter(
+    return this.humanCollaborators().filter(
       c => c.status === InvitationStatus.Accepted
     ).length;
   }
 
   getPendingInvitationsCount(): number {
-    return this.collaborators().filter(
+    return this.humanCollaborators().filter(
       c => c.status === InvitationStatus.Pending
     ).length;
   }

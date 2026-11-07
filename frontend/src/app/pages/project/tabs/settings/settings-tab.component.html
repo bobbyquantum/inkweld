@@ -596,7 +596,9 @@
     </p>
 
     @if (currentMode === 'server') {
-      <mat-card class="public-sharing-card" data-testid="public-sharing-card">
+      <mat-card
+        class="collab-card public-sharing-card"
+        data-testid="public-sharing-card">
         <mat-card-header>
           <mat-card-title>
             <mat-icon>public</mat-icon>
@@ -695,19 +697,32 @@
         </mat-card>
       } @else {
         <!-- Collaborators List -->
-        @if (humanCollaborators().length > 0) {
-          <mat-card class="collaborators-card">
-            <mat-card-header>
-              <mat-card-title>
-                Collaborators ({{ getActiveCollaboratorsCount() }})
-                @if (getPendingInvitationsCount() > 0) {
-                  <span class="pending-badge">
-                    {{ getPendingInvitationsCount() }} pending
-                  </span>
-                }
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
+        <mat-card
+          class="collab-card collaborators-card"
+          data-testid="collaborators-card">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>people</mat-icon>
+              {{ 'settings.collaboration.collaboratorsTitle' | transloco }}
+              <span class="count-badge" data-testid="collaborators-count">{{
+                humanCollaborators().length
+              }}</span>
+              @if (getPendingInvitationsCount() > 0) {
+                <span class="pending-badge">
+                  {{
+                    'settings.collaboration.pendingCount'
+                      | transloco: { count: getPendingInvitationsCount() }
+                  }}
+                </span>
+              }
+            </mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            @if (humanCollaborators().length === 0) {
+              <p class="collab-card-text" data-testid="collaborators-empty">
+                {{ 'settings.collaboration.noCollaborators' | transloco }}
+              </p>
+            } @else {
               <div class="collaborators-list">
                 @for (collab of humanCollaborators(); track collab.userId) {
                   <div
@@ -721,37 +736,62 @@
                       <div class="collaborator-details">
                         <div class="collaborator-header">
                           <strong>{{ collab.username }}</strong>
-                          @if (collab.name) {
+                          @if (collab.name && collab.name !== collab.username) {
                             <span class="collaborator-name">{{
                               collab.name
                             }}</span>
                           }
                           @if (collab.status === 'pending') {
-                            <span class="status-badge pending">Pending</span>
+                            <span class="status-badge pending">{{
+                              'settings.collaboration.pending' | transloco
+                            }}</span>
                           }
                         </div>
                         <div class="collaborator-meta">
                           @if (collab.status === 'accepted') {
-                            <span
-                              >Joined
-                              {{ collab.acceptedAt | date: 'mediumDate' }}</span
-                            >
+                            {{
+                              'settings.collaboration.joined'
+                                | transloco
+                                  : {
+                                      date:
+                                        (collab.acceptedAt
+                                        | date: 'mediumDate'),
+                                    }
+                            }}
+                          } @else if (collab.invitedByUsername) {
+                            {{
+                              'settings.collaboration.invitedBy'
+                                | transloco
+                                  : {
+                                      date:
+                                        (collab.invitedAt | date: 'mediumDate'),
+                                      name: collab.invitedByUsername,
+                                    }
+                            }}
                           } @else {
-                            <span
-                              >Invited
-                              {{ collab.invitedAt | date: 'mediumDate' }}</span
-                            >
-                            @if (collab.invitedByUsername) {
-                              <span>by {{ collab.invitedByUsername }}</span>
-                            }
+                            {{
+                              'settings.collaboration.invited'
+                                | transloco
+                                  : {
+                                      date:
+                                        (collab.invitedAt | date: 'mediumDate'),
+                                    }
+                            }}
                           }
                         </div>
                       </div>
                     </div>
                     <div class="collaborator-actions">
-                      <mat-form-field appearance="outline" class="role-select">
+                      <mat-form-field
+                        appearance="outline"
+                        subscriptSizing="dynamic"
+                        class="role-select">
                         <mat-select
                           [value]="collab.role"
+                          [aria-label]="
+                            'settings.collaboration.roleFor'
+                              | transloco: { name: collab.username }
+                          "
                           (selectionChange)="
                             updateCollaboratorRole(collab, $event.value)
                           "
@@ -766,7 +806,6 @@
                       <button
                         mat-icon-button
                         appTooltipAriaLabel
-                        color="warn"
                         [matTooltip]="
                           'removeNamed' | transloco: { name: collab.username }
                         "
@@ -778,24 +817,38 @@
                   </div>
                 }
               </div>
-            </mat-card-content>
-          </mat-card>
-        }
+            }
+          </mat-card-content>
+          @if (!showInviteForm()) {
+            <mat-card-actions align="end">
+              <button
+                mat-flat-button
+                (click)="toggleInviteForm()"
+                data-testid="show-invite-form-button">
+                <mat-icon>person_add</mat-icon>
+                {{ 'settings.collaboration.invite' | transloco }}
+              </button>
+            </mat-card-actions>
+          }
+        </mat-card>
 
         <!-- Connected Apps List (OAuth apps with access) -->
         @if (oauthAppCollaborators().length > 0) {
-          <mat-card class="collaborators-card connected-apps-card">
+          <mat-card
+            class="collab-card collaborators-card connected-apps-card"
+            data-testid="connected-apps-card">
             <mat-card-header>
               <mat-card-title>
                 <mat-icon>apps</mat-icon>
-                Connected Apps ({{ oauthAppCollaborators().length }})
+                {{ 'settings.collaboration.connectedAppsTitle' | transloco }}
+                <span class="count-badge">{{
+                  oauthAppCollaborators().length
+                }}</span>
               </mat-card-title>
             </mat-card-header>
             <mat-card-content>
-              <p class="connected-apps-info">
-                These applications have been granted access to this project.
-                Manage permissions and access from your Authorized Apps
-                settings.
+              <p class="collab-card-text">
+                {{ 'settings.collaboration.connectedAppsInfo' | transloco }}
               </p>
               <div class="collaborators-list">
                 @for (
@@ -811,16 +864,28 @@
                       </div>
                       <div class="collaborator-details">
                         <div class="collaborator-header">
-                          <strong>{{ app.clientName || 'Unknown App' }}</strong>
+                          <strong>{{
+                            app.clientName ||
+                              ('settings.collaboration.unknownApp' | transloco)
+                          }}</strong>
                           <span class="app-role-badge">{{ app.role }}</span>
                         </div>
                         <div class="collaborator-meta">
-                          <span>Authorized by {{ app.username }}</span>
                           @if (app.acceptedAt) {
-                            <span>
-                              on
-                              {{ app.acceptedAt | date: 'mediumDate' }}</span
-                            >
+                            {{
+                              'settings.collaboration.authorizedByOn'
+                                | transloco
+                                  : {
+                                      name: app.username,
+                                      date:
+                                        (app.acceptedAt | date: 'mediumDate'),
+                                    }
+                            }}
+                          } @else {
+                            {{
+                              'settings.collaboration.authorizedBy'
+                                | transloco: { name: app.username }
+                            }}
                           }
                         </div>
                       </div>
@@ -828,26 +893,26 @@
                   </div>
                 }
               </div>
-              <div class="connected-apps-actions">
-                <button
-                  mat-stroked-button
-                  (click)="openAuthorizedAppsSettings()"
-                  data-testid="manage-apps-button">
-                  <mat-icon>settings</mat-icon>
-                  Manage in Settings
-                </button>
-              </div>
             </mat-card-content>
+            <mat-card-actions align="end">
+              <button
+                mat-stroked-button
+                (click)="openAuthorizedAppsSettings()"
+                data-testid="manage-apps-button">
+                <mat-icon>settings</mat-icon>
+                {{ 'settings.collaboration.manageApps' | transloco }}
+              </button>
+            </mat-card-actions>
           </mat-card>
         }
 
         <!-- Invite Form -->
         @if (showInviteForm()) {
-          <mat-card class="invite-card">
+          <mat-card class="collab-card invite-card">
             <mat-card-header>
               <mat-card-title>
                 <mat-icon>person_add</mat-icon>
-                Invite Collaborator
+                {{ 'settings.collaboration.inviteTitle' | transloco }}
               </mat-card-title>
             </mat-card-header>
             <mat-card-content>
@@ -909,15 +974,6 @@
               </div>
             </mat-card-content>
           </mat-card>
-        } @else {
-          <button
-            mat-raised-button
-            color="primary"
-            (click)="toggleInviteForm()"
-            data-testid="show-invite-form-button">
-            <mat-icon>person_add</mat-icon>
-            Invite Collaborator
-          </button>
         }
       }
     } @else {

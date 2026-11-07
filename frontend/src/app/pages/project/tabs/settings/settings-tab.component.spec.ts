@@ -25,6 +25,7 @@ import { CollaborationService as CollaborationApiService } from '@inkweld/api/co
 import { ProjectsService } from '@inkweld/api/projects.service';
 import {
   type Collaborator,
+  CollaboratorCollaboratorType,
   CollaboratorRole,
   InvitationStatus,
 } from '@inkweld/index';
@@ -964,6 +965,93 @@ describe('SettingsTabComponent', () => {
       await fixture.whenStable();
 
       expect(component.getPendingInvitationsCount()).toBe(1);
+    });
+
+    describe('cards', () => {
+      const connectedApp: Collaborator = {
+        ...mockCollaborators[0],
+        userId: 'user-1',
+        username: 'testuser',
+        name: null,
+        collaboratorType: CollaboratorCollaboratorType.OauthApp,
+        clientName: 'Claude',
+        role: CollaboratorRole.Admin,
+        acceptedAt: Date.UTC(2026, 9, 25, 12),
+      };
+
+      function query(testId: string): HTMLElement | null {
+        return fixture.nativeElement.querySelector(`[data-testid="${testId}"]`);
+      }
+
+      function show(collaborators: Collaborator[]): void {
+        component['collaborators'].set(collaborators);
+        component['isLoadingCollaborators'].set(false);
+        component['collaboratorsError'].set(null);
+        fixture.detectChanges();
+      }
+
+      it('counts people only, not connected apps', () => {
+        show([
+          mockCollaborators[1],
+          connectedApp,
+          { ...connectedApp, userId: 'u3' },
+        ]);
+
+        expect(component.getActiveCollaboratorsCount()).toBe(0);
+        expect(component.getPendingInvitationsCount()).toBe(1);
+        expect(query('collaborators-count')?.textContent?.trim()).toBe('1');
+        expect(
+          fixture.nativeElement.querySelectorAll(
+            '[data-testid="collaborator-item"]'
+          )
+        ).toHaveLength(1);
+        expect(
+          fixture.nativeElement.querySelectorAll(
+            '[data-testid="connected-app-item"]'
+          )
+        ).toHaveLength(2);
+      });
+
+      it('writes the invite line as one sentence', () => {
+        show([mockCollaborators[1]]);
+
+        const meta =
+          query('collaborator-item')?.querySelector('.collaborator-meta');
+        expect(meta?.textContent?.replaceAll(/\s+/g, ' ').trim()).toMatch(
+          /^Invited .+ by testuser$/
+        );
+      });
+
+      it('writes the app line as one sentence', () => {
+        show([connectedApp]);
+
+        const meta =
+          query('connected-app-item')?.querySelector('.collaborator-meta');
+        expect(meta?.textContent?.replaceAll(/\s+/g, ' ').trim()).toMatch(
+          /^Authorized by testuser on .+2026$/
+        );
+      });
+
+      it('keeps the card, with an invite button, when no one else has access', () => {
+        show([connectedApp]);
+
+        expect(query('collaborators-card')).not.toBeNull();
+        expect(query('collaborators-empty')).not.toBeNull();
+        expect(
+          query('collaborators-card')?.querySelector(
+            '[data-testid="show-invite-form-button"]'
+          )
+        ).not.toBeNull();
+      });
+
+      it('hides the invite button while the invite form is open', () => {
+        show([]);
+        component.toggleInviteForm();
+        fixture.detectChanges();
+
+        expect(query('show-invite-form-button')).toBeNull();
+        expect(query('invite-username-input')).not.toBeNull();
+      });
     });
 
     it('should invite a collaborator', async () => {

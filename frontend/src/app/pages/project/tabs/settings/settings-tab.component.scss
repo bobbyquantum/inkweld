@@ -202,15 +202,57 @@ mat-expansion-panel {
   color: var(--sys-on-surface-variant);
 }
 
-// Public project link: same URL box as the MCP endpoint
-.public-sharing-card {
+// Collaboration cards share the MCP card's surface and a compact header
+.collab-card {
   background: var(--sys-surface-container);
   border: 1px solid var(--sys-outline-variant);
 
-  mat-card-title mat-icon {
-    color: var(--sys-tertiary);
+  mat-card-header {
+    padding-bottom: 4px;
   }
 
+  mat-card-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 28px;
+
+    mat-icon {
+      color: var(--sys-tertiary);
+      width: 20px;
+      height: 20px;
+      font-size: 20px;
+    }
+  }
+
+  mat-card-actions {
+    padding: 8px 16px 16px;
+  }
+}
+
+.collab-card-text {
+  margin: 0;
+  padding: 4px 16px 12px;
+  font-size: 14px;
+  color: var(--sys-on-surface-variant);
+}
+
+.count-badge {
+  min-width: 24px;
+  padding: 0 8px;
+  border-radius: 12px;
+  background: var(--sys-surface-container-highest);
+  color: var(--sys-on-surface-variant);
+  font-size: 13px;
+  line-height: 22px;
+  text-align: center;
+}
+
+// Public project link: same URL box as the MCP endpoint
+.public-sharing-card {
   .public-sharing-description {
     margin: 0 0 12px;
     font-size: 14px;
@@ -662,6 +704,11 @@ mat-card {
   flex-direction: column;
 }
 
+// No double line where the list meets the card's bottom edge
+.collaborators-card mat-card-content:last-child .collaborator-item:last-child {
+  border-bottom: none;
+}
+
 .collaborator-item {
   display: flex;
   justify-content: space-between;
@@ -670,13 +717,12 @@ mat-card {
   border-bottom: 1px solid var(--sys-outline-variant);
   gap: 16px;
 
-  &:last-child {
-    border-bottom: none;
+  &:first-child {
+    border-top: 1px solid var(--sys-outline-variant);
   }
 
   &.pending {
-    opacity: 0.8;
-    background: var(--sys-surface-container);
+    background: var(--sys-surface-container-high);
   }
 }
 
@@ -741,18 +787,17 @@ mat-card {
 
 .pending-badge {
   font-size: 12px;
+  line-height: 22px;
   background: var(--sys-tertiary-container);
   color: var(--sys-on-tertiary-container);
-  padding: 2px 8px;
+  padding: 0 8px;
   border-radius: 12px;
-  margin-left: 8px;
 }
 
 .collaborator-meta {
+  margin-top: 2px;
   font-size: 12px;
   color: var(--sys-on-surface-variant);
-  display: flex;
-  gap: 8px;
 }
 
 .collaborator-actions {
@@ -763,26 +808,12 @@ mat-card {
 }
 
 .role-select {
-  width: 120px;
-
-  ::ng-deep .mat-mdc-form-field-subscript-wrapper {
-    display: none;
-  }
-
-  ::ng-deep .mat-mdc-text-field-wrapper {
-    padding: 0 8px;
-  }
+  width: 128px;
+  --mat-form-field-container-height: 40px;
+  --mat-form-field-container-vertical-padding: 8px;
 }
 
 .invite-card {
-  mat-card-header {
-    mat-card-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-  }
-
   mat-card-content {
     padding: 16px;
   }
@@ -806,22 +837,6 @@ mat-card {
 }
 
 // Connected Apps section
-.connected-apps-card {
-  margin-top: 16px;
-
-  mat-card-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-}
-
-.connected-apps-info {
-  font-size: 13px;
-  color: var(--sys-on-surface-variant);
-  margin: 0 0 16px 0;
-}
-
 .oauth-app-item {
   .app-avatar {
     background: var(--sys-secondary-container);
@@ -839,12 +854,6 @@ mat-card {
   background: var(--sys-secondary-container);
   color: var(--sys-on-secondary-container);
   text-transform: capitalize;
-}
-
-.connected-apps-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 12px;
 }
 
 // Responsive adjustments

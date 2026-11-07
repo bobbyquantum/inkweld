@@ -399,5 +399,23 @@
     "currentProfile": "Current Profile",
     "loggedIn": "Logged in",
     "notConnected": "Not connected to a server"
+  },
+  "collaboration": {
+    "collaboratorsTitle": "Collaborators",
+    "pendingCount": "{{count}} pending",
+    "pending": "Pending",
+    "noCollaborators": "No one else has access yet. Invite someone to write with you.",
+    "joined": "Joined {{date}}",
+    "invited": "Invited {{date}}",
+    "invitedBy": "Invited {{date}} by {{name}}",
+    "roleFor": "Role for {{name}}",
+    "invite": "Invite collaborator",
+    "inviteTitle": "Invite a collaborator",
+    "connectedAppsTitle": "Connected apps",
+    "connectedAppsInfo": "These apps have been granted access to this project. Manage them from Authorized Apps in your account settings.",
+    "unknownApp": "Unknown app",
+    "authorizedBy": "Authorized by {{name}}",
+    "authorizedByOn": "Authorized by {{name}} on {{date}}",
+    "manageApps": "Manage apps"
   }
 }
