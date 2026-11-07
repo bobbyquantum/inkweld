@@ -408,7 +408,7 @@
     "joined": "Joined {{date}}",
     "invited": "Invited {{date}}",
     "invitedBy": "Invited {{date}} by {{name}}",
-    "roleFor": "Role for {{name}}",
+    "roleFor": "Role for {{name}}: {{role}}",
     "invite": "Invite collaborator",
     "inviteTitle": "Invite a collaborator",
     "connectedAppsTitle": "Connected apps",
@@ -416,6 +416,14 @@
     "unknownApp": "Unknown app",
     "authorizedBy": "Authorized by {{name}}",
     "authorizedByOn": "Authorized by {{name}} on {{date}}",
-    "manageApps": "Manage apps"
+    "manageApps": "Manage apps",
+    "roles": {
+      "viewer": "Viewer",
+      "viewerDesc": "Can view project content",
+      "editor": "Editor",
+      "editorDesc": "Can view and edit content",
+      "admin": "Admin",
+      "adminDesc": "Full access including settings"
+    }
   }
 }

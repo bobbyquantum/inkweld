@@ -782,27 +782,43 @@
                       </div>
                     </div>
                     <div class="collaborator-actions">
-                      <mat-form-field
-                        appearance="outline"
-                        subscriptSizing="dynamic"
-                        class="role-select">
-                        <mat-select
-                          [value]="collab.role"
-                          [aria-label]="
-                            'settings.collaboration.roleFor'
-                              | transloco: { name: collab.username }
-                          "
-                          (selectionChange)="
-                            updateCollaboratorRole(collab, $event.value)
-                          "
-                          data-testid="collaborator-role-select">
-                          @for (opt of roleOptions; track opt.value) {
-                            <mat-option [value]="opt.value">
-                              {{ opt.label }}
-                            </mat-option>
-                          }
-                        </mat-select>
-                      </mat-form-field>
+                      <button
+                        mat-button
+                        class="role-menu-button"
+                        [matMenuTriggerFor]="roleMenu"
+                        [attr.aria-label]="
+                          'settings.collaboration.roleFor'
+                            | transloco
+                              : {
+                                  name: collab.username,
+                                  role: (roleLabel(collab.role) | transloco),
+                                }
+                        "
+                        data-testid="collaborator-role-button">
+                        {{ roleLabel(collab.role) | transloco }}
+                        <mat-icon iconPositionEnd>arrow_drop_down</mat-icon>
+                      </button>
+                      <mat-menu #roleMenu="matMenu" xPosition="before">
+                        @for (opt of roleOptions; track opt.value) {
+                          <button
+                            mat-menu-item
+                            role="menuitemradio"
+                            [attr.aria-checked]="collab.role === opt.value"
+                            (click)="updateCollaboratorRole(collab, opt.value)"
+                            data-testid="collaborator-role-option">
+                            <mat-icon
+                              [class.role-check-hidden]="
+                                collab.role !== opt.value
+                              "
+                              >check</mat-icon
+                            >
+                            <span class="role-option">
+                              <span>{{ opt.label | transloco }}</span>
+                              <small>{{ opt.description | transloco }}</small>
+                            </span>
+                          </button>
+                        }
+                      </mat-menu>
                       <button
                         mat-icon-button
                         appTooltipAriaLabel
@@ -937,8 +953,8 @@
                     @for (opt of roleOptions; track opt.value) {
                       <mat-option [value]="opt.value">
                         <div class="role-option">
-                          <span>{{ opt.label }}</span>
-                          <small>{{ opt.description }}</small>
+                          <span>{{ opt.label | transloco }}</span>
+                          <small>{{ opt.description | transloco }}</small>
                         </div>
                       </mat-option>
                     }

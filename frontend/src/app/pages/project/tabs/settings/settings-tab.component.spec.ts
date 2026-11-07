@@ -1044,6 +1044,52 @@ describe('SettingsTabComponent', () => {
         ).not.toBeNull();
       });
 
+      it('shows the role as a menu button and ticks it in the menu', async () => {
+        show([mockCollaborators[0]]);
+
+        const button = query('collaborator-role-button');
+        expect(button?.textContent).toContain('Editor');
+        expect(button?.getAttribute('aria-label')).toBe(
+          'Role for collaborator1: Editor'
+        );
+
+        button?.click();
+        fixture.detectChanges();
+        await fixture.whenStable();
+
+        const options = Array.from(
+          document.querySelectorAll<HTMLElement>(
+            '[data-testid="collaborator-role-option"]'
+          )
+        );
+        expect(options.map(o => o.getAttribute('aria-checked'))).toEqual([
+          'false',
+          'true',
+          'false',
+        ]);
+        expect(options[2].textContent).toContain(
+          'Full access including settings'
+        );
+
+        options[2].click();
+        await fixture.whenStable();
+        expect(collaborationService.updateCollaborator).toHaveBeenCalledWith(
+          'testuser',
+          'test-project',
+          'user-1',
+          { role: CollaboratorRole.Admin }
+        );
+      });
+
+      it('does not call the server when the same role is picked again', async () => {
+        await component.updateCollaboratorRole(
+          mockCollaborators[0],
+          CollaboratorRole.Editor
+        );
+
+        expect(collaborationService.updateCollaborator).not.toHaveBeenCalled();
+      });
+
       it('hides the invite button while the invite form is open', () => {
         show([]);
         component.toggleInviteForm();

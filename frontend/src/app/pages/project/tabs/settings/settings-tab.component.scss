@@ -807,10 +807,13 @@ mat-card {
   flex-shrink: 0;
 }
 
-.role-select {
-  width: 128px;
-  --mat-form-field-container-height: 40px;
-  --mat-form-field-container-vertical-padding: 8px;
+.role-menu-button {
+  min-width: 96px;
+}
+
+// Keep every option's text aligned whether or not it has the tick
+.role-check-hidden {
+  visibility: hidden;
 }
 
 .invite-card {
@@ -888,10 +891,6 @@ mat-card {
     width: 100%;
     justify-content: flex-end;
     margin-top: 8px;
-  }
-
-  .role-select {
-    flex: 1;
   }
 }
 
