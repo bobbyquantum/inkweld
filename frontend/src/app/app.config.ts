@@ -20,6 +20,7 @@ import {
 } from '@angular/router';
 import { provideServiceWorker } from '@angular/service-worker';
 import { provideTransloco } from '@jsverse/transloco';
+import { isHomeAssistantIngress } from '@utils/app-base';
 import { CustomRouteReuseStrategy } from '@utils/custom-route-reuse-strategy';
 
 import { ThemeService } from '../themes/theme.service';
@@ -76,7 +77,12 @@ export const appConfig: ApplicationConfig = {
     ...API_PROVIDERS,
     ThemeService,
     provideServiceWorker('ngsw-worker.js', {
-      enabled: !isDevMode(),
+      // Home Assistant serves the app under /api/hassio_ingress/<token>/, and
+      // the token is only known at request time. The worker manifest is built
+      // for "/", so its prefetch of /index.html leaves the ingress prefix and
+      // HA answers 404 (it only serves the app shell at "/" and panel paths).
+      // The install then never completes, so the worker gains nothing here.
+      enabled: !isDevMode() && !isHomeAssistantIngress(),
       registrationStrategy: 'registerImmediately',
     }),
   ],
