@@ -208,9 +208,22 @@ describe('spa-utils', () => {
       expect(injectIngressBase(html, null)).toBe(html);
     });
 
-    it('leaves documents without a root base element unchanged', () => {
-      const other = '<head><base href="/elsewhere/" /></head>';
-      expect(injectIngressBase(other, '/api/hassio_ingress/abc')).toBe(other);
+    it('marks documents without a root base element but keeps their base', () => {
+      const other = '<head><base href="./" /></head>';
+      const out = injectIngressBase(other, '/api/hassio_ingress/abc');
+      expect(out).toContain('<base href="./" />');
+      expect(out).toContain(INGRESS_META);
+      expect(out.indexOf(INGRESS_META)).toBeLessThan(out.indexOf('</head>'));
+    });
+
+    it('does not add a second marker to a document that already has one', () => {
+      const marked = `<head><base href="./" />${INGRESS_META}</head>`;
+      expect(injectIngressBase(marked, '/api/hassio_ingress/abc')).toBe(marked);
+    });
+
+    it('leaves documents with neither a root base nor a head unchanged', () => {
+      const fragment = '<div>no head here</div>';
+      expect(injectIngressBase(fragment, '/api/hassio_ingress/abc')).toBe(fragment);
     });
 
     it('matches the base element written without a self-closing slash', () => {
