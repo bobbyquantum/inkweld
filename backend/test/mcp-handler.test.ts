@@ -6,7 +6,7 @@
  * protocol version validation, `resultType: "complete"` envelopes, removal of
  * the `initialize` handshake, and unknown-method 404s.
  */
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { handleMcpRequest } from '../src/mcp/mcp.handler';
 import {
   createSuccessResponse,
@@ -14,7 +14,7 @@ import {
   MCP_PROTOCOL_VERSION,
   META_KEYS,
 } from '../src/mcp/mcp.types';
-import { registerTool } from '../src/mcp/mcp.handler';
+import { registerTool, unregisterTool } from '../src/mcp/mcp.handler';
 
 interface FakeContext {
   req: {
@@ -71,17 +71,38 @@ async function parseRpc(res: Response): Promise<RpcEnvelope> {
 }
 
 describe('MCP stateless handler (2026-07-28)', () => {
+  // The tool registry is shared by every test file in the run, so the
+  // throwaway tool is removed after each test; otherwise it would reach
+  // files such as mcp-tool-annotations.test.ts, depending on file order.
+  const THROWAWAY_TOOL = 'stateless-test-tool';
+
   beforeEach(() => {
     // Register a throwaway tool so tools/list has something to return.
     registerTool({
       tool: {
-        name: `stateless-test-${Date.now()}-${Math.random()}`,
+        name: THROWAWAY_TOOL,
         description: 'test',
         inputSchema: { type: 'object' },
       },
       requiredPermissions: [],
       execute: async () => ({ ok: true }),
     });
+  });
+
+  afterEach(() => {
+    unregisterTool(THROWAWAY_TOOL);
+  });
+
+  it('unregisterTool removes a tool from tools/list', async () => {
+    const listToolNames = async (): Promise<string[]> => {
+      const res = await handleMcpRequest(makeContext(metaBody('tools/list')) as never);
+      const json = await parseRpc(res);
+      return (json.result as { tools: Array<{ name: string }> }).tools.map((t) => t.name);
+    };
+
+    expect(await listToolNames()).toContain(THROWAWAY_TOOL);
+    unregisterTool(THROWAWAY_TOOL);
+    expect(await listToolNames()).not.toContain(THROWAWAY_TOOL);
   });
 
   it('serves server/discover with supported versions, capabilities and identity', async () => {

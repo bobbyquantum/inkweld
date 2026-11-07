@@ -33,9 +33,17 @@ touching another profile's copy of the same `username:slug`, and
 Public elements, prose/conversations, and worldbuilding use transient Yjs
 documents, no IndexedDB or BroadcastChannel, and the `public-view` token rather
 than the visitor's JWT. Media and publications read directly from the link's
-server. Public navigation stays under `/public`; leaving uses a full reload
-to restore the saved profile. Never replay pending profile writes or run
-automatic content migrations in this context.
+server. That server is the page's own origin (Docker, self-hosted, ingress) or
+the build's `apiUrl`. When the app is served from a different address than
+the project's server, the page can't tell, so the link names it as `?server=`
+(`utils/public-project-link.ts`). `PublicProjectContextService` remembers it
+per project once a navigation to the link succeeds, for in-app navigation
+(which drops the query) and, in sessionStorage, for reloads. A page opened
+afresh without `?server=` uses the default server again. Public navigation
+stays under `/public`; leaving uses a full reload to restore the saved
+profile. Never replay pending profile writes or run automatic content
+migrations in this context.
+
 ## Server profile ids
 
 A server profile's id names its storage prefix (`srv:<id>:`) and its token

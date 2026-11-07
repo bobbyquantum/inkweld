@@ -56,8 +56,9 @@ import { ProjectRenameMigrationService } from '@services/local/project-rename-mi
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
-import { appOrigin, appUrl } from '@utils/app-base';
+import { appUrl } from '@utils/app-base';
 import { formatBytes } from '@utils/format-bytes';
+import { publicProjectUrl } from '@utils/public-project-link';
 import { firstValueFrom } from 'rxjs';
 
 import { GeneratorsSettingsComponent } from './generators-settings/generators-settings.component';
@@ -264,7 +265,13 @@ export class SettingsTabComponent implements OnDestroy {
   protected readonly publicShareUrl = computed(() => {
     const project = this.projectState.project();
     if (!project?.isPublic) return null;
-    return `${appOrigin()}/public/${encodeURIComponent(project.username)}/${encodeURIComponent(project.slug)}`;
+    // Names the owner's server when the page it opens couldn't work it out:
+    // the app is served from a different address than the server.
+    return publicProjectUrl(
+      project.username,
+      project.slug,
+      this.setupService.getServerUrl() ?? ''
+    );
   });
 
   // Server-side storage size for this project (server mode only)
