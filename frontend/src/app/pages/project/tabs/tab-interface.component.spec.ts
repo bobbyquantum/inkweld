@@ -1008,6 +1008,38 @@ describe('TabInterfaceComponent', () => {
       );
     });
 
+    it("keeps a tab's query string when its URL is already open", () => {
+      const settings: AppTab = {
+        id: 'system-settings',
+        name: 'Settings',
+        type: 'system',
+        systemType: 'settings',
+      };
+      const project = projectStateService.project!()!;
+      const navigateToTab = (tab: AppTab) =>
+        (
+          component as unknown as {
+            navigateToTab: (tab: AppTab, project: Project) => void;
+          }
+        ).navigateToTab(tab, project);
+      vi.mocked(router.navigate!).mockClear();
+
+      // A timeline's link to its Settings section
+      (router as any).url =
+        '/testuser/test-project/settings?section=time-systems';
+      navigateToTab(settings);
+      expect(router.navigate).not.toHaveBeenCalled();
+
+      (router as any).url = '/testuser/test-project';
+      navigateToTab(settings);
+      expect(router.navigate).toHaveBeenCalledWith([
+        '/',
+        'testuser',
+        'test-project',
+        'settings',
+      ]);
+    });
+
     it('opens the system tab a public link names, not Home', () => {
       (router as any).url = '/public/testuser/test-project/activity';
 

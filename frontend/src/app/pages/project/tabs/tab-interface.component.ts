@@ -457,6 +457,20 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
     setTimeout(() => this.updateScrollState(), 150);
   }
 
+  /** Whether the current URL's path is `commands`, whatever its query. */
+  private isAtPath(commands: string[]): boolean {
+    const current = this.router.url
+      .split(/[?#]/)[0]
+      .split('/')
+      .filter(Boolean)
+      .map(segment => decodeURIComponent(segment));
+    const target = commands.filter(segment => segment && segment !== '/');
+    return (
+      current.length === target.length &&
+      current.every((segment, i) => segment === target[i])
+    );
+  }
+
   /**
    * Route to a tab's URL. Navigation is what selects a tab: the NavigationEnd
    * handler turns the new URL back into a selection.
@@ -471,6 +485,9 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
       project,
       this.publicContext.active()
     );
+    // Already there: navigating again would only drop the query string, such
+    // as the Settings section a timeline links to (?section=time-systems)
+    if (this.isAtPath(commands)) return;
     if (extras) {
       void this.router.navigate(commands, extras);
     } else {
