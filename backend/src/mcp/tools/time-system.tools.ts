@@ -251,6 +251,7 @@ function defaultFormat(unitCount: number, separator: string): string {
   return Array.from({ length: unitCount }, (_, i) => `{u${i}}`).join(separator);
 }
 
+/** "1 entry" or "N entries". */
 function entries(count: number): string {
   return count === 1 ? '1 entry' : `${count} entries`;
 }

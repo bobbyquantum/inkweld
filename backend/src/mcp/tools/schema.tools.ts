@@ -237,19 +237,32 @@ function generatorIdFor(ref: string, generators: LibraryRow[]): string {
   return byName.length === 1 ? byName[0].id : ref;
 }
 
+/** The generator each field offers before an edit, by field key. */
+function storedGeneratorIds(tabs: readonly SchemaTab[]): Map<string, unknown> {
+  return new Map(
+    tabs.flatMap((tab) => tab.fields ?? []).map((field) => [field.key, field.generatorId])
+  );
+}
+
 /**
  * Point each field's generatorId at a project generator, turning a name into
- * its id as the generator tools accept either. Returns a warning for each
- * field that offers a generator but shows no dice button in the app, which
- * ignores unknown ids.
+ * its id as the generator tools accept either. A generatorId the field already
+ * had (`stored`) is kept as it is, so an unrelated edit never re-links a field
+ * whose generator was deleted to another generator named like its old id.
+ * Returns a warning for each field that offers a generator but shows no dice
+ * button in the app, which ignores unknown ids.
  */
-function linkFieldGenerators(doc: Y.Doc, tabs: SchemaTab[]): string[] {
+function linkFieldGenerators(
+  doc: Y.Doc,
+  tabs: SchemaTab[],
+  stored: ReadonlyMap<string, unknown> = new Map()
+): string[] {
   const generators = readRows(doc, 'generators');
   const warnings: string[] = [];
   for (const field of tabs.flatMap((tab) => tab.fields ?? [])) {
     const ref = field.generatorId;
     if (typeof ref !== 'string' || !ref) continue;
-    const id = generatorIdFor(ref, generators);
+    const id = stored.get(field.key) === ref ? ref : generatorIdFor(ref, generators);
     field.generatorId = id;
     const which = `field "${field.label}" (${field.key})`;
     if (!generators.some((g) => g.id === id)) {
@@ -374,6 +387,7 @@ registerTool({
         }
 
         const source = cloneFrom ? findSchema(doc, cloneFrom).schema : null;
+        const stored = source ? storedGeneratorIds(source.tabs) : undefined;
         let tabs: SchemaTab[];
         if (source) {
           // The clone manages its own relationship types instead of sharing the source's.
@@ -387,7 +401,7 @@ registerTool({
           tabs = tabsOrThrow(createTabs(args.tabs ?? [{ key: 'general', label: 'General' }]));
         }
         stampRelationshipTypeIds(tabs);
-        const warnings = linkFieldGenerators(doc, tabs);
+        const warnings = linkFieldGenerators(doc, tabs, stored);
 
         const now = new Date().toISOString();
         const schema: StoredSchema = {
@@ -562,6 +576,7 @@ registerTool({
         }
 
         const before = schema.tabs;
+        const stored = storedGeneratorIds(before);
         let tabs = before;
         if (args.operations !== undefined) {
           tabs = tabsOrThrow(applySchemaOperations(before, args.operations));
@@ -569,7 +584,7 @@ registerTool({
           tabs = tabsOrThrow(createTabs(args.tabs, before));
         }
         stampRelationshipTypeIds(tabs);
-        const warnings = linkFieldGenerators(doc, tabs);
+        const warnings = linkFieldGenerators(doc, tabs, stored);
 
         const updated: StoredSchema = {
           ...schema,

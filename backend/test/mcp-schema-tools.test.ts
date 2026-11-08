@@ -463,6 +463,7 @@ describe('delete_schema', () => {
 describe('generator fields', () => {
   const tavernNames = { id: 'gen-tavern', name: 'Tavern names' };
 
+  /** The structured result's warnings, if any. */
   function warningsOf(json: ToolJson): string[] | undefined {
     return (json.result?.structuredContent as { warnings?: string[] }).warnings;
   }
@@ -540,6 +541,48 @@ describe('generator fields', () => {
     expect(warningsOf(json)).toBeUndefined();
     const field = project.schemas()[0].tabs[0].fields.find((f) => f.key === 'hallName');
     expect(field?.generatorId).toBe('gen-tavern');
+  });
+
+  it('returns warnings from update_schema too', async () => {
+    seedProject({ schemas: [faction], generators: [tavernNames] });
+    const json = await call('update_schema', {
+      schemaId: 'faction-1',
+      operations: [
+        { op: 'add_field', tabKey: 'general', field: { label: 'Ghost', generatorId: 'nope' } },
+        {
+          op: 'add_field',
+          tabKey: 'general',
+          field: { label: 'Rooms', type: 'number', generatorId: 'gen-tavern' },
+        },
+      ],
+    });
+    expect(json.result?.isError).toBeUndefined();
+    const warnings = warningsOf(json) ?? [];
+    expect(warnings).toHaveLength(2);
+    expect(warnings[0]).toContain('offers generator "nope"');
+    expect(warnings[1]).toContain('field "Rooms" (rooms) is a number field');
+  });
+
+  it('keeps a stored generator id on other edits, even when a generator is named like it', async () => {
+    // The field's generator was deleted; a later generator happens to be named like its old id.
+    const withStaleField = structuredClone(faction);
+    withStaleField.tabs[0].fields[0] = {
+      ...faction.tabs[0].fields[0],
+      generatorId: 'tavern-names',
+    };
+    const project = seedProject({
+      schemas: [withStaleField],
+      generators: [{ id: 'gen-other', name: 'tavern-names' }],
+    });
+    const json = await call('update_schema', { schemaId: 'faction-1', description: 'Guilds' });
+    expect(json.result?.isError).toBeUndefined();
+    expect(project.schemas()[0].tabs[0].fields[0].generatorId).toBe('tavern-names');
+    expect(warningsOf(json)?.[0]).toContain('offers generator "tavern-names"');
+
+    // Cloning keeps it too.
+    const clone = await call('create_schema', { name: 'Guild', cloneFromSchemaId: 'faction-1' });
+    expect(clone.result?.isError).toBeUndefined();
+    expect(project.schemas()[1].tabs[0].fields[0].generatorId).toBe('tavern-names');
   });
 });
 
