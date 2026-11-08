@@ -7,8 +7,11 @@
       @if (findService.isOpen()) {
         <app-find-in-document></app-find-in-document>
       }
-      <!-- Only show toolbar when not in zen mode -->
-      @if (!zenMode) {
+      <!-- Only show toolbar when not in zen mode. A reader's toolbar holds
+           only the comments button, so it goes when comments are hidden -->
+      @if (
+        !zenMode && (projectState.canWrite() || projectState.showComments())
+      ) {
         <app-editor-toolbar
           [editor]="editor"
           [disabled]="!projectState.canWrite()"
@@ -22,6 +25,7 @@
       }
       <div
         class="editor-container fit-width"
+        [class.comments-hidden]="!projectState.showComments()"
         [class.zen-mode-container]="zenMode"
         [class.conversation-script]="isConversationDoc() && scriptView()">
         <div class="scaled-content">
@@ -37,13 +41,16 @@
                 "
                 class="editor-content">
               </ngx-editor>
-              <!-- Custom floating menu for formatting + comments -->
-              <app-editor-floating-menu
-                [editor]="editor"
-                (addComment)="addComment()"
-                (insertLink)="
-                  openInsertLinkDialog()
-                "></app-editor-floating-menu>
+              <!-- Custom floating menu for formatting + comments; a reader
+                   can do neither, so selecting text shows nothing -->
+              @if (projectState.canWrite()) {
+                <app-editor-floating-menu
+                  [editor]="editor"
+                  (addComment)="addComment()"
+                  (insertLink)="
+                    openInsertLinkDialog()
+                  "></app-editor-floating-menu>
+              }
             }
           </div>
         </div>
@@ -132,7 +139,7 @@
     </div>
 
     <!-- Comment Panel - shown when user toggles comments -->
-    @if (!zenMode && commentPanelOpen()) {
+    @if (!zenMode && commentPanelOpen() && projectState.showComments()) {
       <div class="comment-panel-container">
         <app-comment-panel
           [username]="projectState.project()?.username ?? ''"

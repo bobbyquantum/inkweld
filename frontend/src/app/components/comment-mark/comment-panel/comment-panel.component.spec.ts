@@ -91,6 +91,33 @@ describe('CommentPanelComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  describe('empty state', () => {
+    const hint = () =>
+      fixture.nativeElement.querySelector('[data-testid="comment-panel-hint"]');
+
+    it('tells a writer how to add a comment', () => {
+      fixture.componentRef.setInput('canWrite', true);
+      fixture.detectChanges();
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="comment-panel-empty"]'
+        )
+      ).toBeTruthy();
+      expect(hint()?.textContent).toContain('Ctrl+Alt+M');
+    });
+
+    it("doesn't tell a reader how to add one", () => {
+      fixture.componentRef.setInput('canWrite', false);
+      fixture.detectChanges();
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="comment-panel-empty"]'
+        )
+      ).toBeTruthy();
+      expect(hint()).toBeNull();
+    });
+  });
+
   describe('getPreview', () => {
     it('should return first message text when short', () => {
       const thread = makeThread();

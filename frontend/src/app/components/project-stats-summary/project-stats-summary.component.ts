@@ -17,6 +17,7 @@ import type {
   ProjectStatsResponse,
 } from '@models/writing-stats';
 import { LoggerService } from '@services/core/logger.service';
+import { PublicProjectContextService } from '@services/core/public-project-context.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { WritingStatsService } from '@services/stats/writing-stats.service';
@@ -66,6 +67,7 @@ export class ProjectStatsSummaryComponent {
   private readonly projectState = inject(ProjectStateService);
   private readonly statsService = inject(WritingStatsService);
   private readonly storageContext = inject(StorageContextService);
+  private readonly publicContext = inject(PublicProjectContextService);
   private readonly logger = inject(LoggerService);
 
   /** Look-back window in days. */
@@ -141,6 +143,7 @@ export class ProjectStatsSummaryComponent {
     effect(() => {
       this.projectState.project();
       this.storageContext.isLocalMode();
+      this.publicContext.active();
       void this.reload();
     });
   }
@@ -149,14 +152,16 @@ export class ProjectStatsSummaryComponent {
    * (Re)fetch stats for the current project. Safe to call repeatedly.
    *
    * Invalidates any in-flight request first; when there is no fetchable
-   * project (local mode, or no active project) the displayed state is
-   * cleared instead.
+   * project (local mode, a public link, or no active project) the displayed
+   * state is cleared instead.
    */
   async reload(): Promise<void> {
     const token = ++this.requestToken;
     const project = this.projectState.project();
+    // Writing stats need an account, which a public link's reader has none of
     if (
       this.storageContext.isLocalMode() ||
+      this.publicContext.active() ||
       !project?.username ||
       !project.slug
     ) {

@@ -1240,6 +1240,14 @@
             "type": "boolean",
             "description": "Allow anyone with the public project URL to view the entire project"
           },
+          "publicComments": {
+            "type": "boolean",
+            "description": "Show the project's comments to people viewing it through its public link"
+          },
+          "publicActivity": {
+            "type": "boolean",
+            "description": "Show the project's activity feed to people viewing it through its public link"
+          },
           "createdDate": {
             "type": "string",
             "format": "date-time",
@@ -1391,6 +1399,14 @@
           "isPublic": {
             "type": "boolean",
             "description": "Allow anyone with the public project URL to view the entire project"
+          },
+          "publicComments": {
+            "type": "boolean",
+            "description": "Show the project's comments to people viewing it through its public link"
+          },
+          "publicActivity": {
+            "type": "boolean",
+            "description": "Show the project's activity feed to people viewing it through its public link"
           }
         }
       },

@@ -44,6 +44,7 @@ describe('ActivityTabComponent', () => {
     project: ReturnType<typeof signal>;
     elements: ReturnType<typeof signal<object[]>>;
     openDocument: ReturnType<typeof vi.fn>;
+    showActivity: ReturnType<typeof signal<boolean>>;
   };
   let logger: ReturnType<typeof mockDeep<LoggerService>>;
 
@@ -52,7 +53,8 @@ describe('ActivityTabComponent', () => {
   const setup = async (
     initial?: ProjectActivityResponse | Error,
     proj: { username?: string; slug?: string } | null = project,
-    localMode = false
+    localMode = false,
+    showActivity = true
   ) => {
     activityFeed = mockDeep<ActivityFeedService>();
     statsService = mockDeep<WritingStatsService>();
@@ -70,6 +72,7 @@ describe('ActivityTabComponent', () => {
       project: signal(proj),
       elements: signal<object[]>([]),
       openDocument: vi.fn(),
+      showActivity: signal(showActivity),
     };
 
     if (initial instanceof Error) {
@@ -137,6 +140,16 @@ describe('ActivityTabComponent', () => {
     await setup({ events: [makeEvent('a')], nextBefore: 1 }, project, true);
     expect(activityFeed.getProjectActivity).not.toHaveBeenCalled();
     expect(statsService.getProjectStats).not.toHaveBeenCalled();
+  });
+
+  it("doesn't ask for a feed a public link doesn't share", async () => {
+    await setup(
+      { events: [makeEvent('a')], nextBefore: 1 },
+      project,
+      false,
+      false
+    );
+    expect(activityFeed.getProjectActivity).not.toHaveBeenCalled();
   });
 
   it('shows the empty state when there are no events', async () => {

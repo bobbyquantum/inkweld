@@ -712,6 +712,15 @@
   border-bottom-color: rgba(255, 179, 0, 0.5) !important;
 }
 
+// A public link that doesn't share the project's comments shows the text
+// without their highlights. After the rules above so it wins in both themes.
+.comments-hidden ::ng-deep .comment-highlight,
+.comments-hidden ::ng-deep .comment-highlight:hover {
+  background-color: transparent;
+  border-bottom: none;
+  cursor: auto;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Auto-Review Highlight Styles
 // ─────────────────────────────────────────────────────────────────────────────

@@ -536,7 +536,8 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
 
   /** Parse the URL when a project is loaded, or return EMPTY_ROUTE_INFO. */
   private parseProjectRoute(project: Project): ParsedRouteInfo {
-    const url = this.router.url;
+    // A public link puts the same tab routes under /public
+    const url = `/${projectUrlSegments(this.router.url).join('/')}`;
     const projectBaseUrl = `/${project.username}/${project.slug}`;
 
     const systemRoute = this.matchSystemRoute(url, projectBaseUrl);

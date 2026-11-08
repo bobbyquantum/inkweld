@@ -457,8 +457,11 @@ export class DocumentElementEditorComponent
     effect(() => {
       const event = this.commentService.commentClickEvent();
       if (event) {
-        this.commentPopoverAttrs.set(event.attrs);
-        this.commentPopoverPosition.set(event.coords);
+        // A public link that hides comments doesn't open them either
+        if (this.projectState.showComments()) {
+          this.commentPopoverAttrs.set(event.attrs);
+          this.commentPopoverPosition.set(event.coords);
+        }
         this.commentService.commentClickEvent.set(null);
       }
     });
@@ -1091,6 +1094,8 @@ export class DocumentElementEditorComponent
 
   async addComment(): Promise<void> {
     if (!this.editor?.view) return;
+    // Adding a comment writes a mark into the document
+    if (!this.projectState.canWrite()) return;
     const project = this.projectState.project();
     if (!project) return;
 

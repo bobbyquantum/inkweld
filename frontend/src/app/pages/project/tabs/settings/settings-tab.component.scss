@@ -274,6 +274,11 @@ mat-expansion-panel {
     min-width: 0;
   }
 
+  // What a public link shows besides the project itself
+  .public-sharing-option-row {
+    padding: 8px 0 8px 16px;
+  }
+
   .public-sharing-toggle-title {
     font-weight: 500;
     color: var(--sys-on-surface);

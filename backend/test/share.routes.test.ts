@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import { getDatabase } from '../src/db/index';
-import { users, projects, publishedFiles, projectCollaborators } from '../src/db/schema/index';
+import {
+  users,
+  projects,
+  publishedFiles,
+  projectCollaborators,
+  activityEvents,
+} from '../src/db/schema/index';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
 import {
@@ -147,12 +153,18 @@ describe('Share Routes', () => {
         const admin = new TestClient(baseUrl);
         expect(await admin.login('sharing-admin', TEST_PASSWORDS.DEFAULT)).toBe(true);
         const path = '/api/v1/projects/shareroutes-user/public-share-test';
-        const denied = await admin.request(path, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ isPublic: false }),
-        });
-        expect(denied.response.status).toBe(403);
+        for (const change of [
+          { isPublic: false },
+          { publicComments: true },
+          { publicActivity: true },
+        ]) {
+          const denied = await admin.request(path, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(change),
+          });
+          expect(denied.response.status).toBe(403);
+        }
         const allowed = await admin.request(path, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -172,9 +184,6 @@ describe('Share Routes', () => {
       const paths = [
         '/api/v1/media/shareroutes-user/public-share-test',
         '/api/v1/projects/shareroutes-user/public-share-test/published',
-        '/api/v1/comments/shareroutes-user/public-share-test',
-        '/api/v1/comments/shareroutes-user/public-share-test/doc/chapter',
-        '/api/v1/activity/projects/shareroutes-user/public-share-test',
       ];
       const responses = await Promise.all(
         paths.map((path) => fetch(`${baseUrl}${path}`, { headers }))
@@ -199,6 +208,91 @@ describe('Share Routes', () => {
       );
       expect(privateCover.status).toBe(404);
     });
+    it('shares comments and activity only when the owner turns them on', async () => {
+      const db = getDatabase();
+      const headers = { 'X-Inkweld-Public-View': 'true' };
+      const commentPaths = [
+        '/api/v1/comments/shareroutes-user/public-share-test',
+        '/api/v1/comments/shareroutes-user/public-share-test/doc/chapter',
+      ];
+      const activityPath = '/api/v1/activity/projects/shareroutes-user/public-share-test';
+      const statuses = (paths: string[]) =>
+        Promise.all(
+          paths.map(async (path) => (await fetch(`${baseUrl}${path}`, { headers })).status)
+        );
+      const setSharing = async (change: Record<string, boolean>) => {
+        const updated = await client.request(
+          '/api/v1/projects/shareroutes-user/public-share-test',
+          {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(change),
+          }
+        );
+        expect(updated.response.status).toBe(200);
+        return updated.response.json() as Promise<Record<string, unknown>>;
+      };
+      const now = Date.now();
+      await db.insert(activityEvents).values([
+        {
+          id: crypto.randomUUID(),
+          projectId: publicProjectId,
+          userId: ownerUserId,
+          eventType: 'comment_thread_created',
+          entityId: crypto.randomUUID(),
+          metadata: { preview: 'A private note' },
+          createdAt: now,
+        },
+        {
+          id: crypto.randomUUID(),
+          projectId: publicProjectId,
+          userId: ownerUserId,
+          eventType: 'document_edit',
+          entityId: 'chapter',
+          entityName: 'Chapter',
+          createdAt: now - 1,
+        },
+      ]);
+      try {
+        // Off by default
+        expect(await statuses([...commentPaths, activityPath])).toEqual([404, 404, 404]);
+
+        expect(await setSharing({ publicActivity: true })).toMatchObject({
+          publicActivity: true,
+          publicComments: false,
+        });
+        expect(await statuses(commentPaths)).toEqual([404, 404]);
+        const feed = await fetch(`${baseUrl}${activityPath}`, { headers });
+        expect(feed.status).toBe(200);
+        // A comment event carries the comment's text, so it stays hidden
+        const { events } = (await feed.json()) as { events: { eventType: string }[] };
+        expect(events.map((event) => event.eventType)).toEqual(['document_edit']);
+
+        expect(await setSharing({ publicComments: true })).toMatchObject({
+          publicActivity: true,
+          publicComments: true,
+        });
+        expect(await statuses(commentPaths)).toEqual([200, 200]);
+        const fullFeed = await fetch(`${baseUrl}${activityPath}`, { headers });
+        const full = (await fullFeed.json()) as { events: { eventType: string }[] };
+        expect(full.events.map((event) => event.eventType)).toEqual([
+          'comment_thread_created',
+          'document_edit',
+        ]);
+
+        // The owner still sees everything without the public marker
+        await setSharing({ publicComments: false, publicActivity: false });
+        const ownFeed = await client.request(activityPath);
+        expect(ownFeed.response.status).toBe(200);
+      } finally {
+        await db.delete(activityEvents).where(eq(activityEvents.projectId, publicProjectId));
+        await db
+          .update(projects)
+          .set({ publicComments: false, publicActivity: false })
+          .where(eq(projects.id, publicProjectId));
+      }
+    });
+
     it('does not expose missing public project slugs', async () => {
       const response = await fetch(`${baseUrl}/api/v1/share/projects/shareroutes-user/missing`);
       expect(response.status).toBe(404);

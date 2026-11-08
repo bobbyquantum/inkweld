@@ -1008,6 +1008,34 @@ describe('TabInterfaceComponent', () => {
       );
     });
 
+    it('opens the system tab a public link names, not Home', () => {
+      (router as any).url = '/public/testuser/test-project/activity';
+
+      component.updateSelectedTabFromUrl();
+
+      expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
+        'activity'
+      );
+    });
+
+    it('reads a public publish-plan URL', () => {
+      const planId = 'plan-public-1';
+      (router as any).url =
+        `/public/testuser/test-project/publish-plan/${planId}`;
+      (projectStateService as any).getPublishPlan = vi.fn(() => ({
+        id: planId,
+        name: 'Public plan',
+      }));
+      (projectStateService as any).openPublishPlan = vi.fn();
+
+      component.updateSelectedTabFromUrl();
+
+      expect((projectStateService as any).getPublishPlan).toHaveBeenCalledWith(
+        planId
+      );
+      expect((projectStateService as any).openPublishPlan).toHaveBeenCalled();
+    });
+
     it('should find existing system tab by systemType', () => {
       // Set up an already-open media tab
       const mediaTabs: AppTab[] = [

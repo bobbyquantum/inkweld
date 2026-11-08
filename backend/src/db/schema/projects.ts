@@ -12,6 +12,10 @@ export const projects = sqliteTable(
     title: text('title').notNull(),
     description: text('description', { length: 1000 }),
     isPublic: integer('is_public', { mode: 'boolean' }).notNull().default(false),
+    /** Whether a public link's readers see the project's comments */
+    publicComments: integer('public_comments', { mode: 'boolean' }).notNull().default(false),
+    /** Whether a public link's readers see the project's activity feed */
+    publicActivity: integer('public_activity', { mode: 'boolean' }).notNull().default(false),
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),

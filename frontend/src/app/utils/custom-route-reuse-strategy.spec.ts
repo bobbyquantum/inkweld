@@ -88,39 +88,43 @@ describe('CustomRouteReuseStrategy', () => {
     });
   });
 
-  describe('the project route', () => {
-    const config: Route = {
-      path: ':username/:slug',
-      data: { reuseComponent: false },
-    };
+  describe.each([':username/:slug', 'public/:username/:slug'])(
+    'the project route %s',
+    path => {
+      const config: Route = {
+        path,
+        data: { reuseComponent: false },
+      };
 
-    it('reuses the same project in place despite reuseComponent:false', () => {
-      // Recreating it in place would run its ngOnDestroy teardown mid-render
-      // and drop the sync providers.
-      expect(
-        strategy.shouldReuseRoute(
-          snapshot(config, { username: 'user', slug: 'project' }),
-          snapshot(config, { username: 'user', slug: 'project' })
-        )
-      ).toBe(true);
-    });
+      it('reuses the same project in place despite reuseComponent:false', () => {
+        // Recreating it in place would run its ngOnDestroy teardown mid-render
+        // and drop the sync providers; for a public link, opening a tab such
+        // as Activity would reload the project and lose the tab.
+        expect(
+          strategy.shouldReuseRoute(
+            snapshot(config, { username: 'user', slug: 'project' }),
+            snapshot(config, { username: 'user', slug: 'project' })
+          )
+        ).toBe(true);
+      });
 
-    it('recreates it for another owner', () => {
-      expect(
-        strategy.shouldReuseRoute(
-          snapshot(config, { username: 'user2', slug: 'project' }),
-          snapshot(config, { username: 'user1', slug: 'project' })
-        )
-      ).toBe(false);
-    });
+      it('recreates it for another owner', () => {
+        expect(
+          strategy.shouldReuseRoute(
+            snapshot(config, { username: 'user2', slug: 'project' }),
+            snapshot(config, { username: 'user1', slug: 'project' })
+          )
+        ).toBe(false);
+      });
 
-    it('recreates it for another project', () => {
-      expect(
-        strategy.shouldReuseRoute(
-          snapshot(config, { username: 'user', slug: 'project2' }),
-          snapshot(config, { username: 'user', slug: 'project1' })
-        )
-      ).toBe(false);
-    });
-  });
+      it('recreates it for another project', () => {
+        expect(
+          strategy.shouldReuseRoute(
+            snapshot(config, { username: 'user', slug: 'project2' }),
+            snapshot(config, { username: 'user', slug: 'project1' })
+          )
+        ).toBe(false);
+      });
+    }
+  );
 });

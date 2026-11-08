@@ -17,12 +17,19 @@ import {
  * `ngOnDestroy`, which closes its collaboration connections.
  *
  * Moving within the same route reuses the component in place, except:
- * - the project route (`:username/:slug`) is reused within one project and
- *   recreated for another, whatever its data says;
+ * - a project route (`:username/:slug`, or `public/:username/:slug` for a
+ *   public link) is reused within one project and recreated for another,
+ *   whatever its data says. Recreating it on every tab change would reload
+ *   the project, reconnect its documents and lose the tab just opened;
  * - any other route with `data.reuseComponent === false` (the project tabs,
- *   the public project view, setup) gets a fresh component on every
- *   navigation, so it starts from its new params.
+ *   setup) gets a fresh component on every navigation, so it starts from its
+ *   new params.
  */
+const PROJECT_ROUTE_PATHS = new Set([
+  ':username/:slug',
+  'public/:username/:slug',
+]);
+
 export class CustomRouteReuseStrategy extends BaseRouteReuseStrategy {
   override shouldReuseRoute(
     future: ActivatedRouteSnapshot,
@@ -31,7 +38,7 @@ export class CustomRouteReuseStrategy extends BaseRouteReuseStrategy {
     if (future.routeConfig !== curr.routeConfig) {
       return false;
     }
-    if (future.routeConfig?.path === ':username/:slug') {
+    if (PROJECT_ROUTE_PATHS.has(future.routeConfig?.path ?? '')) {
       return (
         future.params['username'] === curr.params['username'] &&
         future.params['slug'] === curr.params['slug']

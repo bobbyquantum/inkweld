@@ -43,6 +43,13 @@
       "when": 1793993423740,
       "tag": "0005_project_is_public",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1794175956460,
+      "tag": "0006_project_public_options",
+      "breakpoints": true
     }
   ]
 }
