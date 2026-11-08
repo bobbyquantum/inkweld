@@ -31,7 +31,10 @@ describe('CloudSyncStateService', () => {
         CloudSyncStateService,
         {
           provide: StorageContextService,
-          useValue: { prefixDbName: vi.fn((name: string) => prefix + name) },
+          useValue: {
+            prefixDbName: vi.fn((name: string) => prefix + name),
+            getPrefixForConfig: vi.fn((id: string) => `${id}:`),
+          },
         },
       ],
     });
@@ -71,6 +74,52 @@ describe('CloudSyncStateService', () => {
     await service.deleteByPrefix('/projects/b/n/');
     expect(await service.listByPrefix('/projects/b/n/')).toEqual([]);
     expect(await service.get('/projects/b/other/elements.yjs')).not.toBeNull();
+  });
+
+  describe('hasRecordInConfig', () => {
+    it("reads another profile's records while a different one is active", async () => {
+      const source = prefix;
+      await service.set(record('/projects/b/n/project.json'));
+      // The sign-in of a move to a server makes the server profile active
+      prefix = 'srv:srv1:';
+
+      const sourceId = source.slice(0, -1);
+      expect(
+        await service.hasRecordInConfig(sourceId, '/projects/b/n/project.json')
+      ).toBe(true);
+      expect(
+        await service.hasRecordInConfig(sourceId, '/projects/b/x/project.json')
+      ).toBe(false);
+    });
+
+    it("closes another profile's database again, so it can be deleted", async () => {
+      await service.set(record('/projects/b/n/project.json'));
+      const sourceName = `${prefix}inkweld-cloud-sync`;
+      const sourceId = prefix.slice(0, -1);
+      prefix = 'srv:srv1:';
+      // Drop the service's own handle to the source, opened before the switch
+      await service.get('/projects/b/n/project.json');
+
+      await service.hasRecordInConfig(sourceId, '/projects/b/n/project.json');
+
+      const deleted = await new Promise<string>(resolve => {
+        const request = indexedDB.deleteDatabase(sourceName);
+        request.onsuccess = () => resolve('deleted');
+        request.onblocked = () => resolve('blocked');
+      });
+      expect(deleted).toBe('deleted');
+    });
+
+    it('reads the active profile through its own handle', async () => {
+      await service.set(record('/projects/b/n/project.json'));
+
+      expect(
+        await service.hasRecordInConfig(
+          prefix.slice(0, -1),
+          '/projects/b/n/project.json'
+        )
+      ).toBe(true);
+    });
   });
 
   it('switches databases when the storage context prefix changes', async () => {

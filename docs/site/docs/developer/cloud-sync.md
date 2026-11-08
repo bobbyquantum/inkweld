@@ -68,8 +68,9 @@ user-menu switcher and the Profile settings tab are thin views over it.
   migration dialog avoids the fork by passing the username to
   `configureServerMode` before logging in.
 - **Remove** clears the profile's credentials (auth token or cloud token),
-  deletes every IndexedDB database and localStorage key under its prefix,
-  then removes the configuration. Remote data is never touched. If the
+  deletes every IndexedDB database and localStorage key under its prefix
+  (first closing this tab's cached connections to an inactive profile's
+  databases, which would block the delete), then removes the configuration. Remote data is never touched. If the
   active profile goes, the most recently used remaining one becomes active;
   with none left the app returns to the welcome screen.
 - **Storage scan** (`StorageContextService.describeContextData` and
@@ -100,8 +101,36 @@ user-menu switcher and the Profile settings tab are thin views over it.
   Browser profile is removed, and the app reloads into the new profile. A
   Browser placeholder name (`Local User`) is replaced by the account's name. Activations travel with the data, so the engine's first full pass
   pushes every project to the cloud folder. The pending upgrade is remembered
-  in sessionStorage across the OAuth redirect. Upgrading to a server reuses
-  the migration flow.
+  in sessionStorage across the OAuth redirect. The welcome screen honours it
+  only on a visit that names it (`?upgradeFrom=`) or returns from a provider
+  (`?cloud=`); any other visit drops a leftover one. While upgrading, the
+  welcome screen ("Connect to sync") offers only where the profile can move
+  up to (`AppModePolicyService.upgradeTargets`), never a new Browser profile.
+- **Upgrading to a server** is the profile manager's guided move (sign in,
+  pick projects, copy, sync), also when it is chosen on the welcome screen:
+  that opens the profile manager on its server form
+  (`{ view: 'add-server', sourceProfileId }`, the profile being upgraded)
+  rather than adding a bare server profile, which would leave the projects
+  behind. The move reads the source profile by its id (`MigrationService`
+  and `LocalProjectService.getProjectsInConfig`), because the sign-in has
+  already made the server profile active and the source need not be the
+  first Browser profile (`local`). Its media is copied database to database
+  (`LocalStorageService.copyProjectMediaBetweenProfiles`), which closes the
+  connections it opened afterwards. A Cloud Sync project moves only once a
+  full sync pass has finished on this device: it must be activated
+  (`ProjectActivationService.isActivatedInConfig`) and its last pass must
+  have finished (`CloudSyncStateService.hasRecordInConfig` on
+  `syncCompletePath`, a local-only record each `syncProject` pass clears
+  when it starts and writes when it ends; a cover-only adoption never
+  writes it). Activation alone isn't enough, because opening a project
+  records it before the download runs, and an earlier finished pass isn't
+  either, because a later one can fail after pulling new elements but
+  before their documents. A project "Connect to sync" named that is no longer on the
+  device stops the move. A moved project's cover is queued as a pending cover upload
+  (creating the project doesn't send it) and the project is activated in
+  the server profile straight away, so it opens before the server has it.
+  A project is marked migrated in its source profile only after it is
+  registered for sync, so a failed move can be retried.
 - **Migration history** is recorded with `StorageContextService.recordMigration`
   when projects are copied from one profile to another (e.g. Browser to a
   server): both configurations get a `MigrationRecord` with the other side's

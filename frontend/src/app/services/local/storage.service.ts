@@ -205,6 +205,16 @@ export class StorageService {
     }
   }
 
+  /**
+   * Close every cached connection to a database whose name starts with
+   * `prefix` (one profile's databases), so deleting them isn't blocked
+   */
+  closeDatabasesWithPrefix(prefix: string): void {
+    for (const dbName of this.dbConnections.keys()) {
+      if (dbName.startsWith(prefix)) this.closeDatabase(dbName);
+    }
+  }
+
   closeAll(): void {
     for (const [dbName] of this.dbConnections) {
       this.closeDatabase(dbName);

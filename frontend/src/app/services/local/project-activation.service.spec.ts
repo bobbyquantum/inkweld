@@ -23,6 +23,9 @@ describe('ProjectActivationService', () => {
 
   const mockStorageContext = {
     prefixDbName: vi.fn((name: string) => `srv:test:${name}`),
+    getPrefixForConfig: vi.fn((id: string) =>
+      id === 'test' ? 'srv:test:' : `${id}:`
+    ),
   };
 
   const mockLogger = {
@@ -35,6 +38,9 @@ describe('ProjectActivationService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSetupService.getMode.mockReturnValue('server');
+    mockStorageContext.prefixDbName.mockImplementation(
+      (name: string) => `srv:test:${name}`
+    );
 
     TestBed.configureTestingModule({
       imports: [translocoTestProvider()],
@@ -139,6 +145,111 @@ describe('ProjectActivationService', () => {
       await service.activate(TEST_PROJECT_KEY);
       // Version should not have changed
       expect(service.activationVersion()).toBe(v1);
+    });
+  });
+
+  describe('isActivatedInConfig', () => {
+    const ACTIVATIONS = { version: 1, stores: { activations: 'projectKey' } };
+
+    async function activateIn(prefix: string, projectKey: string) {
+      const db = await storageService.initializeDatabase({
+        ...ACTIVATIONS,
+        dbName: `${prefix}inkweld-activations`,
+      });
+      await storageService.put(db, 'activations', {
+        projectKey,
+        activatedAt: '2026-11-08T00:00:00.000Z',
+      });
+    }
+
+    it("reads another profile's activations while a different one is active", async () => {
+      await activateIn('cloud-dropbox-1:', TEST_PROJECT_KEY);
+
+      expect(
+        await service.isActivatedInConfig('cloud-dropbox-1', TEST_PROJECT_KEY)
+      ).toBe(true);
+      expect(
+        await service.isActivatedInConfig('cloud-dropbox-1', 'bob/other')
+      ).toBe(false);
+      expect(await service.isActivatedInConfig('test', TEST_PROJECT_KEY)).toBe(
+        false
+      );
+    });
+
+    it("closes another profile's database afterwards, so it can be deleted", async () => {
+      const close = vi.spyOn(storageService, 'closeDatabase');
+
+      await service.isActivatedInConfig('cloud-dropbox-1', TEST_PROJECT_KEY);
+
+      expect(close).toHaveBeenCalledWith('cloud-dropbox-1:inkweld-activations');
+    });
+
+    it("keeps the active profile's database open", async () => {
+      await service.initialize();
+      await service.activate(TEST_PROJECT_KEY);
+      const close = vi.spyOn(storageService, 'closeDatabase');
+
+      expect(await service.isActivatedInConfig('test', TEST_PROJECT_KEY)).toBe(
+        true
+      );
+
+      expect(close).not.toHaveBeenCalled();
+      await service.activate('bob/other');
+      expect(service.isActivated('bob/other')).toBe(true);
+    });
+
+    it('closes the connection of a profile that is no longer active', async () => {
+      await service.initialize();
+      await service.activate(TEST_PROJECT_KEY);
+      // The sign-in of a move to a server switches profiles without a reload
+      mockStorageContext.prefixDbName.mockImplementation(
+        (name: string) => `srv:other:${name}`
+      );
+      const close = vi.spyOn(storageService, 'closeDatabase');
+
+      expect(await service.isActivatedInConfig('test', TEST_PROJECT_KEY)).toBe(
+        true
+      );
+
+      expect(close).toHaveBeenCalledWith('srv:test:inkweld-activations');
+      expect(service.isActivated(TEST_PROJECT_KEY)).toBe(false);
+    });
+
+    it('reopens a profile it switched away from instead of reusing a closed connection', async () => {
+      await service.initialize();
+      await service.activate(TEST_PROJECT_KEY);
+      mockStorageContext.prefixDbName.mockImplementation(
+        (name: string) => `srv:other:${name}`
+      );
+      await service.initialize();
+
+      expect(await service.isActivatedInConfig('test', TEST_PROJECT_KEY)).toBe(
+        true
+      );
+    });
+  });
+
+  describe('activateInConfig', () => {
+    it('activates in another profile and closes its database again', async () => {
+      const close = vi.spyOn(storageService, 'closeDatabase');
+
+      await service.activateInConfig('srv2', TEST_PROJECT_KEY);
+
+      expect(close).toHaveBeenCalledWith('srv2:inkweld-activations');
+      expect(await service.isActivatedInConfig('srv2', TEST_PROJECT_KEY)).toBe(
+        true
+      );
+      // Not the active profile's
+      expect(service.isActivated(TEST_PROJECT_KEY)).toBe(false);
+    });
+
+    it('activates in the active profile so it opens straight away', async () => {
+      await service.activateInConfig('test', TEST_PROJECT_KEY);
+
+      expect(service.isActivated(TEST_PROJECT_KEY)).toBe(true);
+      expect(await service.isActivatedInConfig('test', TEST_PROJECT_KEY)).toBe(
+        true
+      );
     });
   });
 

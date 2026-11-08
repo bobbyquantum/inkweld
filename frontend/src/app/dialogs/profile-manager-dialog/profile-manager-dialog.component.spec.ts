@@ -3,9 +3,16 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
-import { provideZonelessChangeDetection, signal } from '@angular/core';
+import {
+  createComponent,
+  EnvironmentInjector,
+  Injector,
+  provideZonelessChangeDetection,
+  signal,
+} from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import {
+  MAT_DIALOG_DATA,
   MatDialog,
   MatDialogModule,
   MatDialogRef,
@@ -45,7 +52,10 @@ import { of } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-import { ProfileManagerDialogComponent } from './profile-manager-dialog.component';
+import {
+  ProfileManagerDialogComponent,
+  type ProfileManagerDialogData,
+} from './profile-manager-dialog.component';
 
 describe('ProfileManagerDialogComponent', () => {
   let component: ProfileManagerDialogComponent;
@@ -104,6 +114,9 @@ describe('ProfileManagerDialogComponent', () => {
       ),
       isConfigured: vi.fn(() => configurations().length > 0),
       getPrefix: vi.fn().mockReturnValue('local:'),
+      getPrefixForConfig: vi.fn((id: string) =>
+        id === 'local' || id.startsWith('local-') ? `${id}:` : `srv:${id}:`
+      ),
       describeContextData: vi.fn().mockResolvedValue({
         prefix: 'local:',
         databases: ['local:inkweld-media'],
@@ -511,6 +524,254 @@ describe('ProfileManagerDialogComponent', () => {
       component.upgradeToServer();
       expect(component['currentView']()).toBe('add');
     });
+
+    /** A dialog opened with data, as the dialog gateway opens it */
+    function openWith(data: ProfileManagerDialogData) {
+      const ref = createComponent(ProfileManagerDialogComponent, {
+        environmentInjector: TestBed.inject(EnvironmentInjector),
+        elementInjector: Injector.create({
+          providers: [{ provide: MAT_DIALOG_DATA, useValue: data }],
+        }),
+      });
+      return ref;
+    }
+
+    it('opens straight on the server form, address filled, when asked', () => {
+      const projects = [
+        {
+          id: '1',
+          title: 'Novel',
+          slug: 'novel',
+          username: 'testuser',
+          createdDate: '2024-01-01',
+          updatedDate: '2024-01-01',
+        },
+      ];
+      migrationServiceMock.getLocalProjects.mockReturnValue(projects);
+
+      const ref = openWith({
+        view: 'add-server',
+        serverUrl: 'https://ink.example.com',
+      });
+      try {
+        expect(ref.instance['currentView']()).toBe('add');
+        expect(ref.instance['newServerUrl']()).toBe('https://ink.example.com');
+        // The projects of the profile being moved are offered
+        expect(migrationServiceMock.getLocalProjects).toHaveBeenCalledWith(
+          'local'
+        );
+        expect(ref.instance['localProjectsCount']()).toBe(1);
+      } finally {
+        ref.destroy();
+      }
+    });
+  });
+
+  describe('which projects move to a server', () => {
+    const secondBrowser: ServerConfig = {
+      id: 'local-abc123',
+      type: 'local',
+      displayName: 'Browser',
+      addedAt: '',
+      lastUsedAt: '',
+      userProfile: { name: 'Bobby', username: 'bobby' },
+    };
+    const novel = {
+      id: '1',
+      title: 'Novel',
+      slug: 'novel',
+      username: 'bobby',
+      createdDate: '2024-01-01',
+      updatedDate: '2024-01-01',
+    };
+
+    it('reads the projects of the active Browser profile, not the first one', () => {
+      storageContextMock.configurations.set([
+        mockLocalConfig,
+        secondBrowser,
+        mockServerConfig,
+      ]);
+      storageContextMock.activeConfig.set(secondBrowser);
+      migrationServiceMock.getLocalProjects.mockImplementation((id: string) =>
+        id === secondBrowser.id ? [novel] : []
+      );
+
+      component.showAddServer();
+
+      expect(component['localProjects']()).toEqual([novel]);
+    });
+
+    /** A dialog opened with data, as the dialog gateway opens it */
+    function openWith(data: ProfileManagerDialogData) {
+      return createComponent(ProfileManagerDialogComponent, {
+        environmentInjector: TestBed.inject(EnvironmentInjector),
+        elementInjector: Injector.create({
+          providers: [{ provide: MAT_DIALOG_DATA, useValue: data }],
+        }),
+      });
+    }
+
+    it('moves from the profile "Connect to sync" named, even when another is active', () => {
+      storageContextMock.configurations.set([
+        mockLocalConfig,
+        secondBrowser,
+        mockServerConfig,
+      ]);
+      storageContextMock.activeConfig.set(mockLocalConfig);
+      migrationServiceMock.getLocalProjects.mockImplementation((id: string) =>
+        id === secondBrowser.id ? [novel] : []
+      );
+
+      const ref = openWith({
+        view: 'add-server',
+        serverUrl: 'https://inkweld.example.com',
+        sourceProfileId: secondBrowser.id,
+      });
+      try {
+        expect(ref.instance['localProjects']()).toEqual([novel]);
+        ref.instance.addServer();
+        expect(ref.instance['migrationSource']()).toBe(secondBrowser.id);
+      } finally {
+        ref.destroy();
+      }
+    });
+
+    it('cancelling goes back to the profile that was active, not the named source', async () => {
+      storageContextMock.configurations.set([
+        mockLocalConfig,
+        secondBrowser,
+        mockServerConfig,
+      ]);
+      storageContextMock.activeConfig.set(mockLocalConfig);
+
+      const ref = openWith({
+        view: 'add-server',
+        serverUrl: 'https://inkweld.example.com',
+        sourceProfileId: secondBrowser.id,
+      });
+      try {
+        ref.instance.addServer();
+        // The sign-in makes the server profile active
+        storageContextMock.activeConfig.set(mockServerConfig);
+
+        await ref.instance.cancelMigration();
+
+        expect(storageContextMock.switchToConfig).toHaveBeenCalledWith(
+          mockLocalConfig.id
+        );
+        expect(storageContextMock.switchToConfig).not.toHaveBeenCalledWith(
+          secondBrowser.id
+        );
+      } finally {
+        ref.destroy();
+      }
+    });
+
+    it('stops the move when the named profile is gone, rather than moving another', () => {
+      storageContextMock.activeConfig.set(secondBrowser);
+      storageContextMock.configurations.set([
+        mockLocalConfig,
+        secondBrowser,
+        mockServerConfig,
+      ]);
+      migrationServiceMock.getLocalProjects.mockReturnValue([novel]);
+
+      const ref = openWith({
+        view: 'add-server',
+        serverUrl: 'https://inkweld.example.com',
+        sourceProfileId: 'local-gone',
+      });
+      try {
+        expect(ref.instance['localProjects']()).toEqual([]);
+        expect(migrationServiceMock.getLocalProjects).not.toHaveBeenCalled();
+
+        ref.instance.addServer();
+
+        expect(ref.instance['currentView']()).toBe('add');
+        expect(ref.instance['migrationSource']()).toBeNull();
+        expect(ref.instance['connectionError']()).toContain(
+          'no longer on this device'
+        );
+      } finally {
+        ref.destroy();
+      }
+    });
+
+    it('moves from the active profile again once the server form is left', () => {
+      storageContextMock.configurations.set([
+        mockLocalConfig,
+        secondBrowser,
+        mockServerConfig,
+      ]);
+      storageContextMock.activeConfig.set(mockLocalConfig);
+      migrationServiceMock.getLocalProjects.mockImplementation((id: string) =>
+        id === secondBrowser.id ? [novel] : []
+      );
+
+      const ref = openWith({
+        view: 'add-server',
+        sourceProfileId: secondBrowser.id,
+      });
+      try {
+        ref.instance.cancelAddServer();
+        ref.instance.showAddServer();
+        expect(ref.instance['localProjects']()).toEqual([]);
+        expect(migrationServiceMock.getLocalProjects).toHaveBeenLastCalledWith(
+          mockLocalConfig.id
+        );
+      } finally {
+        ref.destroy();
+      }
+    });
+
+    it('offers nothing to move from a server profile', () => {
+      storageContextMock.activeConfig.set(mockServerConfig);
+      migrationServiceMock.getLocalProjects.mockReturnValue([novel]);
+
+      component.showAddServer();
+
+      expect(component['localProjectsCount']()).toBe(0);
+      expect(migrationServiceMock.getLocalProjects).not.toHaveBeenCalled();
+    });
+
+    it('moves from the profile the move started from after the sign-in switched profiles', async () => {
+      Object.defineProperty(window, 'location', {
+        value: { href: '' },
+        writable: true,
+      });
+      storageContextMock.configurations.set([
+        mockLocalConfig,
+        secondBrowser,
+        mockServerConfig,
+      ]);
+      storageContextMock.activeConfig.set(secondBrowser);
+      migrationServiceMock.getLocalProjects.mockReturnValue([novel]);
+      component.showAddServer();
+      component['newServerUrl'].set('https://inkweld.example.com');
+      component.addServer();
+      // The sign-in makes the server profile active
+      storageContextMock.activeConfig.set(mockServerConfig);
+      component.toggleProjectSelection(novel);
+      migrationServiceMock.migrationState.set({
+        status: MigrationStatus.Completed,
+        totalProjects: 1,
+        completedProjects: 1,
+        failedProjects: 0,
+        projectStatuses: [],
+      });
+
+      await component.migrateProjects();
+
+      expect(migrationServiceMock.migrateToServer).toHaveBeenCalledWith(
+        secondBrowser.id,
+        ['novel'],
+        undefined
+      );
+      expect(migrationServiceMock.cleanupLocalData).toHaveBeenCalledWith(
+        secondBrowser.id,
+        ['novel']
+      );
+    });
   });
 
   describe('navigation shortcuts', () => {
@@ -635,8 +896,8 @@ describe('ProfileManagerDialogComponent', () => {
       // Mock getLocalProjects to return our mock projects
       migrationServiceMock.getLocalProjects.mockReturnValue(mockProjects);
 
-      // Force a fresh instance to pick up the mock
-      fixture.detectChanges();
+      // The server form reads the projects the move would carry
+      component.showAddServer();
 
       // Select all
       component.toggleAllProjects();
@@ -1539,6 +1800,7 @@ describe('ProfileManagerDialogComponent', () => {
         },
       ];
       migrationServiceMock.getLocalProjects.mockReturnValue(mockProjects);
+      component.showAddServer();
 
       (
         component as unknown as { username: { set: (v: string) => void } }
@@ -1581,6 +1843,7 @@ describe('ProfileManagerDialogComponent', () => {
 
       // Set up selected projects
       migrationServiceMock.getLocalProjects.mockReturnValue(mockProjects);
+      component['migrationSource'].set('local');
       component.toggleProjectSelection(mockProjects[0]);
       (component as unknown as { pendingServerUrl: string }).pendingServerUrl =
         'https://server.example.com';
@@ -1605,6 +1868,7 @@ describe('ProfileManagerDialogComponent', () => {
       await component.migrateProjects();
 
       expect(migrationServiceMock.migrateToServer).toHaveBeenCalledWith(
+        'local',
         ['project-1'],
         renames
       );
@@ -1623,6 +1887,7 @@ describe('ProfileManagerDialogComponent', () => {
         },
       ];
       migrationServiceMock.getLocalProjects.mockReturnValue(mockProjects);
+      component['migrationSource'].set('local');
       component.toggleProjectSelection(mockProjects[0]);
       (component as unknown as { pendingServerUrl: string }).pendingServerUrl =
         'https://server.example.com';
@@ -1638,9 +1903,10 @@ describe('ProfileManagerDialogComponent', () => {
 
       await component.migrateProjects();
 
-      expect(migrationServiceMock.cleanupLocalData).toHaveBeenCalledWith([
-        'unique-project',
-      ]);
+      expect(migrationServiceMock.cleanupLocalData).toHaveBeenCalledWith(
+        'local',
+        ['unique-project']
+      );
     });
 
     it('should show message when no projects selected', async () => {
@@ -1693,6 +1959,7 @@ describe('ProfileManagerDialogComponent', () => {
         },
       ];
       migrationServiceMock.getLocalProjects.mockReturnValue(mockProjects);
+      component['migrationSource'].set('local');
       component.toggleProjectSelection(mockProjects[0]);
       (component as unknown as { pendingServerUrl: string }).pendingServerUrl =
         'https://server.example.com';

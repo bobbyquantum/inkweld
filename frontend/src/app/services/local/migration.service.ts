@@ -8,19 +8,20 @@ import {
   type Project,
   ProjectsService,
 } from '@inkweld/index';
+import { TranslocoService } from '@jsverse/transloco';
 import { firstValueFrom } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import * as Y from 'yjs';
 
 import { AuthTokenService } from '../auth/auth-token.service';
+import { syncCompletePath } from '../cloud-sync/cloud-sync-layout';
+import { CloudSyncStateService } from '../cloud-sync/cloud-sync-state.service';
 import { LoggerService } from '../core/logger.service';
-import {
-  LOCAL_CONFIG_ID,
-  StorageContextService,
-} from '../core/storage-context.service';
+import { StorageContextService } from '../core/storage-context.service';
 import { UserService } from '../user/user.service';
 import { LocalProjectService } from './local-project.service';
 import { LocalStorageService } from './local-storage.service';
+import { ProjectActivationService } from './project-activation.service';
 import { ProjectSyncService } from './project-sync.service';
 
 /**
@@ -83,15 +84,21 @@ export class ServerApprovalRequiredError extends Error {
 }
 
 /**
- * Service to handle migration of local project data to server-mode storage.
+ * Service to handle migration of a Browser (or Cloud Sync) profile's projects
+ * to a server profile's storage.
  *
  * IMPORTANT: Migration is a 100% LOCAL operation - it copies data between
  * IndexedDB prefixes. No server communication happens during migration.
  *
+ * The source is named by its profile id. By the time projects move, the
+ * sign-in has already made the server profile active, so nothing here may
+ * read the source through the active profile, and the source need not be
+ * the first Browser profile (`local`).
+ *
  * Migration process:
- * 1. Elements - Copy elements Yjs doc from local: prefix to srv:configId: prefix
+ * 1. Elements - Copy elements Yjs doc from the source prefix to srv:configId:
  * 2. Documents - Copy document files for each element (ITEM, WORLDBUILDING types)
- * 3. Media - Copy media files from local: database to srv:configId: database
+ * 3. Media - Copy media files from the source's media database to the target's
  * 4. ProjectEntry - Create project entry in server-mode project list
  *
  * After migration, the normal project sync mechanism handles uploading
@@ -109,6 +116,9 @@ export class MigrationService {
   private readonly localProjectService = inject(LocalProjectService);
   private readonly localStorage = inject(LocalStorageService);
   private readonly projectSyncService = inject(ProjectSyncService);
+  private readonly projectActivation = inject(ProjectActivationService);
+  private readonly cloudSyncState = inject(CloudSyncStateService);
+  private readonly transloco = inject(TranslocoService);
   private readonly logger = inject(LoggerService);
   private readonly authenticationService = inject(AuthenticationService);
   private readonly authTokenService = inject(AuthTokenService);
@@ -124,24 +134,24 @@ export class MigrationService {
   });
 
   /**
-   * Check if there are local projects that need migration (excludes already migrated)
+   * Check if a profile has projects that need migration (excludes already migrated)
    */
-  hasLocalProjects(): boolean {
-    return this.localProjectService.getNonMigratedProjects().length > 0;
+  hasLocalProjects(sourceConfigId: string): boolean {
+    return this.getLocalProjectsCount(sourceConfigId) > 0;
   }
 
   /**
-   * Get count of local projects (excludes already migrated)
+   * Get count of a profile's projects (excludes already migrated)
    */
-  getLocalProjectsCount(): number {
-    return this.localProjectService.getNonMigratedProjects().length;
+  getLocalProjectsCount(sourceConfigId: string): number {
+    return this.getLocalProjects(sourceConfigId).length;
   }
 
   /**
-   * Get list of local projects for display (excludes already migrated)
+   * Get list of a profile's projects for display (excludes already migrated)
    */
-  getLocalProjects(): Project[] {
-    return this.localProjectService.getNonMigratedProjects();
+  getLocalProjects(sourceConfigId: string): Project[] {
+    return this.localProjectService.getNonMigratedProjects(sourceConfigId);
   }
 
   /**
@@ -158,11 +168,12 @@ export class MigrationService {
   }
 
   /**
-   * Migrate selected local projects to server-mode storage.
+   * Migrate selected projects of one profile to server-mode storage.
    *
    * This is a 100% LOCAL operation - no server communication.
-   * Data is copied from local: prefixed storage to srv:configId: prefixed storage.
+   * Data is copied from the source profile's prefix to srv:configId:.
    *
+   * @param sourceConfigId - The profile the projects come from (e.g. "local")
    * @param targetConfigId - The server config ID to migrate to (e.g., "a1b2c3d4")
    * @param targetUsername - The username for the migrated projects
    * @param projectSlugs - Optional array of project slugs to migrate. If not provided, all projects are migrated.
@@ -170,15 +181,17 @@ export class MigrationService {
    * @returns Promise that resolves when migration is complete
    */
   async migrateToServerMode(
+    sourceConfigId: string,
     targetConfigId: string,
     targetUsername: string,
     projectSlugs?: string[],
     slugRenames?: Map<string, string>
   ): Promise<void> {
-    // IMPORTANT: Read from local-mode storage explicitly, not from the context-dependent signal.
-    // By the time this method is called, the storage context may have already switched to server mode,
-    // which would cause this.localProjectService.projects() to return empty (reading from wrong key).
-    let localProjects = this.localProjectService.getLocalModeProjects();
+    // IMPORTANT: Read the source profile explicitly, not the context-dependent signal.
+    // By the time this method is called, the storage context has already switched to the
+    // server profile, so this.localProjectService.projects() would read the wrong list.
+    let localProjects =
+      this.localProjectService.getProjectsInConfig(sourceConfigId);
 
     // Filter to only selected projects if provided (even empty array means "migrate nothing")
     if (projectSlugs !== undefined) {
@@ -218,6 +231,7 @@ export class MigrationService {
     await forEachSequential(localProjects, project =>
       this.migrateProject(
         project,
+        sourceConfigId,
         targetConfigId,
         targetUsername,
         slugRenames?.get(project.slug)
@@ -275,17 +289,20 @@ export class MigrationService {
    * Migrate a single project to server-mode storage.
    *
    * Stages:
-   * 1. Elements - Copy elements Yjs doc from local: to srv:configId:
-   * 2. Media - Copy all media files from local: to srv:configId: database
-   * 3. ProjectEntry - Mark project as migrated and mark pending creation for sync
+   * 1. Elements - Copy elements Yjs doc from the source prefix to srv:configId:
+   * 2. Media - Copy all media files from the source media database to the target's
+   * 3. ProjectEntry - Add it to the target profile, mark it pending creation
+   *    for sync, then mark it migrated in the source profile
    *
    * @param project - The project to migrate
+   * @param sourceConfigId - The profile the project comes from
    * @param targetConfigId - The server config ID
    * @param targetUsername - The username for the migrated project
    * @param newSlug - Optional new slug if project was renamed
    */
   private async migrateProject(
     project: Project,
+    sourceConfigId: string,
     targetConfigId: string,
     targetUsername: string,
     newSlug?: string
@@ -312,6 +329,8 @@ export class MigrationService {
     }));
 
     try {
+      await this.assertDownloadedHere(project, sourceConfigId);
+
       // ═══════════════════════════════════════════════════════════════════════
       // STAGE 1: ELEMENTS - Copy elements Yjs document between prefixes
       // ═══════════════════════════════════════════════════════════════════════
@@ -321,6 +340,7 @@ export class MigrationService {
       );
 
       const elements = await this.copyElementsDocument(
+        sourceConfigId,
         project.username,
         project.slug,
         targetConfigId,
@@ -358,6 +378,7 @@ export class MigrationService {
       );
 
       await this.copyDocumentFiles(
+        sourceConfigId,
         project.username,
         project.slug,
         targetConfigId,
@@ -397,10 +418,11 @@ export class MigrationService {
       const sourceProjectKey = `${project.username}/${project.slug}`;
       const targetProjectKey = `${targetUsername}/${targetSlug}`;
 
-      await this.copyMediaFiles(
+      await this.localStorage.copyProjectMediaBetweenProfiles(
+        sourceConfigId,
+        targetConfigId,
         sourceProjectKey,
-        targetProjectKey,
-        targetConfigId
+        targetProjectKey
       );
 
       this.updateProjectStatus(
@@ -412,7 +434,7 @@ export class MigrationService {
       );
 
       // ═══════════════════════════════════════════════════════════════════════
-      // STAGE 4: PROJECT ENTRY - Mark project as migrated
+      // STAGE 4: PROJECT ENTRY - Add the project to the target profile
       // ═══════════════════════════════════════════════════════════════════════
       this.updateProjectStatus(
         targetSlug,
@@ -429,15 +451,6 @@ export class MigrationService {
       this.logger.info(
         'MigrationService',
         `[${targetSlug}] Stage 4: Creating project entry`
-      );
-
-      // Mark the local project as migrated (records migration info in local storage)
-      const serverUrl = this.storageContextService.getServerUrl() || 'unknown';
-      this.localProjectService.markProjectAsMigrated(
-        project.slug,
-        targetSlug,
-        serverUrl,
-        targetUsername
       );
 
       // Create the project entry in the TARGET config's storage
@@ -475,6 +488,19 @@ export class MigrationService {
         slug: targetSlug,
         description: project.description || undefined,
       });
+      await this.registerCoverUpload(project, projectKey);
+      await this.activateMovedProject(targetConfigId, projectKey);
+
+      // Record the move in the source profile, so it isn't offered again.
+      // Last: if any step above failed, the project can be picked again.
+      const serverUrl = this.storageContextService.getServerUrl() || 'unknown';
+      this.localProjectService.markProjectAsMigrated(
+        sourceConfigId,
+        project.slug,
+        targetSlug,
+        serverUrl,
+        targetUsername
+      );
 
       // ═══════════════════════════════════════════════════════════════════════
       // SUCCESS
@@ -515,7 +541,76 @@ export class MigrationService {
   }
 
   /**
-   * Copy a Yjs elements document from local: prefix to srv:configId: prefix.
+   * Queue the project's cover for upload. Creating the project on the
+   * server doesn't send it, and the generic media copy doesn't either: only
+   * the pending-cover upload sets a server project's cover.
+   */
+  private async registerCoverUpload(
+    project: Project,
+    projectKey: string
+  ): Promise<void> {
+    const coverMediaId = project.coverImage?.replace(/\.[^.]+$/, '');
+    // The sync uploads only `cover…` media ids as covers
+    if (!coverMediaId?.startsWith('cover')) return;
+    await this.projectSyncService.markPendingUpload(projectKey, coverMediaId);
+  }
+
+  /**
+   * Open the moved project on this device straight away, as a project made
+   * here is. The sync activates it too once the server has it, but until
+   * then (offline, or creation failed) opening it would bounce to home
+   * although its documents are already here. Not fatal: that sync still
+   * activates it.
+   */
+  private async activateMovedProject(
+    targetConfigId: string,
+    projectKey: string
+  ): Promise<void> {
+    try {
+      await this.projectActivation.activateInConfig(targetConfigId, projectKey);
+    } catch (error) {
+      this.logger.warn(
+        'MigrationService',
+        `Moved ${projectKey} but could not activate it`,
+        error
+      );
+    }
+  }
+
+  /**
+   * A Cloud Sync project made on another device shows here as a cover until
+   * it is opened (activated), and opening it records the activation before
+   * the download runs. Moving it before a download has finished would copy
+   * empty or partial databases to the server, so it fails instead and stays
+   * in its profile. The last sync pass must have finished: each pass clears
+   * its completion marker when it starts and writes it only at the end, and
+   * a cover-only adoption never writes it. A project made here and not yet
+   * synced is refused too, until it syncs.
+   */
+  private async assertDownloadedHere(
+    project: Project,
+    sourceConfigId: string
+  ): Promise<void> {
+    const source = this.storageContextService.getConfigById(sourceConfigId);
+    if (source?.type !== 'cloud') return;
+    const projectKey = `${project.username}/${project.slug}`;
+    const downloaded =
+      (await this.projectActivation.isActivatedInConfig(
+        sourceConfigId,
+        projectKey
+      )) &&
+      (await this.cloudSyncState.hasRecordInConfig(
+        sourceConfigId,
+        syncCompletePath(project.username, project.slug)
+      ));
+    if (downloaded) return;
+    throw new Error(
+      this.transloco.translate('dialogs.profileManager.projectNotDownloaded')
+    );
+  }
+
+  /**
+   * Copy a Yjs elements document from the source profile's prefix to srv:configId:.
    *
    * This loads the source document from IndexedDB, encodes its state,
    * and writes it to a new IndexedDB database with the target prefix.
@@ -523,6 +618,7 @@ export class MigrationService {
    * @returns The elements array from the source document, for use in copying document files
    */
   private async copyElementsDocument(
+    sourceConfigId: string,
     sourceUsername: string,
     sourceSlug: string,
     targetConfigId: string,
@@ -530,8 +626,12 @@ export class MigrationService {
     targetSlug: string
   ): Promise<Element[]> {
     // Build source and target document IDs
-    const sourceDocId = `local:${sourceUsername}:${sourceSlug}:elements`;
-    const targetDocId = `srv:${targetConfigId}:${targetUsername}:${targetSlug}:elements`;
+    const sourcePrefix =
+      this.storageContextService.getPrefixForConfig(sourceConfigId);
+    const targetPrefix =
+      this.storageContextService.getPrefixForConfig(targetConfigId);
+    const sourceDocId = `${sourcePrefix}${sourceUsername}:${sourceSlug}:elements`;
+    const targetDocId = `${targetPrefix}${targetUsername}:${targetSlug}:elements`;
 
     this.logger.debug(
       'MigrationService',
@@ -593,9 +693,10 @@ export class MigrationService {
    *
    * Prose documents (<profile prefix>user:slug:elementId) and worldbuilding
    * data (<profile prefix>worldbuilding:user:slug:elementId) are both copied
-   * from the Browser profile's prefix to the target profile's.
+   * from the source profile's prefix to the target profile's.
    */
   private async copyDocumentFiles(
+    sourceConfigId: string,
     sourceUsername: string,
     sourceSlug: string,
     targetConfigId: string,
@@ -616,7 +717,7 @@ export class MigrationService {
 
     // Copy ITEM documents (ProseMirror content) between profile prefixes
     const sourcePrefix =
-      this.storageContextService.getPrefixForConfig(LOCAL_CONFIG_ID);
+      this.storageContextService.getPrefixForConfig(sourceConfigId);
     const targetPrefix =
       this.storageContextService.getPrefixForConfig(targetConfigId);
     // Sequential: each copy opens and closes IndexedDB-backed Yjs documents,
@@ -706,70 +807,6 @@ export class MigrationService {
   }
 
   /**
-   * Copy media files from local: database to srv:configId: database.
-   *
-   * This reads all media for a project from the source database
-   * and writes them to the target database.
-   */
-  private async copyMediaFiles(
-    sourceProjectKey: string,
-    targetProjectKey: string,
-    _targetConfigId: string
-  ): Promise<void> {
-    // List all media from local storage (uses current context prefix)
-    const localMedia = await this.localStorage.listMedia(sourceProjectKey);
-
-    if (localMedia.length === 0) {
-      this.logger.debug(
-        'MigrationService',
-        `No media to copy for ${sourceProjectKey}`
-      );
-      return;
-    }
-
-    this.logger.debug(
-      'MigrationService',
-      `Copying ${localMedia.length} media files from ${sourceProjectKey} to ${targetProjectKey}`
-    );
-
-    // Copy each media file
-    // Sequential: media blobs are large; copy one at a time to bound memory.
-    await forEachSequential(localMedia, async mediaInfo => {
-      try {
-        const blob = await this.localStorage.getMedia(
-          sourceProjectKey,
-          mediaInfo.mediaId
-        );
-        if (!blob) {
-          this.logger.warn(
-            'MigrationService',
-            `Media not found: ${sourceProjectKey}:${mediaInfo.mediaId}`
-          );
-          return;
-        }
-
-        // Save to target database
-        // Note: LocalStorageService uses the current storage context prefix
-        // Since we're now in server mode, this will save to srv:configId: prefix
-        await this.localStorage.saveMedia(
-          targetProjectKey,
-          mediaInfo.mediaId,
-          blob,
-          mediaInfo.filename,
-          mediaInfo.generation
-        );
-      } catch (error) {
-        this.logger.warn(
-          'MigrationService',
-          `Failed to copy media ${mediaInfo.mediaId}: ${error instanceof Error ? error.message : String(error)}`
-        );
-      }
-    });
-
-    this.logger.debug('MigrationService', `Media files copied successfully`);
-  }
-
-  /**
    * Update the status of a specific project in the migration state
    */
   private updateProjectStatus(
@@ -796,10 +833,11 @@ export class MigrationService {
   }
 
   /**
-   * Clean up local data after successful migration
+   * Clean up the source profile after a successful migration
+   * @param sourceConfigId - The profile the projects moved from
    * @param projectSlugs - Optional array of project slugs to clean up. If not provided, cleans all.
    */
-  cleanupLocalData(projectSlugs?: string[]): void {
+  cleanupLocalData(sourceConfigId: string, projectSlugs?: string[]): void {
     this.logger.warn(
       'MigrationService',
       projectSlugs
@@ -807,18 +845,19 @@ export class MigrationService {
         : 'Cleaning up all local data (projects, elements, user)'
     );
 
-    // IMPORTANT: Use getLocalModeProjects() instead of projects() because
-    // at cleanup time we're already in server mode, so projects() would read
-    // from the server-mode storage instead of local-mode storage.
-    const projects = this.localProjectService.getLocalModeProjects();
+    // IMPORTANT: Read the source profile explicitly instead of projects():
+    // at cleanup time the server profile is active, so projects() would read
+    // the server profile's list.
+    const projects =
+      this.localProjectService.getProjectsInConfig(sourceConfigId);
     const projectsToDelete = projectSlugs
       ? projects.filter(p => projectSlugs.includes(p.slug))
       : projects;
 
     for (const project of projectsToDelete) {
-      // Use deleteLocalModeProject instead of deleteProject because
-      // we're deleting from local storage while in server mode.
-      this.localProjectService.deleteLocalModeProject(
+      // Not deleteProject: that acts on the active (server) profile
+      this.localProjectService.deleteProjectInConfig(
+        sourceConfigId,
         project.username,
         project.slug
       );
@@ -838,10 +877,11 @@ export class MigrationService {
   // ═══════════════════════════════════════════════════════════════════════════
 
   /**
-   * Migrate into the active server profile, resolving its config id and
-   * signed-in username.
+   * Migrate a profile's projects into the active server profile, resolving
+   * its config id and signed-in username.
    */
   async migrateToServer(
+    sourceConfigId: string,
     projectSlugs?: string[],
     slugRenames?: Map<string, string>
   ): Promise<void> {
@@ -858,6 +898,7 @@ export class MigrationService {
     }
 
     return await this.migrateToServerMode(
+      sourceConfigId,
       config.id,
       currentUser,
       projectSlugs,

@@ -91,6 +91,35 @@ records are appended under fresh keys, other records only fill free keys.
 Don't add a second copy step in front of it. The server side of a rename is
 described in `backend/AGENTS.md`.
 
+## Upgrading a profile ("Connect to sync")
+
+- The welcome screen is in upgrade mode only when the visit names the source
+  (`?upgradeFrom=`) or comes back from a cloud provider (`?cloud=`); any
+  other visit drops a leftover sessionStorage marker. In upgrade mode it
+  offers only `AppModePolicyService.upgradeTargets()`, never a Browser
+  profile.
+- A move to a server always goes through the profile manager's guided flow
+  (`openProfileManagerDialog({ view: 'add-server', sourceProfileId })` from
+  the welcome screen, with the `?upgradeFrom` profile). Never add a bare
+  server profile for an upgrade: the projects would stay behind.
+- The move reads its source by profile id, never through the active profile
+  (the sign-in has switched to the server by then) and never as `local`
+  (any Browser or Cloud Sync profile can be the source). A named source
+  that is gone stops the move; it never falls back to the active profile.
+  A Cloud Sync project moves only once its last sync pass on this device has
+  finished (`syncCompletePath` marker; activation alone is recorded before
+  the download runs), else it fails instead of copying empty or partial
+  databases. The move queues the
+  project's cover for upload and activates it in the server profile. The
+  source is marked migrated last, so a failed step leaves the project to
+  pick again. Cancelling returns to the profile that was active, which may
+  not be the source.
+- A switch without a reload can leave this tab's connections to the old
+  profile's databases open. Services drop theirs on their next use, and
+  removing a profile (`ProfileManagerService.releaseConnections`) closes the
+  rest first, so its databases can be deleted. Details:
+  `docs/site/docs/developer/cloud-sync.md`.
+
 ## APP_MODE (which profiles may be added)
 
 `APP_MODE` (`ONLINE` | `LOCAL` | `BOTH`, backend env, sent as `appMode` in

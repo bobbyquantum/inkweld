@@ -96,6 +96,31 @@ export class CloudSyncStateService {
     });
   }
 
+  /**
+   * Whether a profile has a record for `path`, whichever profile is active.
+   * The move to a server asks after the sign-in has switched to the server.
+   * Another profile's database is closed again afterwards.
+   */
+  async hasRecordInConfig(configId: string, path: string): Promise<boolean> {
+    const dbName = `${this.storageContext.getPrefixForConfig(configId)}${DB_BASE_NAME}`;
+    if (dbName === this.storageContext.prefixDbName(DB_BASE_NAME)) {
+      return (await this.get(path)) !== null;
+    }
+    const db = await openStateDb(dbName);
+    try {
+      return await new Promise((resolve, reject) => {
+        const request = db
+          .transaction(STORE_NAME, 'readonly')
+          .objectStore(STORE_NAME)
+          .get(path);
+        request.onsuccess = () => resolve(request.result !== undefined);
+        request.onerror = () => reject(toError(request.error));
+      });
+    } finally {
+      db.close();
+    }
+  }
+
   private ensureDb(): Promise<IDBDatabase> {
     const wanted = this.storageContext.prefixDbName(DB_BASE_NAME);
     if (this.db && this.dbName === wanted) return Promise.resolve(this.db);
@@ -105,24 +130,31 @@ export class CloudSyncStateService {
     this.db?.close();
     this.db = null;
     this.dbName = wanted;
-    this.opening = new Promise((resolve, reject) => {
-      const request = indexedDB.open(wanted, 1);
-      request.onupgradeneeded = () => {
-        const db = request.result;
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME, { keyPath: 'path' });
-        }
-      };
-      request.onsuccess = () => {
-        this.db = request.result;
+    this.opening = openStateDb(wanted).then(
+      db => {
+        this.db = db;
         this.opening = null;
-        resolve(this.db);
-      };
-      request.onerror = () => {
+        return db;
+      },
+      (error: unknown) => {
         this.opening = null;
-        reject(toError(request.error));
-      };
-    });
+        throw error;
+      }
+    );
     return this.opening;
   }
+}
+
+function openStateDb(name: string): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(name, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: 'path' });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(toError(request.error));
+  });
 }

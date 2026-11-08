@@ -15,6 +15,7 @@ import {
   type AppMode,
   AppModePolicyService,
 } from '@services/core/app-mode-policy.service';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProfileManagerService } from '@services/core/profile-manager.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -47,6 +48,7 @@ describe('SetupComponent', () => {
   let mockActivatedRoute: any;
   let mockProfileManager: any;
   let mockStorageContext: any;
+  let mockDialogGateway: any;
 
   beforeEach(async () => {
     mockSetupService = {
@@ -123,6 +125,22 @@ describe('SetupComponent', () => {
       canAddCloudProfiles: () =>
         policyMode() !== 'ONLINE' && mockCloudSyncConfig.isCloudSyncAvailable(),
       restrictionMessageKey: () => RESTRICTION_KEYS[policyMode()],
+      upgradeTargets: (kind: string | null | undefined) => {
+        const targets: string[] = [];
+        if (kind === 'local' && mockPolicy.canAddCloudProfiles()) {
+          targets.push('cloud');
+        }
+        if (
+          (kind === 'local' || kind === 'cloud') &&
+          mockPolicy.canAddServerProfiles()
+        ) {
+          targets.push('server');
+        }
+        return targets;
+      },
+    };
+    mockDialogGateway = {
+      openProfileManagerDialog: vi.fn().mockResolvedValue(undefined),
     };
     sessionStorage.removeItem('inkweld-profile-upgrade-source');
 
@@ -149,6 +167,7 @@ describe('SetupComponent', () => {
         { provide: ActivatedRoute, useValue: mockActivatedRoute },
         { provide: ProfileManagerService, useValue: mockProfileManager },
         { provide: StorageContextService, useValue: mockStorageContext },
+        { provide: DialogGatewayService, useValue: mockDialogGateway },
       ],
     }).compileComponents();
 
@@ -931,7 +950,25 @@ describe('SetupComponent', () => {
       suggestedUsername: 'bobby-quantum',
     };
 
+    function enableDropbox(): void {
+      mockCloudSyncConfig.isCloudSyncAvailable.mockReturnValue(true);
+      mockCloudSyncConfig.availableProviders.mockReturnValue(['dropbox']);
+    }
+
+    function routeParams(params: Record<string, string>): void {
+      mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
+        (key: string) => params[key] ?? null
+      );
+    }
+
+    function card(testId: string): HTMLElement | null {
+      return (fixture.nativeElement as HTMLElement).querySelector(
+        `[data-testid="${testId}"]`
+      );
+    }
+
     it('remembers the source from ?upgradeFrom and retitles the screen', async () => {
+      enableDropbox();
       mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
         (key: string) =>
           key === 'upgradeFrom' ? 'local' : key === 'mode' ? 'cloud' : null
@@ -945,6 +982,139 @@ describe('SetupComponent', () => {
       expect(component['upgradeSourceName']()).toBe('Author A');
       expect(component['showCloudSetup']()).toBe(true);
       expect(fixture.nativeElement.textContent).toContain('Connect to sync');
+    });
+
+    it('offers only where the profile can move up to, never a new Browser profile', async () => {
+      enableDropbox();
+      mockSetupService.isConfigured.mockReturnValue(true);
+      routeParams({ upgradeFrom: 'local' });
+
+      await init();
+
+      expect(component['shouldShowModeSelection']()).toBe(true);
+      expect(card('cloud-mode-button')).not.toBeNull();
+      expect(card('server-mode-button')).not.toBeNull();
+      expect(card('local-mode-button')).toBeNull();
+      expect(fixture.nativeElement.textContent).toContain('Connect to sync');
+
+      // Not reachable another way either
+      component['chooseLocalMode']();
+      expect(component['showLocalSetup']()).toBe(false);
+      await component['setupLocalMode']();
+      expect(mockSetupService.configureLocalMode).not.toHaveBeenCalled();
+    });
+
+    it('back from the cloud step returns to the upgrade choices', async () => {
+      enableDropbox();
+      mockSetupService.isConfigured.mockReturnValue(true);
+      routeParams({ upgradeFrom: 'local', mode: 'cloud' });
+      await init();
+
+      component['goBack']();
+      fixture.detectChanges();
+
+      expect(component['shouldShowModeSelection']()).toBe(true);
+      expect(card('local-mode-button')).toBeNull();
+      expect(card('server-mode-button')).not.toBeNull();
+      expect(sessionStorage.getItem('inkweld-profile-upgrade-source')).toBe(
+        'local'
+      );
+    });
+
+    it('a server hands the move to the profile manager instead of adding an empty profile', async () => {
+      enableDropbox();
+      mockSetupService.isConfigured.mockReturnValue(true);
+      routeParams({ upgradeFrom: 'local' });
+      await init();
+
+      component['chooseServerMode']();
+      await vi.waitFor(() =>
+        expect(mockDialogGateway.openProfileManagerDialog).toHaveBeenCalled()
+      );
+
+      expect(component['showServerSetup']()).toBe(false);
+      expect(mockSetupService.configureServerMode).not.toHaveBeenCalled();
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/']);
+      // The move starts from the profile being upgraded, named here because
+      // the upgrade marker is cleared before the dialog opens
+      expect(mockDialogGateway.openProfileManagerDialog).toHaveBeenCalledWith({
+        view: 'add-server',
+        serverUrl: component['serverUrl'],
+        sourceProfileId: 'local',
+      });
+      expect(
+        sessionStorage.getItem('inkweld-profile-upgrade-source')
+      ).toBeNull();
+    });
+
+    it('with a server the only way up, opens the move straight away', async () => {
+      // No cloud provider in this build: the cloud step can't open
+      routeParams({ upgradeFrom: 'local', mode: 'cloud' });
+
+      await init();
+      await vi.waitFor(() =>
+        expect(mockDialogGateway.openProfileManagerDialog).toHaveBeenCalled()
+      );
+
+      expect(component['showCloudSetup']()).toBe(false);
+      expect(mockDialogGateway.openProfileManagerDialog).toHaveBeenCalledWith(
+        expect.objectContaining({ view: 'add-server' })
+      );
+    });
+
+    it('an upgrade APP_MODE leaves nowhere to go says why and returns to the app', async () => {
+      policyMode.set('LOCAL');
+      routeParams({ upgradeFrom: 'local', mode: 'cloud' });
+
+      await init();
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        expect.stringContaining('only allows profiles stored in this browser'),
+        expect.anything(),
+        expect.anything()
+      );
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/']);
+      expect(
+        sessionStorage.getItem('inkweld-profile-upgrade-source')
+      ).toBeNull();
+      expect(mockSetupService.configureLocalMode).not.toHaveBeenCalled();
+    });
+
+    it('a visit that is not part of an upgrade forgets one left behind', async () => {
+      sessionStorage.setItem('inkweld-profile-upgrade-source', 'local');
+      mockSetupService.isConfigured.mockReturnValue(true);
+
+      await init();
+
+      expect(
+        sessionStorage.getItem('inkweld-profile-upgrade-source')
+      ).toBeNull();
+      expect(component['upgradeSourceName']()).toBeNull();
+      expect(fixture.nativeElement.textContent).toContain('Add a profile');
+      expect(card('local-mode-button')).not.toBeNull();
+    });
+
+    it('back from the cloud profile step keeps the upgrade going', async () => {
+      enableDropbox();
+      sessionStorage.setItem('inkweld-profile-upgrade-source', 'local');
+      mockSetupService.isConfigured.mockReturnValue(true);
+      routeParams({ cloud: 'dropbox' });
+      mockCloudSyncConnect.getPendingConnection.mockReturnValue(pending);
+      await init();
+      expect(component['showCloudProfileSetup']()).toBe(true);
+
+      component['goBack']();
+
+      expect(mockCloudSyncConnect.abandonPendingConnection).toHaveBeenCalled();
+      expect(mockRouter.navigate).toHaveBeenCalledWith([], {
+        replaceUrl: true,
+        queryParams: { upgradeFrom: 'local' },
+      });
+      expect(sessionStorage.getItem('inkweld-profile-upgrade-source')).toBe(
+        'local'
+      );
+      expect(component['shouldShowModeSelection']()).toBe(true);
+      expect(component['offersBrowser']()).toBe(false);
     });
 
     it('keeps the author name and username when prefilling the profile step', async () => {

@@ -2,6 +2,7 @@ import { computed, inject, Injectable } from '@angular/core';
 import { forEachSequential, mapSequential } from '@inkweld/async';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import { CloudTokenStoreService } from '@services/cloud-sync/cloud-token-store.service';
+import { StorageService } from '@services/local/storage.service';
 
 import { LoggerService } from './logger.service';
 import { SetupService } from './setup.service';
@@ -109,6 +110,7 @@ export class ProfileManagerService {
   private readonly authTokens = inject(AuthTokenService);
   private readonly cloudTokens = inject(CloudTokenStoreService);
   private readonly logger = inject(LoggerService);
+  private readonly storageService = inject(StorageService);
 
   /** All profiles, active first, then most recently used */
   readonly connections = computed<ProfileInfo[]>(() => {
@@ -214,6 +216,19 @@ export class ProfileManagerService {
    * profile becomes active and the caller should go home; with nothing left
    * the caller should show the welcome screen.
    */
+  /**
+   * Close this tab's cached connections to an inactive profile's databases.
+   * A switch without a reload (the move to a server, and cancelling it) can
+   * leave some open, and they would block deleting that profile's data.
+   * The active profile's are left alone: its services are still using them.
+   */
+  releaseConnections(configId: string): void {
+    if (this.storageContext.activeConfig()?.id === configId) return;
+    this.storageService.closeDatabasesWithPrefix(
+      this.storageContext.getPrefixForConfig(configId)
+    );
+  }
+
   async disconnect(configId: string): Promise<ProfileDestination> {
     const config = this.storageContext.getConfigById(configId);
     if (!config) return this.storageContext.isConfigured() ? 'home' : 'welcome';
@@ -222,6 +237,7 @@ export class ProfileManagerService {
     // Credentials first so a failed data wipe never leaves a usable token
     this.authTokens.clearTokenForConfig(configId);
     this.cloudTokens.clear(configId);
+    this.releaseConnections(configId);
     await this.storageContext.clearContextData(configId);
     this.storageContext.removeConfig(configId);
     this.clearOrphanedAccountTokens(config);

@@ -25,16 +25,18 @@ import {
   type PendingCloudConnection,
 } from '@services/cloud-sync/cloud-sync-connect.service';
 import { AppModePolicyService } from '@services/core/app-mode-policy.service';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import {
   peekProfileUpgradeSource,
   ProfileManagerService,
   setProfileUpgradeSource,
   takeProfileUpgradeSource,
 } from '@services/core/profile-manager.service';
-import { StorageContextService } from '@services/core/storage-context.service';
 import {
   type CloudProvider,
   getCloudProviderDisplayName,
+  type StorageConfigType,
+  StorageContextService,
 } from '@services/core/storage-context.service';
 import { appBasePath, appUrl } from '@utils/app-base';
 
@@ -144,6 +146,7 @@ export class SetupComponent implements OnInit {
   private readonly cloudSyncConnect = inject(CloudSyncConnectService);
   private readonly profileManager = inject(ProfileManagerService);
   private readonly storageContext = inject(StorageContextService);
+  private readonly dialogGateway = inject(DialogGatewayService);
   private readonly route = inject(ActivatedRoute);
   private readonly snackBar = inject(MatSnackBar);
   private readonly router = inject(Router);
@@ -177,6 +180,16 @@ export class SetupComponent implements OnInit {
   protected readonly appPrivacyPolicyUrl = docsUrl(APP_PRIVACY_POLICY_PATH);
   /** Name of the profile being upgraded, when this visit is an upgrade */
   protected readonly upgradeSourceName = signal<string | null>(null);
+  /** Kind of the profile being upgraded, when this visit is an upgrade */
+  private readonly upgradeSourceKind = signal<StorageConfigType | null>(null);
+  /**
+   * Where the profile being upgraded may go, within APP_MODE: never a new
+   * Browser profile. Null when this visit is not an upgrade.
+   */
+  private readonly upgradeTargets = computed(() => {
+    const kind = this.upgradeSourceKind();
+    return kind ? this.appModePolicy.upgradeTargets(kind) : null;
+  });
   /**
    * Username the new cloud profile must keep when it is an upgrade. The
    * copied projects are owned by this username, so a different one would
@@ -222,10 +235,14 @@ export class SetupComponent implements OnInit {
   protected nextcloudAppPassword = '';
 
   ngOnInit(): void {
-    // Returning from a cloud provider with a fresh account: go straight to
-    // the profile step instead of the mode picker.
-    const upgradeFrom = this.route.snapshot.queryParamMap.get('upgradeFrom');
+    // An upgrade starts with ?upgradeFrom and may come back from a cloud
+    // provider (?cloud=). Any other visit is not part of one: an upgrade
+    // left behind earlier in this tab must not turn "add a profile" into
+    // "Connect to sync" and attach the next profile to it.
+    const params = this.route.snapshot.queryParamMap;
+    const upgradeFrom = params.get('upgradeFrom');
     if (upgradeFrom) setProfileUpgradeSource(upgradeFrom);
+    else if (!params.get('cloud')) takeProfileUpgradeSource();
     this.loadUpgradeSource();
     void this.initialiseSteps();
   }
@@ -257,15 +274,61 @@ export class SetupComponent implements OnInit {
       this.route.snapshot.queryParamMap.get('provider')
     );
 
-    // Auto-select the mode if only one option is available
-    if (!this.inSubStep()) {
-      if (this.appMode() === 'ONLINE') {
-        this.chooseServerMode();
-      } else if (this.appMode() === 'LOCAL' && !this.canUseCloudMode()) {
-        this.chooseLocalMode();
-      }
-    }
+    // Open the only option straight away, if there is just one
+    if (!this.inSubStep()) this.chooseOnlyOption();
     this.configLoading.set(false);
+  }
+
+  /**
+   * With a single way forward, take it. An upgrade that has nowhere to go
+   * (APP_MODE allows none of its targets) says why and returns to the app.
+   */
+  private chooseOnlyOption(): void {
+    const options = this.offeredModes();
+    if (options.length === 1) {
+      const [only] = options;
+      if (only === 'server') this.chooseServerMode();
+      else if (only === 'cloud') this.chooseCloudMode();
+      else this.chooseLocalMode();
+      return;
+    }
+    if (options.length === 0 && this.isUpgrade()) {
+      this.refuseByPolicy();
+      takeProfileUpgradeSource();
+      void this.router.navigate(['/']);
+    }
+  }
+
+  /** This visit moves an existing profile on ("Connect to sync") */
+  protected isUpgrade(): boolean {
+    return this.upgradeTargets() !== null;
+  }
+
+  /**
+   * The kinds of profile the mode picker offers. Upgrading offers only where
+   * the profile can move up to: a new Browser profile would leave its
+   * projects behind.
+   */
+  private offeredModes(): StorageConfigType[] {
+    const modes: StorageConfigType[] = [];
+    if (this.offersBrowser()) modes.push('local');
+    if (this.offersCloud()) modes.push('cloud');
+    if (this.offersServer()) modes.push('server');
+    return modes;
+  }
+
+  protected offersBrowser(): boolean {
+    return !this.isUpgrade() && this.canUseLocalMode();
+  }
+
+  protected offersCloud(): boolean {
+    const targets = this.upgradeTargets();
+    return targets ? targets.includes('cloud') : this.canUseCloudMode();
+  }
+
+  protected offersServer(): boolean {
+    const targets = this.upgradeTargets();
+    return targets ? targets.includes('server') : this.canUseServerMode();
   }
 
   protected shouldShowModeSelection(): boolean {
@@ -282,14 +345,12 @@ export class SetupComponent implements OnInit {
   }
 
   /**
-   * Whether there is more than one way to use this deployment. A LOCAL-only
-   * server still offers a choice when cloud sync is available, because cloud
-   * sync never touches the server.
+   * Whether there is more than one way forward. A LOCAL-only server still
+   * offers a choice when cloud sync is available, because cloud sync never
+   * touches the server.
    */
   protected hasModeChoice(): boolean {
-    const mode = this.appMode();
-    if (mode === 'BOTH') return true;
-    return mode === 'LOCAL' && this.canUseCloudMode();
+    return this.offeredModes().length > 1;
   }
 
   /**
@@ -331,24 +392,31 @@ export class SetupComponent implements OnInit {
   ): void {
     switch (mode) {
       case 'cloud':
-        if (!this.canUseLocalMode()) {
-          if (!this.isReconnectableProvider(provider)) return;
-          this.reconnectProvider.set(provider);
-        }
-        this.chooseCloudMode();
-        if (provider === 'nextcloud') {
-          this.showCloudSetup.set(false);
-          this.showNextcloudSetup.set(true);
-        }
+        this.openRequestedCloudStep(provider);
         break;
       case 'server':
-        if (this.canUseServerMode()) this.chooseServerMode();
+        if (this.offersServer()) this.chooseServerMode();
         break;
       case 'local':
-        if (this.canUseLocalMode()) this.chooseLocalMode();
+        if (this.offersBrowser()) this.chooseLocalMode();
         break;
       default:
         break;
+    }
+  }
+
+  /** `?mode=cloud`, with `&provider=nextcloud` opening its address form */
+  private openRequestedCloudStep(provider: string | null): void {
+    if (this.isUpgrade()) {
+      if (!this.offersCloud()) return;
+    } else if (!this.canUseLocalMode()) {
+      if (!this.isReconnectableProvider(provider)) return;
+      this.reconnectProvider.set(provider);
+    }
+    this.chooseCloudMode();
+    if (provider === 'nextcloud') {
+      this.showCloudSetup.set(false);
+      this.showNextcloudSetup.set(true);
     }
   }
 
@@ -396,15 +464,39 @@ export class SetupComponent implements OnInit {
   }
 
   protected chooseServerMode(): void {
+    if (this.isUpgrade()) {
+      void this.moveToServer();
+      return;
+    }
     this.showServerSetup.set(true);
     this.showLocalSetup.set(false);
     this.showCloudSetup.set(false);
   }
 
   protected chooseLocalMode(): void {
+    // Upgrading never makes a Browser profile: the projects would stay put
+    if (this.isUpgrade()) return;
     this.showLocalSetup.set(true);
     this.showServerSetup.set(false);
     this.showCloudSetup.set(false);
+  }
+
+  /**
+   * Upgrading to a server is the profile manager's guided move: it signs in
+   * on the server and copies the projects across. Adding a bare server
+   * profile here would leave them behind in the old profile. The move starts
+   * from the profile named by `?upgradeFrom`, not whichever profile is
+   * active when the dialog opens.
+   */
+  private async moveToServer(): Promise<void> {
+    const sourceProfileId = peekProfileUpgradeSource() ?? undefined;
+    this.forgetUpgrade();
+    await this.router.navigate(['/']);
+    await this.dialogGateway.openProfileManagerDialog({
+      view: 'add-server',
+      serverUrl: this.serverUrl.trim() || undefined,
+      sourceProfileId,
+    });
   }
 
   /**
@@ -519,6 +611,7 @@ export class SetupComponent implements OnInit {
   }
 
   protected async setupLocalMode(): Promise<void> {
+    if (this.isUpgrade()) return;
     if (!this.canUseLocalMode()) {
       this.refuseByPolicy();
       return;
@@ -618,8 +711,7 @@ export class SetupComponent implements OnInit {
           c.cloudAccountId === pending.accountId
       );
     // Not an upgrade either: that would create a profile
-    takeProfileUpgradeSource();
-    this.upgradeSourceName.set(null);
+    this.forgetUpgrade();
     if (!linked) {
       this.cloudSyncConnect.abandonPendingConnection();
       this.pendingCloudConnection.set(null);
@@ -903,12 +995,21 @@ export class SetupComponent implements OnInit {
     return id ? this.storageContext.getConfigById(id) : undefined;
   }
 
-  /** Remember the profile being upgraded for the header copy */
+  /** Remember the profile being upgraded for the header copy and choices */
   private loadUpgradeSource(): void {
     const source = this.upgradeSourceConfig();
     this.upgradeSourceName.set(
       source ? this.profileManager.describe(source).name : null
     );
+    this.upgradeSourceKind.set(source?.type ?? null);
+  }
+
+  /** Stop treating this visit as an upgrade */
+  private forgetUpgrade(): void {
+    takeProfileUpgradeSource();
+    this.upgradeSourceName.set(null);
+    this.upgradeSourceKind.set(null);
+    this.upgradeUsername.set(null);
   }
 
   /** Label for the connected account shown on the profile step */
@@ -932,15 +1033,17 @@ export class SetupComponent implements OnInit {
       this.showCloudClash()
     ) {
       // Abandoning also drops provider credentials obtained for an account
-      // that never became a profile
+      // that never became a profile. An upgrade carries on: the picker
+      // offers its other ways forward.
       this.cloudSyncConnect.abandonPendingConnection();
-      takeProfileUpgradeSource();
       this.upgradeUsername.set(null);
       this.pendingCloudConnection.set(null);
-      // Drop the ?cloud= param so a refresh doesn't reopen this step
+      // Drop the ?cloud= param so a refresh doesn't reopen this step, but
+      // keep naming the upgrade so a refresh doesn't forget it
+      const upgradeFrom = this.isUpgrade() ? peekProfileUpgradeSource() : null;
       void this.router.navigate([], {
         replaceUrl: true,
-        queryParams: {},
+        queryParams: upgradeFrom ? { upgradeFrom } : {},
       });
     }
     if (this.showNextcloudSetup()) {

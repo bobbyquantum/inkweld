@@ -86,57 +86,40 @@ export class LocalProjectService {
   }
 
   /**
-   * Get projects from the local-mode storage, regardless of current context.
-   * This is used during migration when the context has already switched to server mode
-   * but we still need to read the original local projects.
+   * Projects in one profile's list, whichever profile is active. The move
+   * to a server reads its source profile this way, because the sign-in has
+   * already switched the app to the target.
    */
-  getLocalModeProjects(): Project[] {
-    const localPrefix = this.storageContext.getPrefixForConfig('local');
-    const key = `${localPrefix}${LOCAL_PROJECTS_BASE_KEY}`;
-    try {
-      const stored = localStorage.getItem(key);
-      return stored ? (JSON.parse(stored) as Project[]) : [];
-    } catch (error) {
-      console.error('Failed to load local mode projects:', error);
-      return [];
-    }
+  getProjectsInConfig(configId: string): Project[] {
+    return this.readList<Project>(configId, LOCAL_PROJECTS_BASE_KEY);
   }
 
-  /**
-   * Get migrated projects info from local-mode storage, regardless of current context.
-   * This is used during migration to check which projects have already been migrated.
-   */
-  getLocalModeMigratedProjects(): MigratedProjectInfo[] {
-    const localPrefix = this.storageContext.getPrefixForConfig('local');
-    const key = `${localPrefix}${MIGRATED_PROJECTS_BASE_KEY}`;
-    try {
-      const stored = localStorage.getItem(key);
-      return stored ? (JSON.parse(stored) as MigratedProjectInfo[]) : [];
-    } catch (error) {
-      console.error('Failed to load local mode migrated projects:', error);
-      return [];
-    }
+  /** Projects of one profile already moved to a server, whichever is active */
+  getMigratedProjectsInConfig(configId: string): MigratedProjectInfo[] {
+    return this.readList<MigratedProjectInfo>(
+      configId,
+      MIGRATED_PROJECTS_BASE_KEY
+    );
   }
 
-  /**
-   * Get non-migrated projects only (for migration flow).
-   * Uses getLocalModeProjects to ensure we read from local storage
-   * even when the app has switched to server mode.
-   */
-  getNonMigratedProjects(): Project[] {
-    const migrated = this.getLocalModeMigratedProjects();
-    return this.getLocalModeProjects().filter(
+  /** Projects of one profile that have not been moved to a server yet */
+  getNonMigratedProjects(configId: string): Project[] {
+    const migrated = this.getMigratedProjectsInConfig(configId);
+    return this.getProjectsInConfig(configId).filter(
       p => !migrated.some(m => m.originalSlug === p.slug)
     );
   }
 
   /**
-   * Delete a project from local-mode storage, regardless of current context.
-   * This is used during migration cleanup when we're already in server mode.
+   * Remove a project from one profile's list, whichever profile is active.
+   * Used to tidy the source profile after its projects moved to a server.
    */
-  deleteLocalModeProject(username: string, slug: string): void {
-    const localPrefix = this.storageContext.getPrefixForConfig('local');
-    const key = `${localPrefix}${LOCAL_PROJECTS_BASE_KEY}`;
+  deleteProjectInConfig(
+    configId: string,
+    username: string,
+    slug: string
+  ): void {
+    const key = `${this.storageContext.getPrefixForConfig(configId)}${LOCAL_PROJECTS_BASE_KEY}`;
     try {
       const stored = localStorage.getItem(key);
       if (!stored) return;
@@ -147,12 +130,11 @@ export class LocalProjectService {
       );
       localStorage.setItem(key, JSON.stringify(updatedProjects));
 
-      // If we're currently in local mode, update the signal too
-      if (this.storageContext.getActiveConfig()?.id === 'local') {
+      if (this.storageContext.getActiveConfig()?.id === configId) {
         this.projects.set(updatedProjects);
       }
     } catch (error) {
-      console.error('Failed to delete local mode project:', error);
+      console.error('Failed to delete project from profile:', error);
     }
   }
 
@@ -164,15 +146,18 @@ export class LocalProjectService {
   }
 
   /**
-   * Mark a project as migrated
+   * Record in a profile that one of its projects moved to a server, so the
+   * move doesn't offer it again. Written to that profile whichever is
+   * active.
    */
   markProjectAsMigrated(
+    configId: string,
     originalSlug: string,
     migratedSlug: string,
     serverUrl: string,
     migratedUsername: string
   ): void {
-    const migrated = this.migratedProjects();
+    const migrated = this.getMigratedProjectsInConfig(configId);
     const existing = migrated.findIndex(m => m.originalSlug === originalSlug);
 
     const info: MigratedProjectInfo = {
@@ -189,8 +174,30 @@ export class LocalProjectService {
       migrated.push(info);
     }
 
-    this.migratedProjects.set([...migrated]);
-    this.saveMigratedProjects(migrated);
+    try {
+      localStorage.setItem(
+        `${this.storageContext.getPrefixForConfig(configId)}${MIGRATED_PROJECTS_BASE_KEY}`,
+        JSON.stringify(migrated)
+      );
+    } catch (error) {
+      console.error('Failed to save migrated projects:', error);
+    }
+    if (this.storageContext.getActiveConfig()?.id === configId) {
+      this.migratedProjects.set([...migrated]);
+    }
+  }
+
+  /** Read a JSON list stored under a profile's prefix */
+  private readList<T>(configId: string, baseKey: string): T[] {
+    const key = `${this.storageContext.getPrefixForConfig(configId)}${baseKey}`;
+    try {
+      const stored = localStorage.getItem(key);
+      const parsed: unknown = stored ? JSON.parse(stored) : [];
+      return Array.isArray(parsed) ? (parsed as T[]) : [];
+    } catch (error) {
+      console.error(`Failed to read ${key}:`, error);
+      return [];
+    }
   }
 
   /**
@@ -209,14 +216,6 @@ export class LocalProjectService {
     } catch (error) {
       console.error('Failed to load migrated projects:', error);
       this.migratedProjects.set([]);
-    }
-  }
-
-  private saveMigratedProjects(migrated: MigratedProjectInfo[]): void {
-    try {
-      localStorage.setItem(this.migratedStorageKey, JSON.stringify(migrated));
-    } catch (error) {
-      console.error('Failed to save migrated projects:', error);
     }
   }
 

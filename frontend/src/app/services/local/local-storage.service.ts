@@ -95,6 +95,8 @@ export class LocalStorageService {
   private readonly storageContext = inject(StorageContextService);
   private db: IDBDatabase | null = null;
   private initPromise: Promise<IDBDatabase> | null = null;
+  /** Name of the database `db` holds (or is opening) */
+  private ownDbName: string | null = null;
 
   /** Cache of active blob URLs to prevent memory leaks */
   private readonly activeUrls = new Map<string, string>();
@@ -116,6 +118,16 @@ export class LocalStorageService {
    * Initialize the media database. Called automatically on first use.
    */
   private ensureDb(): Promise<IDBDatabase> {
+    const config = this.dbConfig;
+    // The move to a server switches profiles without a reload: read the
+    // active profile's media, not the one opened before the switch
+    if (this.ownDbName && this.ownDbName !== config.dbName) {
+      this.storageService.closeDatabase(this.ownDbName);
+      this.db = null;
+      this.initPromise = null;
+      this.ownDbName = null;
+    }
+
     if (this.db) {
       return Promise.resolve(this.db);
     }
@@ -124,8 +136,9 @@ export class LocalStorageService {
       return this.initPromise;
     }
 
+    this.ownDbName = config.dbName;
     this.initPromise = this.storageService
-      .initializeDatabase(this.dbConfig)
+      .initializeDatabase(config)
       .then(db => {
         this.db = db;
         return db;
@@ -323,6 +336,87 @@ export class LocalStorageService {
         }
       };
 
+      request.onerror = () =>
+        reject(new Error(`Failed to list media: ${request.error?.message}`));
+    });
+  }
+
+  /**
+   * Copy one project's media from one profile's database into another's,
+   * under a new project key. The move to a server runs after the sign-in
+   * switched the app to the target, so neither side can go through the
+   * active profile's database. Media the target already has is kept.
+   * Throws when a file can't be copied. Returns how many were copied.
+   *
+   * The connections it opens are closed afterwards, so they can't block
+   * deleting either profile later (cancelling the move removes the target).
+   */
+  async copyProjectMediaBetweenProfiles(
+    fromConfigId: string,
+    toConfigId: string,
+    fromProjectKey: string,
+    toProjectKey: string
+  ): Promise<number> {
+    const fromDbName = this.profileDbName(fromConfigId);
+    const toDbName = this.profileDbName(toConfigId);
+    try {
+      const source = await this.openProfileDb(fromDbName);
+      const keys = await this.projectMediaKeys(source, fromProjectKey);
+      if (keys.length === 0) return 0;
+      const target = await this.openProfileDb(toDbName);
+      let copied = 0;
+      // Sequential: media blobs are large; one file at a time bounds memory.
+      await forEachSequential(keys, async key => {
+        const record = await this.storageService.get<StoredMedia>(
+          source,
+          STORE_NAME,
+          key
+        );
+        if (!record) return;
+        const id = `${toProjectKey}:${this.parseKey(key).mediaId}`;
+        const existing = await this.storageService.get<StoredMedia>(
+          target,
+          STORE_NAME,
+          id
+        );
+        if (existing) return;
+        await this.storageService.put(target, STORE_NAME, { ...record, id });
+        copied++;
+      });
+      return copied;
+    } finally {
+      this.releaseProfileDb(fromDbName);
+      this.releaseProfileDb(toDbName);
+    }
+  }
+
+  /** Name of a profile's media database, whichever profile is active */
+  private profileDbName(configId: string): string {
+    return `${this.storageContext.getPrefixForConfig(configId)}${MEDIA_DB_BASE_NAME}`;
+  }
+
+  private openProfileDb(dbName: string): Promise<IDBDatabase> {
+    return this.storageService.initializeDatabase({ ...this.dbConfig, dbName });
+  }
+
+  /** Close a profile's media database, unless this service is using it */
+  private releaseProfileDb(dbName: string): void {
+    if (dbName !== this.ownDbName) this.storageService.closeDatabase(dbName);
+  }
+
+  /** Keys of every media record of one project in a media database */
+  private projectMediaKeys(
+    db: IDBDatabase,
+    projectKey: string
+  ): Promise<string[]> {
+    const keyPrefix = `${projectKey}:`;
+    return new Promise<string[]>((resolve, reject) => {
+      const request = db
+        .transaction(STORE_NAME, 'readonly')
+        .objectStore(STORE_NAME)
+        .getAllKeys(IDBKeyRange.bound(keyPrefix, `${keyPrefix}￿`));
+      request.onsuccess = () =>
+        resolve(request.result.filter(k => typeof k === 'string'));
       request.onerror = () =>
         reject(new Error(`Failed to list media: ${request.error?.message}`));
     });

@@ -7,10 +7,11 @@ import {
 } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { PublicProjectContextService } from '../core/public-project-context.service';
+import { StorageContextService } from '../core/storage-context.service';
 import { LocalStorageService } from './local-storage.service';
 import { StorageService } from './storage.service';
 
@@ -57,6 +58,7 @@ describe('LocalStorageService', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     service.revokeAllUrls();
     storageService.closeAll();
     // Reset IndexedDB for clean state
@@ -309,6 +311,201 @@ describe('LocalStorageService', () => {
       const totalSize = await service.getTotalMediaSize();
 
       expect(totalSize).toBe(blob1.size + blob2.size);
+    });
+  });
+
+  describe('copyProjectMediaBetweenProfiles', () => {
+    const MEDIA_DB = {
+      version: 1,
+      stores: { media: 'id' },
+    };
+
+    /** Open one profile's media database directly, by its prefix */
+    function openDb(prefix: string): Promise<IDBDatabase> {
+      return storageService.initializeDatabase({
+        ...MEDIA_DB,
+        dbName: `${prefix}inkweld-media`,
+      });
+    }
+
+    async function put(prefix: string, id: string, content: string) {
+      await storageService.put(await openDb(prefix), 'media', {
+        id,
+        blob: createTestBlob(content),
+        mimeType: 'image/jpeg',
+        size: content.length,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        filename: `${id.split(':').pop()}.jpg`,
+      });
+    }
+
+    async function ids(prefix: string): Promise<string[]> {
+      const records = await storageService.getAll<{ id: string }>(
+        await openDb(prefix),
+        'media'
+      );
+      return records.map(r => r.id).sort();
+    }
+
+    it("copies one project's media into the other profile under its new address", async () => {
+      await put('local-abc:', 'bobby/novel:cover', 'cover');
+      await put('local-abc:', 'bobby/novel:img-1', 'image');
+      await put('local-abc:', 'bobby/other:cover', 'not this one');
+
+      const copied = await service.copyProjectMediaBetweenProfiles(
+        'local-abc',
+        'srv1',
+        'bobby/novel',
+        'mover/my-novel'
+      );
+
+      expect(copied).toBe(2);
+      expect(await ids('srv:srv1:')).toEqual([
+        'mover/my-novel:cover',
+        'mover/my-novel:img-1',
+      ]);
+      // The source is left as it was
+      expect(await ids('local-abc:')).toEqual([
+        'bobby/novel:cover',
+        'bobby/novel:img-1',
+        'bobby/other:cover',
+      ]);
+      const record = await storageService.get<{ filename: string }>(
+        await openDb('srv:srv1:'),
+        'media',
+        'mover/my-novel:cover'
+      );
+      expect(record?.filename).toBe('cover.jpg');
+    });
+
+    it('keeps media the target profile already has', async () => {
+      await put('local-abc:', 'bobby/novel:cover', 'source cover');
+      await put('srv:srv1:', 'bobby/novel:cover', 'target cover');
+
+      const copied = await service.copyProjectMediaBetweenProfiles(
+        'local-abc',
+        'srv1',
+        'bobby/novel',
+        'bobby/novel'
+      );
+
+      expect(copied).toBe(0);
+      const record = await storageService.get<{ size: number }>(
+        await openDb('srv:srv1:'),
+        'media',
+        'bobby/novel:cover'
+      );
+      expect(record?.size).toBe('target cover'.length);
+    });
+
+    it('copies nothing for a project without media', async () => {
+      await expect(
+        service.copyProjectMediaBetweenProfiles(
+          'local',
+          'srv1',
+          'bobby/empty',
+          'bobby/empty'
+        )
+      ).resolves.toBe(0);
+    });
+
+    it('closes the databases it opened, so deleting either profile is not blocked', async () => {
+      await put('local-abc:', 'bobby/novel:cover', 'cover');
+      const close = vi.spyOn(storageService, 'closeDatabase');
+
+      await service.copyProjectMediaBetweenProfiles(
+        'local-abc',
+        'srv1',
+        'bobby/novel',
+        'mover/my-novel'
+      );
+
+      expect(close).toHaveBeenCalledWith('local-abc:inkweld-media');
+      expect(close).toHaveBeenCalledWith('srv:srv1:inkweld-media');
+    });
+
+    it('closes them when a file fails to copy', async () => {
+      await put('local-abc:', 'bobby/novel:cover', 'cover');
+      vi.spyOn(storageService, 'put').mockRejectedValueOnce(
+        new Error('quota exceeded')
+      );
+      const close = vi.spyOn(storageService, 'closeDatabase');
+
+      await expect(
+        service.copyProjectMediaBetweenProfiles(
+          'local-abc',
+          'srv1',
+          'bobby/novel',
+          'mover/my-novel'
+        )
+      ).rejects.toThrow('quota exceeded');
+
+      expect(close).toHaveBeenCalledWith('local-abc:inkweld-media');
+      expect(close).toHaveBeenCalledWith('srv:srv1:inkweld-media');
+    });
+
+    it("reads the new active profile's media after a switch without a reload", async () => {
+      const context = TestBed.inject(StorageContextService);
+      const prefix = vi
+        .spyOn(context, 'prefixDbName')
+        .mockImplementation(name => `local-abc:${name}`);
+      await service.saveMedia('bobby/novel', 'cover', createTestBlob('cover'));
+      const close = vi.spyOn(storageService, 'closeDatabase');
+
+      // The sign-in of a move to a server makes the server profile active
+      prefix.mockImplementation(name => `srv:srv1:${name}`);
+
+      expect(await service.getMedia('bobby/novel', 'cover')).toBeNull();
+      expect(close).toHaveBeenCalledWith('local-abc:inkweld-media');
+
+      prefix.mockImplementation(name => `local-abc:${name}`);
+      expect(await service.getMedia('bobby/novel', 'cover')).not.toBeNull();
+    });
+
+    it('lets a target it read from be deleted after switching back without a reload', async () => {
+      const context = TestBed.inject(StorageContextService);
+      const prefix = vi
+        .spyOn(context, 'prefixDbName')
+        .mockImplementation(name => `srv:srv1:${name}`);
+      // After the sign-in the server profile is active and its media is read
+      await service.saveMedia('mover/novel', 'cover', createTestBlob('cover'));
+      // Cancelling returns to the Browser profile; then the server profile
+      // is removed, which closes this tab's connections to it first
+      prefix.mockImplementation(name => `local-abc:${name}`);
+      storageService.closeDatabasesWithPrefix('srv:srv1:');
+      await Promise.resolve();
+
+      const deleted = await new Promise<string>(resolve => {
+        const request = indexedDB.deleteDatabase('srv:srv1:inkweld-media');
+        request.onsuccess = () => resolve('deleted');
+        request.onblocked = () => resolve('blocked');
+      });
+
+      expect(deleted).toBe('deleted');
+      // And the service reads the Browser profile's media from now on
+      expect(await service.getMedia('mover/novel', 'cover')).toBeNull();
+    });
+
+    it('leaves open the database it uses for the active profile', async () => {
+      const context = TestBed.inject(StorageContextService);
+      vi.spyOn(context, 'getPrefixForConfig').mockImplementation(id =>
+        id === 'active' ? context.getPrefix() : `srv:${id}:`
+      );
+      await service.saveMedia('bobby/novel', 'cover', createTestBlob('cover'));
+      const close = vi.spyOn(storageService, 'closeDatabase');
+
+      await service.copyProjectMediaBetweenProfiles(
+        'active',
+        'srv1',
+        'bobby/novel',
+        'mover/my-novel'
+      );
+
+      expect(close).toHaveBeenCalledWith('srv:srv1:inkweld-media');
+      expect(close).not.toHaveBeenCalledWith(
+        context.prefixDbName('inkweld-media')
+      );
+      expect(await service.getMedia('bobby/novel', 'cover')).not.toBeNull();
     });
   });
 

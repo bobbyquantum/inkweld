@@ -310,8 +310,8 @@ test.describe('Auto-Snapshots', () => {
       page.getByTestId('document-sync-status').getByTestId('document-sync-dot')
     ).toHaveClass(/local/);
 
-    // Use the in-app exit button (router.navigate) so canDeactivate runs.
-    // ngOnDestroy does NOT run because CustomRouteReuseStrategy detaches.
+    // Use the in-app exit button (router.navigate) so canDeactivate runs:
+    // the auto-snapshot is made there, before the project is destroyed.
     await page.getByTestId('sidebar-exit-button').click();
     await page.waitForURL('/');
 

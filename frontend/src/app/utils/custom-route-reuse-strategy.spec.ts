@@ -1,7 +1,4 @@
-import {
-  type ActivatedRouteSnapshot,
-  type DetachedRouteHandle,
-} from '@angular/router';
+import { type ActivatedRouteSnapshot, type Route } from '@angular/router';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { CustomRouteReuseStrategy } from './custom-route-reuse-strategy';
@@ -13,298 +10,117 @@ describe('CustomRouteReuseStrategy', () => {
     strategy = new CustomRouteReuseStrategy();
   });
 
-  function createRoute(
-    path: string,
+  function snapshot(
+    routeConfig: Route | null,
     params: Record<string, string> = {},
-    data: Record<string, unknown> = {}
+    data: Record<string, unknown> = routeConfig?.data ?? {}
   ): ActivatedRouteSnapshot {
-    return {
-      routeConfig: { path },
-      params,
-      data,
-    } as unknown as ActivatedRouteSnapshot;
+    return { routeConfig, params, data } as unknown as ActivatedRouteSnapshot;
   }
 
-  it('should be created', () => {
-    expect(strategy).toBeTruthy();
-  });
+  describe('leaving a page', () => {
+    it('never keeps a page to show again on the next visit', () => {
+      const route = snapshot({ path: 'forgot-password' });
 
-  describe('shouldDetach', () => {
-    it('should return true for routes with path', () => {
-      const route = createRoute('test-path');
-      expect(strategy.shouldDetach(route)).toBe(true);
-    });
-
-    it('should return false for routes with reuseComponent = false', () => {
-      const route = createRoute('test-path', {}, { reuseComponent: false });
       expect(strategy.shouldDetach(route)).toBe(false);
-    });
-  });
-
-  describe('store and retrieve', () => {
-    it('should store and retrieve detached route', () => {
-      const route = createRoute('test-path');
-      const handle = {} as DetachedRouteHandle;
-
-      strategy.store(route, handle);
-      const retrieved = strategy.retrieve(route);
-
-      expect(retrieved).toBe(handle);
-    });
-
-    it('should not store route with reuseComponent = false', () => {
-      const route = createRoute('test-path', {}, { reuseComponent: false });
-      const handle = {} as DetachedRouteHandle;
-
-      strategy.store(route, handle);
-      const retrieved = strategy.retrieve(route);
-
-      expect(retrieved).toBeNull();
-    });
-
-    it('should return null for non-existent route', () => {
-      const route = createRoute('non-existent');
+      strategy.store(route, {});
+      expect(strategy.shouldAttach(route)).toBe(false);
       expect(strategy.retrieve(route)).toBeNull();
     });
 
-    it('should differentiate routes by params', () => {
-      const route1 = createRoute('test', { id: '1' });
-      const route2 = createRoute('test', { id: '2' });
-      const handle1 = { component: 'A' } as unknown as DetachedRouteHandle;
-      const handle2 = { component: 'B' } as unknown as DetachedRouteHandle;
+    it('does not keep a project after leaving it', () => {
+      const route = snapshot(
+        { path: ':username/:slug', data: { reuseComponent: false } },
+        { username: 'user', slug: 'project' }
+      );
 
-      strategy.store(route1, handle1);
-      strategy.store(route2, handle2);
-
-      expect(strategy.retrieve(route1)).toBe(handle1);
-      expect(strategy.retrieve(route2)).toBe(handle2);
-    });
-  });
-
-  describe('shouldAttach', () => {
-    it('should return true for stored route', () => {
-      const route = createRoute('test-path');
-      const handle = {} as DetachedRouteHandle;
-
-      strategy.store(route, handle);
-      expect(strategy.shouldAttach(route)).toBe(true);
-    });
-
-    it('should return false for non-stored route', () => {
-      const route = createRoute('test-path');
-      expect(strategy.shouldAttach(route)).toBe(false);
-    });
-
-    it('should return false for route with reuseComponent = false', () => {
-      const route = createRoute('test-path', {}, { reuseComponent: false });
-      expect(strategy.shouldAttach(route)).toBe(false);
-    });
-  });
-
-  describe('shouldReuseRoute', () => {
-    it('should reuse route with same config', () => {
-      const config = { path: 'test-path' };
-      const future = {
-        routeConfig: config,
-        data: {},
-      } as unknown as ActivatedRouteSnapshot;
-      const curr = {
-        routeConfig: config,
-        data: {},
-      } as unknown as ActivatedRouteSnapshot;
-
-      expect(strategy.shouldReuseRoute(future, curr)).toBe(true);
-    });
-
-    it('should not reuse route with different config', () => {
-      const future = createRoute('path1');
-      const curr = createRoute('path2');
-
-      expect(strategy.shouldReuseRoute(future, curr)).toBe(false);
-    });
-
-    it('reuses the project parent in place even though reuseComponent is false', () => {
-      // The project parent carries reuseComponent:false only so that *leaving*
-      // destroys it (the exit-leak fix). But in-place navigations to the same
-      // project must reuse the component, otherwise the ngOnDestroy teardown
-      // runs mid-render and drops the sync providers.
-      const config = { path: ':username/:slug' };
-      const future = {
-        routeConfig: config,
-        params: { username: 'user', slug: 'project' },
-        data: { reuseComponent: false },
-      } as unknown as ActivatedRouteSnapshot;
-      const curr = {
-        routeConfig: config,
-        params: { username: 'user', slug: 'project' },
-        data: { reuseComponent: false },
-      } as unknown as ActivatedRouteSnapshot;
-
-      expect(strategy.shouldReuseRoute(future, curr)).toBe(true);
-    });
-
-    it('recreates (does not reuse in place) a tab route with reuseComponent false', () => {
-      // Tab routes set reuseComponent:false so each activation gets a fresh
-      // component — reusing in place would leave a stale editor. This matches
-      // main's behaviour; only the project parent is exempted.
-      const config = { path: 'document/:tabId' };
-      const future = {
-        routeConfig: config,
-        params: { tabId: '2' },
-        data: { reuseComponent: false },
-      } as unknown as ActivatedRouteSnapshot;
-      const curr = {
-        routeConfig: config,
-        params: { tabId: '1' },
-        data: { reuseComponent: false },
-      } as unknown as ActivatedRouteSnapshot;
-
-      expect(strategy.shouldReuseRoute(future, curr)).toBe(false);
-    });
-
-    it('does not detach (cache) a reuseComponent:false route on exit', () => {
-      // reuseComponent:false must still prevent the component being stored on
-      // exit, so leaving the route destroys it (running the connection teardown
-      // in ngOnDestroy) instead of leaking it.
-      const route = createRoute('test-path', {}, { reuseComponent: false });
       expect(strategy.shouldDetach(route)).toBe(false);
-      expect(strategy.shouldAttach(route)).toBe(false);
-    });
-
-    it('should not reuse project route when username changes', () => {
-      const config = { path: ':username/:slug' };
-      const future = {
-        routeConfig: config,
-        params: { username: 'user2', slug: 'project' },
-        data: {},
-      } as unknown as ActivatedRouteSnapshot;
-      const curr = {
-        routeConfig: config,
-        params: { username: 'user1', slug: 'project' },
-        data: {},
-      } as unknown as ActivatedRouteSnapshot;
-
-      expect(strategy.shouldReuseRoute(future, curr)).toBe(false);
-    });
-
-    it('should not reuse project route when slug changes', () => {
-      const config = { path: ':username/:slug' };
-      const future = {
-        routeConfig: config,
-        params: { username: 'user', slug: 'project2' },
-        data: {},
-      } as unknown as ActivatedRouteSnapshot;
-      const curr = {
-        routeConfig: config,
-        params: { username: 'user', slug: 'project1' },
-        data: {},
-      } as unknown as ActivatedRouteSnapshot;
-
-      expect(strategy.shouldReuseRoute(future, curr)).toBe(false);
-    });
-
-    it('should reuse project route when params are same', () => {
-      const config = { path: ':username/:slug' };
-      const future = {
-        routeConfig: config,
-        params: { username: 'user', slug: 'project' },
-        data: {},
-      } as unknown as ActivatedRouteSnapshot;
-      const curr = {
-        routeConfig: config,
-        params: { username: 'user', slug: 'project' },
-        data: {},
-      } as unknown as ActivatedRouteSnapshot;
-
-      expect(strategy.shouldReuseRoute(future, curr)).toBe(true);
     });
   });
 
-  describe('getRouteKey', () => {
-    it('should return "unknown" prefix for route without path', () => {
-      const route = {
-        routeConfig: null,
-        params: { id: '1' },
-        data: {},
-      } as unknown as ActivatedRouteSnapshot;
+  describe('moving within a route', () => {
+    it('reuses the page in place', () => {
+      const config: Route = { path: 'approval-pending' };
 
-      // Access private method through any
-      const key = (strategy as any).getRouteKey(route);
-      expect(key).toContain('unknown');
+      expect(
+        strategy.shouldReuseRoute(snapshot(config), snapshot(config))
+      ).toBe(true);
+    });
+
+    it('does not reuse a different route', () => {
+      expect(
+        strategy.shouldReuseRoute(
+          snapshot({ path: 'path1' }),
+          snapshot({ path: 'path2' })
+        )
+      ).toBe(false);
+    });
+
+    it('reuses a route without config (the root) in place', () => {
+      expect(strategy.shouldReuseRoute(snapshot(null), snapshot(null))).toBe(
+        true
+      );
+    });
+
+    it('recreates a reuseComponent:false route, e.g. a tab', () => {
+      const config: Route = {
+        path: 'document/:tabId',
+        data: { reuseComponent: false },
+      };
+
+      expect(
+        strategy.shouldReuseRoute(
+          snapshot(config, { tabId: '2' }),
+          snapshot(config, { tabId: '1' })
+        )
+      ).toBe(false);
+    });
+
+    it('recreates setup when only its query params change', () => {
+      const config: Route = {
+        path: 'setup',
+        data: { reuseComponent: false },
+      };
+
+      expect(
+        strategy.shouldReuseRoute(snapshot(config), snapshot(config))
+      ).toBe(false);
     });
   });
 
-  describe('clearStoredProject', () => {
-    it('should clear stored routes when project params change', () => {
-      // Store a route for project 1
-      const route1 = createRoute(':username', {
-        username: 'user1',
-        slug: 'project1',
-      });
-      const handle1 = { component: 'A' } as unknown as DetachedRouteHandle;
-      strategy.store(route1, handle1);
+  describe('the project route', () => {
+    const config: Route = {
+      path: ':username/:slug',
+      data: { reuseComponent: false },
+    };
 
-      expect(strategy.shouldAttach(route1)).toBe(true);
-
-      // Now navigate to a different project, which should clear the stored route
-      const config = { path: ':username/:slug' };
-      const future = {
-        routeConfig: config,
-        params: { username: 'user2', slug: 'project2' },
-        data: {},
-      } as unknown as ActivatedRouteSnapshot;
-      const curr = {
-        routeConfig: config,
-        params: { username: 'user1', slug: 'project1' },
-        data: {},
-      } as unknown as ActivatedRouteSnapshot;
-
-      // This should trigger clearStoredProject
-      const shouldReuse = strategy.shouldReuseRoute(future, curr);
-      expect(shouldReuse).toBe(false);
-
-      // The stored route should now be cleared
-      // Note: the clear is based on key prefix matching, and since our test route
-      // has a different path, it won't be cleared. We're testing the internal logic.
+    it('reuses the same project in place despite reuseComponent:false', () => {
+      // Recreating it in place would run its ngOnDestroy teardown mid-render
+      // and drop the sync providers.
+      expect(
+        strategy.shouldReuseRoute(
+          snapshot(config, { username: 'user', slug: 'project' }),
+          snapshot(config, { username: 'user', slug: 'project' })
+        )
+      ).toBe(true);
     });
 
-    it('should iterate over stored handlers when clearing project', () => {
-      // Store multiple routes with project-like keys
-      const route1 = createRoute(
-        ':username-{"username":"user1","slug":"proj1"}',
-        {}
-      );
-      const route2 = createRoute(
-        ':username-{"username":"user1","slug":"proj1"}/sub',
-        {}
-      );
-      const route3 = createRoute('other-route', {});
+    it('recreates it for another owner', () => {
+      expect(
+        strategy.shouldReuseRoute(
+          snapshot(config, { username: 'user2', slug: 'project' }),
+          snapshot(config, { username: 'user1', slug: 'project' })
+        )
+      ).toBe(false);
+    });
 
-      const handle1 = { component: 'A' } as unknown as DetachedRouteHandle;
-      const handle2 = { component: 'B' } as unknown as DetachedRouteHandle;
-      const handle3 = { component: 'C' } as unknown as DetachedRouteHandle;
-
-      strategy.store(route1, handle1);
-      strategy.store(route2, handle2);
-      strategy.store(route3, handle3);
-
-      // Trigger clearStoredProject by calling shouldReuseRoute with changed params
-      const config = { path: ':username/:slug' };
-      const future = {
-        routeConfig: config,
-        params: { username: 'user2', slug: 'proj2' },
-        data: {},
-      } as unknown as ActivatedRouteSnapshot;
-      const curr = {
-        routeConfig: config,
-        params: { username: 'user1', slug: 'proj1' },
-        data: {},
-      } as unknown as ActivatedRouteSnapshot;
-
-      strategy.shouldReuseRoute(future, curr);
-
-      // Other route should still be attached
-      expect(strategy.shouldAttach(route3)).toBe(true);
+    it('recreates it for another project', () => {
+      expect(
+        strategy.shouldReuseRoute(
+          snapshot(config, { username: 'user', slug: 'project2' }),
+          snapshot(config, { username: 'user', slug: 'project1' })
+        )
+      ).toBe(false);
     });
   });
 });
