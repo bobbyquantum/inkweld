@@ -159,4 +159,44 @@ describe('StorageService', () => {
       expect(() => service.closeDatabase('nonexistent')).not.toThrow();
     });
   });
+
+  describe('closeDatabasesWithPrefix', () => {
+    const stores = { media: 'id' };
+
+    function deleteDb(name: string): Promise<string> {
+      return new Promise(resolve => {
+        const request = indexedDB.deleteDatabase(name);
+        request.onsuccess = () => resolve('deleted');
+        request.onblocked = () => resolve('blocked');
+      });
+    }
+
+    it("closes one profile's connections, so its databases can be deleted", async () => {
+      const gone = await service.initializeDatabase({
+        dbName: 'srv:gone:inkweld-media',
+        version: 1,
+        stores,
+      });
+      const kept = await service.initializeDatabase({
+        dbName: 'local:inkweld-media',
+        version: 1,
+        stores,
+      });
+
+      service.closeDatabasesWithPrefix('srv:gone:');
+      await Promise.resolve();
+
+      expect(await deleteDb('srv:gone:inkweld-media')).toBe('deleted');
+      expect(gone).toBeTruthy();
+      // Another profile's connection stays usable
+      expect(() => kept.transaction('media', 'readonly')).not.toThrow();
+      // The next caller gets a fresh connection, not the closed one
+      const reopened = await service.initializeDatabase({
+        dbName: 'srv:gone:inkweld-media',
+        version: 1,
+        stores,
+      });
+      expect(reopened).not.toBe(gone);
+    });
+  });
 });

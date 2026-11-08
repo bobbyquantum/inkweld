@@ -2,6 +2,7 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import { CloudTokenStoreService } from '@services/cloud-sync/cloud-token-store.service';
+import { StorageService } from '@services/local/storage.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LoggerService } from './logger.service';
@@ -60,6 +61,7 @@ describe('ProfileManagerService', () => {
     recordMigration?: ReturnType<typeof vi.fn>;
     renameProjectInContext?: ReturnType<typeof vi.fn>;
     activateProjectsInContext?: ReturnType<typeof vi.fn>;
+    getPrefixForConfig?: ReturnType<typeof vi.fn>;
   };
   let auth: {
     hasTokenForConfig: ReturnType<typeof vi.fn>;
@@ -102,6 +104,7 @@ describe('ProfileManagerService', () => {
       ]),
       clearPrefixedData: vi.fn().mockResolvedValue(undefined),
       clearConfig: vi.fn(),
+      getPrefixForConfig: vi.fn((id: string) => `srv:${id}:`),
     };
     auth = {
       hasTokenForConfig: vi.fn().mockReturnValue(false),
@@ -215,6 +218,31 @@ describe('ProfileManagerService', () => {
       // Not the active one: stay put
       expect(destination).toBe('home');
       expect(storage.switchToConfig).not.toHaveBeenCalled();
+    });
+
+    it("closes this tab's connections to an inactive profile before deleting its data", async () => {
+      const storageService = TestBed.inject(StorageService);
+      const close = vi
+        .spyOn(storageService, 'closeDatabasesWithPrefix')
+        .mockImplementation(() => {});
+
+      await service.disconnect(server.id);
+
+      expect(close).toHaveBeenCalledWith(`srv:${server.id}:`);
+      expect(close.mock.invocationCallOrder[0]).toBeLessThan(
+        storage.clearContextData.mock.invocationCallOrder[0]
+      );
+    });
+
+    it("leaves the active profile's connections to its services", async () => {
+      const storageService = TestBed.inject(StorageService);
+      const close = vi
+        .spyOn(storageService, 'closeDatabasesWithPrefix')
+        .mockImplementation(() => {});
+
+      await service.disconnect(cloud.id);
+
+      expect(close).not.toHaveBeenCalled();
     });
 
     it('switches to the most recently used remaining connection when the active one goes', async () => {

@@ -104,14 +104,20 @@ described in `backend/AGENTS.md`.
   server profile for an upgrade: the projects would stay behind.
 - The move reads its source by profile id, never through the active profile
   (the sign-in has switched to the server by then) and never as `local`
-  (any Browser or Cloud Sync profile can be the source). A Cloud Sync
-  project not activated on this device fails the move instead of copying
-  empty databases. The move queues the project's cover for upload and
-  activates it in the server profile. The source is marked migrated last, so
-  a failed step leaves the project to pick again. Cancelling returns to the
-  profile that was active, which may not be the source. Connections the move opens to another
-  profile's databases are closed afterwards, so that profile can still be
-  deleted. Details: `docs/site/docs/developer/cloud-sync.md`.
+  (any Browser or Cloud Sync profile can be the source). A named source
+  that is gone stops the move; it never falls back to the active profile.
+  A Cloud Sync project moves only once a full sync pass has finished on this
+  device (activation alone is recorded before the download runs), else it
+  fails instead of copying empty or partial databases. The move queues the
+  project's cover for upload and activates it in the server profile. The
+  source is marked migrated last, so a failed step leaves the project to
+  pick again. Cancelling returns to the profile that was active, which may
+  not be the source.
+- A switch without a reload can leave this tab's connections to the old
+  profile's databases open. Services drop theirs on their next use, and
+  removing a profile (`ProfileManagerService.releaseConnections`) closes the
+  rest first, so its databases can be deleted. Details:
+  `docs/site/docs/developer/cloud-sync.md`.
 
 ## APP_MODE (which profiles may be added)
 

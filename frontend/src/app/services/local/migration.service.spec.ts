@@ -13,6 +13,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { AuthTokenService } from '../auth/auth-token.service';
+import { CloudSyncStateService } from '../cloud-sync/cloud-sync-state.service';
 import { LoggerService } from '../core/logger.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { UserService } from '../user/user.service';
@@ -89,6 +90,9 @@ describe('MigrationService', () => {
   let projectActivationMock: {
     isActivatedInConfig: ReturnType<typeof vi.fn>;
     activateInConfig: ReturnType<typeof vi.fn>;
+  };
+  let cloudSyncStateMock: {
+    hasRecordInConfig: ReturnType<typeof vi.fn>;
   };
 
   const mockProjects: Project[] = [
@@ -169,6 +173,9 @@ describe('MigrationService', () => {
       isActivatedInConfig: vi.fn().mockResolvedValue(false),
       activateInConfig: vi.fn().mockResolvedValue(undefined),
     };
+    cloudSyncStateMock = {
+      hasRecordInConfig: vi.fn().mockResolvedValue(true),
+    };
 
     storageContextServiceMock = {
       getServerUrl: vi.fn().mockReturnValue('http://localhost:8333'),
@@ -232,6 +239,7 @@ describe('MigrationService', () => {
         { provide: ProjectsService, useValue: projectsApiMock },
         { provide: ProjectSyncService, useValue: projectSyncServiceMock },
         { provide: ProjectActivationService, useValue: projectActivationMock },
+        { provide: CloudSyncStateService, useValue: cloudSyncStateMock },
       ],
     });
 
@@ -481,11 +489,41 @@ describe('MigrationService', () => {
       const state = service.migrationState();
       expect(state.failedProjects).toBe(1);
       expect(state.projectStatuses[0].error).toContain(
-        "isn't downloaded to this device"
+        "hasn't finished syncing"
       );
       expect(copyElements).not.toHaveBeenCalled();
       expect(localProjectService.markProjectAsMigrated).not.toHaveBeenCalled();
       expect(projectSyncServiceMock.markPendingCreation).not.toHaveBeenCalled();
+    });
+
+    it('refuses a Cloud Sync project whose download did not finish', async () => {
+      // Opening the project records the activation before the download, so
+      // an interrupted download leaves it activated with partial data
+      localProjectService.getProjectsInConfig.mockReturnValue([
+        mockProjects[0],
+      ]);
+      projectActivationMock.isActivatedInConfig.mockResolvedValue(true);
+      cloudSyncStateMock.hasRecordInConfig.mockResolvedValue(false);
+      const copyElements = vi.spyOn(
+        service as unknown as {
+          copyElementsDocument: (...args: string[]) => Promise<unknown[]>;
+        },
+        'copyElementsDocument'
+      );
+
+      await service.migrateToServerMode(
+        'cloud-dropbox-1',
+        'config-123',
+        'testuser'
+      );
+
+      expect(cloudSyncStateMock.hasRecordInConfig).toHaveBeenCalledWith(
+        'cloud-dropbox-1',
+        '/projects/testuser/test-project-1/project.json'
+      );
+      expect(service.migrationState().failedProjects).toBe(1);
+      expect(copyElements).not.toHaveBeenCalled();
+      expect(localProjectService.markProjectAsMigrated).not.toHaveBeenCalled();
     });
 
     it('moves a Cloud Sync project that is downloaded to this device', async () => {

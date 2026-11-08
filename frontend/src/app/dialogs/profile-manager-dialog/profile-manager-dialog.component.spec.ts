@@ -114,6 +114,9 @@ describe('ProfileManagerDialogComponent', () => {
       ),
       isConfigured: vi.fn(() => configurations().length > 0),
       getPrefix: vi.fn().mockReturnValue('local:'),
+      getPrefixForConfig: vi.fn((id: string) =>
+        id === 'local' || id.startsWith('local-') ? `${id}:` : `srv:${id}:`
+      ),
       describeContextData: vi.fn().mockResolvedValue({
         prefix: 'local:',
         databases: ['local:inkweld-media'],
@@ -664,23 +667,31 @@ describe('ProfileManagerDialogComponent', () => {
       }
     });
 
-    it('falls back to the active profile when the named one is gone', () => {
+    it('stops the move when the named profile is gone, rather than moving another', () => {
       storageContextMock.activeConfig.set(secondBrowser);
       storageContextMock.configurations.set([
         mockLocalConfig,
         secondBrowser,
         mockServerConfig,
       ]);
-      migrationServiceMock.getLocalProjects.mockImplementation((id: string) =>
-        id === secondBrowser.id ? [novel] : []
-      );
+      migrationServiceMock.getLocalProjects.mockReturnValue([novel]);
 
       const ref = openWith({
         view: 'add-server',
+        serverUrl: 'https://inkweld.example.com',
         sourceProfileId: 'local-gone',
       });
       try {
-        expect(ref.instance['localProjects']()).toEqual([novel]);
+        expect(ref.instance['localProjects']()).toEqual([]);
+        expect(migrationServiceMock.getLocalProjects).not.toHaveBeenCalled();
+
+        ref.instance.addServer();
+
+        expect(ref.instance['currentView']()).toBe('add');
+        expect(ref.instance['migrationSource']()).toBeNull();
+        expect(ref.instance['connectionError']()).toContain(
+          'no longer on this device'
+        );
       } finally {
         ref.destroy();
       }

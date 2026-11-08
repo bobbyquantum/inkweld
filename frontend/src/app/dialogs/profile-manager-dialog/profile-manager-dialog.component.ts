@@ -459,13 +459,14 @@ export class ProfileManagerDialogComponent {
 
   /**
    * The profile a move to a server starts from: the one "Connect to sync"
-   * named, else the active profile
+   * named, else the active profile. Undefined when the named one is gone:
+   * moving another profile's projects instead could take the wrong ones.
    */
   private moveSource(): ServerConfig | undefined {
-    const named = this.namedMoveSource
-      ? this.storageContext.getConfigById(this.namedMoveSource)
-      : undefined;
-    return named ?? this.activeProfile() ?? undefined;
+    if (this.namedMoveSource) {
+      return this.storageContext.getConfigById(this.namedMoveSource);
+    }
+    return this.activeProfile() ?? undefined;
   }
 
   /**
@@ -577,13 +578,21 @@ export class ProfileManagerDialogComponent {
       return;
     }
 
+    const source = this.moveSource();
+    if (this.namedMoveSource && !source) {
+      this.connectionError.set(
+        this.transloco.translate('dialogs.profileManager.moveSourceGone')
+      );
+      return;
+    }
+
     // Normalize URL to ensure it has a protocol
     const url = normalizeServerUrl(rawUrl);
 
     // Always show the auth form - user needs to authenticate on the new server
     // The migration view handles both auth and optional project migration
     this.pendingServerUrl = url;
-    this.migrationSource.set(this.moveSource()?.id ?? null);
+    this.migrationSource.set(source?.id ?? null);
     this.profileBeforeMove = this.activeProfile()?.id ?? null;
     this.currentView.set('migrate');
     this.showAuthForm.set(true);
@@ -1353,6 +1362,7 @@ export class ProfileManagerDialogComponent {
   private discardProfile(id: string): void {
     this.createdProfileIds.delete(id);
     this.authTokenService.clearTokenForConfig(id);
+    this.profileManager.releaseConnections(id);
     this.storageContext.removeConfig(id);
     this.storageContext.clearContextData(id).catch((error: unknown) => {
       console.warn(`Could not clear data of profile ${id}:`, error);

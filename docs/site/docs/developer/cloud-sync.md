@@ -68,8 +68,9 @@ user-menu switcher and the Profile settings tab are thin views over it.
   migration dialog avoids the fork by passing the username to
   `configureServerMode` before logging in.
 - **Remove** clears the profile's credentials (auth token or cloud token),
-  deletes every IndexedDB database and localStorage key under its prefix,
-  then removes the configuration. Remote data is never touched. If the
+  deletes every IndexedDB database and localStorage key under its prefix
+  (first closing this tab's cached connections to an inactive profile's
+  databases, which would block the delete), then removes the configuration. Remote data is never touched. If the
   active profile goes, the most recently used remaining one becomes active;
   with none left the app returns to the welcome screen.
 - **Storage scan** (`StorageContextService.describeContextData` and
@@ -115,10 +116,14 @@ user-menu switcher and the Profile settings tab are thin views over it.
   already made the server profile active and the source need not be the
   first Browser profile (`local`). Its media is copied database to database
   (`LocalStorageService.copyProjectMediaBetweenProfiles`), which closes the
-  connections it opened afterwards. A Cloud Sync project that isn't
-  activated on this device (a cover from another device) is refused
-  (`ProjectActivationService.isActivatedInConfig`): its documents are only
-  in the cloud. A moved project's cover is queued as a pending cover upload
+  connections it opened afterwards. A Cloud Sync project moves only once a
+  full sync pass has finished on this device: it must be activated
+  (`ProjectActivationService.isActivatedInConfig`) and have a sync record
+  for its `project.json` (`CloudSyncStateService.hasRecordInConfig`), which
+  a pass writes last and a cover-only adoption never writes. Activation
+  alone isn't enough, because opening a project records it before the
+  download runs. A project "Connect to sync" named that is no longer on the
+  device stops the move. A moved project's cover is queued as a pending cover upload
   (creating the project doesn't send it) and the project is activated in
   the server profile straight away, so it opens before the server has it.
   A project is marked migrated in its source profile only after it is

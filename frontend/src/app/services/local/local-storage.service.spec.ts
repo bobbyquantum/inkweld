@@ -462,6 +462,30 @@ describe('LocalStorageService', () => {
       expect(await service.getMedia('bobby/novel', 'cover')).not.toBeNull();
     });
 
+    it('lets a target it read from be deleted after switching back without a reload', async () => {
+      const context = TestBed.inject(StorageContextService);
+      const prefix = vi
+        .spyOn(context, 'prefixDbName')
+        .mockImplementation(name => `srv:srv1:${name}`);
+      // After the sign-in the server profile is active and its media is read
+      await service.saveMedia('mover/novel', 'cover', createTestBlob('cover'));
+      // Cancelling returns to the Browser profile; then the server profile
+      // is removed, which closes this tab's connections to it first
+      prefix.mockImplementation(name => `local-abc:${name}`);
+      storageService.closeDatabasesWithPrefix('srv:srv1:');
+      await Promise.resolve();
+
+      const deleted = await new Promise<string>(resolve => {
+        const request = indexedDB.deleteDatabase('srv:srv1:inkweld-media');
+        request.onsuccess = () => resolve('deleted');
+        request.onblocked = () => resolve('blocked');
+      });
+
+      expect(deleted).toBe('deleted');
+      // And the service reads the Browser profile's media from now on
+      expect(await service.getMedia('mover/novel', 'cover')).toBeNull();
+    });
+
     it('leaves open the database it uses for the active profile', async () => {
       const context = TestBed.inject(StorageContextService);
       vi.spyOn(context, 'getPrefixForConfig').mockImplementation(id =>

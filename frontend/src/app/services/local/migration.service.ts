@@ -14,6 +14,8 @@ import { IndexeddbPersistence } from 'y-indexeddb';
 import * as Y from 'yjs';
 
 import { AuthTokenService } from '../auth/auth-token.service';
+import { projectJsonPath } from '../cloud-sync/cloud-sync-layout';
+import { CloudSyncStateService } from '../cloud-sync/cloud-sync-state.service';
 import { LoggerService } from '../core/logger.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { UserService } from '../user/user.service';
@@ -115,6 +117,7 @@ export class MigrationService {
   private readonly localStorage = inject(LocalStorageService);
   private readonly projectSyncService = inject(ProjectSyncService);
   private readonly projectActivation = inject(ProjectActivationService);
+  private readonly cloudSyncState = inject(CloudSyncStateService);
   private readonly transloco = inject(TranslocoService);
   private readonly logger = inject(LoggerService);
   private readonly authenticationService = inject(AuthenticationService);
@@ -576,9 +579,13 @@ export class MigrationService {
 
   /**
    * A Cloud Sync project made on another device shows here as a cover until
-   * it is opened (activated); its documents are only in the cloud. Moving it
-   * would copy empty databases to the server, so it fails instead and stays
-   * in its profile to be moved once it has downloaded.
+   * it is opened (activated), and opening it records the activation before
+   * the download runs. Moving it before a download has finished would copy
+   * empty or partial databases to the server, so it fails instead and stays
+   * in its profile. A finished pass is confirmed by the sync record of
+   * `project.json`, which a pass writes last and a cover-only adoption never
+   * writes. A project made here and not yet synced is refused too, until it
+   * syncs.
    */
   private async assertDownloadedHere(
     project: Project,
@@ -587,14 +594,16 @@ export class MigrationService {
     const source = this.storageContextService.getConfigById(sourceConfigId);
     if (source?.type !== 'cloud') return;
     const projectKey = `${project.username}/${project.slug}`;
-    if (
-      await this.projectActivation.isActivatedInConfig(
+    const downloaded =
+      (await this.projectActivation.isActivatedInConfig(
         sourceConfigId,
         projectKey
-      )
-    ) {
-      return;
-    }
+      )) &&
+      (await this.cloudSyncState.hasRecordInConfig(
+        sourceConfigId,
+        projectJsonPath(project.username, project.slug)
+      ));
+    if (downloaded) return;
     throw new Error(
       this.transloco.translate('dialogs.profileManager.projectNotDownloaded')
     );
