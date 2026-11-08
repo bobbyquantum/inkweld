@@ -598,6 +598,90 @@ describe('ProfileManagerDialogComponent', () => {
       expect(component['localProjects']()).toEqual([novel]);
     });
 
+    /** A dialog opened with data, as the dialog gateway opens it */
+    function openWith(data: ProfileManagerDialogData) {
+      return createComponent(ProfileManagerDialogComponent, {
+        environmentInjector: TestBed.inject(EnvironmentInjector),
+        elementInjector: Injector.create({
+          providers: [{ provide: MAT_DIALOG_DATA, useValue: data }],
+        }),
+      });
+    }
+
+    it('moves from the profile "Connect to sync" named, even when another is active', () => {
+      storageContextMock.configurations.set([
+        mockLocalConfig,
+        secondBrowser,
+        mockServerConfig,
+      ]);
+      storageContextMock.activeConfig.set(mockLocalConfig);
+      migrationServiceMock.getLocalProjects.mockImplementation((id: string) =>
+        id === secondBrowser.id ? [novel] : []
+      );
+
+      const ref = openWith({
+        view: 'add-server',
+        serverUrl: 'https://inkweld.example.com',
+        sourceProfileId: secondBrowser.id,
+      });
+      try {
+        expect(ref.instance['localProjects']()).toEqual([novel]);
+        ref.instance.addServer();
+        expect(ref.instance['migrationSource']()).toBe(secondBrowser.id);
+      } finally {
+        ref.destroy();
+      }
+    });
+
+    it('falls back to the active profile when the named one is gone', () => {
+      storageContextMock.activeConfig.set(secondBrowser);
+      storageContextMock.configurations.set([
+        mockLocalConfig,
+        secondBrowser,
+        mockServerConfig,
+      ]);
+      migrationServiceMock.getLocalProjects.mockImplementation((id: string) =>
+        id === secondBrowser.id ? [novel] : []
+      );
+
+      const ref = openWith({
+        view: 'add-server',
+        sourceProfileId: 'local-gone',
+      });
+      try {
+        expect(ref.instance['localProjects']()).toEqual([novel]);
+      } finally {
+        ref.destroy();
+      }
+    });
+
+    it('moves from the active profile again once the server form is left', () => {
+      storageContextMock.configurations.set([
+        mockLocalConfig,
+        secondBrowser,
+        mockServerConfig,
+      ]);
+      storageContextMock.activeConfig.set(mockLocalConfig);
+      migrationServiceMock.getLocalProjects.mockImplementation((id: string) =>
+        id === secondBrowser.id ? [novel] : []
+      );
+
+      const ref = openWith({
+        view: 'add-server',
+        sourceProfileId: secondBrowser.id,
+      });
+      try {
+        ref.instance.cancelAddServer();
+        ref.instance.showAddServer();
+        expect(ref.instance['localProjects']()).toEqual([]);
+        expect(migrationServiceMock.getLocalProjects).toHaveBeenLastCalledWith(
+          mockLocalConfig.id
+        );
+      } finally {
+        ref.destroy();
+      }
+    });
+
     it('offers nothing to move from a server profile', () => {
       storageContextMock.activeConfig.set(mockServerConfig);
       migrationServiceMock.getLocalProjects.mockReturnValue([novel]);

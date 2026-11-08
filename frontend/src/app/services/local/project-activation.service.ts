@@ -8,6 +8,10 @@ import { type StorageConfig, StorageService } from './storage.service';
 const ACTIVATION_DB_BASE_NAME = 'inkweld-activations';
 const STORE_NAME = 'activations';
 
+function activationDbConfig(dbName: string): StorageConfig {
+  return { dbName, version: 1, stores: { [STORE_NAME]: 'projectKey' } };
+}
+
 /**
  * Stored activation record in IndexedDB
  */
@@ -49,20 +53,20 @@ export class ProjectActivationService {
   readonly activationVersion = signal(0);
 
   private get dbConfig(): StorageConfig {
-    return {
-      dbName: this.storageContext.prefixDbName(ACTIVATION_DB_BASE_NAME),
-      version: 1,
-      stores: {
-        [STORE_NAME]: 'projectKey',
-      },
-    };
+    return activationDbConfig(
+      this.storageContext.prefixDbName(ACTIVATION_DB_BASE_NAME)
+    );
   }
 
   private ensureDb(): Promise<IDBDatabase> {
     const expectedDbName = this.dbConfig.dbName;
 
     if (this.db && this.currentDbName !== expectedDbName) {
-      this.db.close();
+      // Through StorageService, so its cache doesn't hand out the closed
+      // connection to the next caller
+      if (this.currentDbName) {
+        this.storageService.closeDatabase(this.currentDbName);
+      }
       this.db = null;
       this.currentDbName = null;
       this.initPromise = null;
@@ -101,7 +105,7 @@ export class ProjectActivationService {
     // Reset if the storage context has changed (e.g., user switched servers)
     const expectedDbName = this.dbConfig.dbName;
     if (this.currentDbName && this.currentDbName !== expectedDbName) {
-      this.db?.close();
+      this.storageService.closeDatabase(this.currentDbName);
       this.db = null;
       this.currentDbName = null;
       this.initPromise = null;
@@ -167,6 +171,34 @@ export class ProjectActivationService {
     // Read activationVersion to ensure signals track changes
     this.activationVersion();
     return this.activatedKeys().has(projectKey);
+  }
+
+  /**
+   * Whether a project is activated on this device in a given profile,
+   * whichever profile is active. The move to a server asks after the
+   * sign-in has switched to the server. Another profile's database is
+   * closed again afterwards, so it can't block deleting that profile.
+   */
+  async isActivatedInConfig(
+    configId: string,
+    projectKey: string
+  ): Promise<boolean> {
+    const dbName = `${this.storageContext.getPrefixForConfig(configId)}${ACTIVATION_DB_BASE_NAME}`;
+    try {
+      const db = await this.storageService.initializeDatabase(
+        activationDbConfig(dbName)
+      );
+      const record = await this.storageService.get<StoredActivation>(
+        db,
+        STORE_NAME,
+        projectKey
+      );
+      return record !== undefined;
+    } finally {
+      if (dbName !== this.currentDbName && dbName !== this.dbConfig.dbName) {
+        this.storageService.closeDatabase(dbName);
+      }
+    }
   }
 
   /**

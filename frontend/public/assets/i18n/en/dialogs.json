@@ -458,6 +458,7 @@
     "authenticationFailed": "Authentication failed. Please try again.",
     "resolveConflicts": "Please resolve slug conflicts before migrating. Rename conflicting projects or deselect them.",
     "migrationFailed": "Migration failed. Please try again.",
+    "projectNotDownloaded": "This project isn't downloaded to this device yet. Open it once so it downloads, then move it.",
     "slugConflicts": "{{count}} project(s) have slug conflicts. Please rename them before migrating.",
     "listIntro": "A profile is one author identity: in this browser, in your own cloud storage, or on an Inkweld server. Each keeps its own projects and settings on this device. Click one to switch.",
     "kindBrowser": "Browser",

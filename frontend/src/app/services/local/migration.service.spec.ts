@@ -24,6 +24,7 @@ import {
   MigrationStatus,
   ServerApprovalRequiredError,
 } from './migration.service';
+import { ProjectActivationService } from './project-activation.service';
 import { ProjectSyncService } from './project-sync.service';
 
 describe('MigrationService', () => {
@@ -33,6 +34,7 @@ describe('MigrationService', () => {
     getActiveConfig: ReturnType<typeof vi.fn>;
     updateConfigUserProfile: ReturnType<typeof vi.fn>;
     getPrefixForConfig: ReturnType<typeof vi.fn>;
+    getConfigById: ReturnType<typeof vi.fn>;
     storagePrefix: ReturnType<typeof signal>;
   };
   let localProjectService: {
@@ -82,6 +84,9 @@ describe('MigrationService', () => {
   };
   let projectSyncServiceMock: {
     markPendingCreation: ReturnType<typeof vi.fn>;
+  };
+  let projectActivationMock: {
+    isActivatedInConfig: ReturnType<typeof vi.fn>;
   };
 
   const mockProjects: Project[] = [
@@ -157,6 +162,9 @@ describe('MigrationService', () => {
     projectSyncServiceMock = {
       markPendingCreation: vi.fn().mockResolvedValue(undefined),
     };
+    projectActivationMock = {
+      isActivatedInConfig: vi.fn().mockResolvedValue(false),
+    };
 
     storageContextServiceMock = {
       getServerUrl: vi.fn().mockReturnValue('http://localhost:8333'),
@@ -171,8 +179,17 @@ describe('MigrationService', () => {
       }),
       updateConfigUserProfile: vi.fn(),
       getPrefixForConfig: vi.fn((id: string) =>
-        id === 'local' || id.startsWith('local-') ? `${id}:` : `srv:${id}:`
+        id === 'local' || id.startsWith('local-') || id.startsWith('cloud-')
+          ? `${id}:`
+          : `srv:${id}:`
       ),
+      getConfigById: vi.fn((id: string) => {
+        if (id.startsWith('cloud-')) return { id, type: 'cloud' };
+        if (id === 'local' || id.startsWith('local-')) {
+          return { id, type: 'local' };
+        }
+        return { id, type: 'server' };
+      }),
       storagePrefix: signal('local'),
     };
 
@@ -210,6 +227,7 @@ describe('MigrationService', () => {
         { provide: LocalStorageService, useValue: localStorageMock },
         { provide: ProjectsService, useValue: projectsApiMock },
         { provide: ProjectSyncService, useValue: projectSyncServiceMock },
+        { provide: ProjectActivationService, useValue: projectActivationMock },
       ],
     });
 
@@ -349,6 +367,111 @@ describe('MigrationService', () => {
       expect(state.failedProjects).toBe(1);
       expect(localProjectService.markProjectAsMigrated).not.toHaveBeenCalled();
       expect(projectSyncServiceMock.markPendingCreation).not.toHaveBeenCalled();
+    });
+
+    it('marks the project migrated only after it is registered for sync', async () => {
+      setMockProjects([mockProjects[0]]);
+
+      await service.migrateToServerMode('local', 'config-123', 'testuser');
+
+      const registered =
+        projectSyncServiceMock.markPendingCreation.mock.invocationCallOrder[0];
+      const marked =
+        localProjectService.markProjectAsMigrated.mock.invocationCallOrder[0];
+      expect(registered).toBeLessThan(marked);
+    });
+
+    it('leaves the project to pick again when it cannot be registered for sync', async () => {
+      setMockProjects([mockProjects[0]]);
+      projectSyncServiceMock.markPendingCreation.mockRejectedValue(
+        new Error('IndexedDB closed')
+      );
+
+      await service.migrateToServerMode('local', 'config-123', 'testuser');
+
+      expect(service.migrationState().failedProjects).toBe(1);
+      expect(localProjectService.markProjectAsMigrated).not.toHaveBeenCalled();
+    });
+
+    it('leaves the project to pick again when the target entry cannot be made', async () => {
+      setMockProjects([mockProjects[0]]);
+      localProjectService.createProjectInConfig.mockImplementation(() => {
+        throw new Error('storage full');
+      });
+
+      await service.migrateToServerMode('local', 'config-123', 'testuser');
+
+      expect(service.migrationState().failedProjects).toBe(1);
+      expect(localProjectService.markProjectAsMigrated).not.toHaveBeenCalled();
+      expect(projectSyncServiceMock.markPendingCreation).not.toHaveBeenCalled();
+    });
+
+    it('refuses a Cloud Sync project that is not downloaded to this device', async () => {
+      localProjectService.getProjectsInConfig.mockReturnValue([
+        mockProjects[0],
+      ]);
+      const copyElements = vi.spyOn(
+        service as unknown as {
+          copyElementsDocument: (...args: string[]) => Promise<unknown[]>;
+        },
+        'copyElementsDocument'
+      );
+
+      await service.migrateToServerMode(
+        'cloud-dropbox-1',
+        'config-123',
+        'testuser'
+      );
+
+      expect(projectActivationMock.isActivatedInConfig).toHaveBeenCalledWith(
+        'cloud-dropbox-1',
+        'testuser/test-project-1'
+      );
+      const state = service.migrationState();
+      expect(state.failedProjects).toBe(1);
+      expect(state.projectStatuses[0].error).toContain(
+        "isn't downloaded to this device"
+      );
+      expect(copyElements).not.toHaveBeenCalled();
+      expect(localProjectService.markProjectAsMigrated).not.toHaveBeenCalled();
+      expect(projectSyncServiceMock.markPendingCreation).not.toHaveBeenCalled();
+    });
+
+    it('moves a Cloud Sync project that is downloaded to this device', async () => {
+      localProjectService.getProjectsInConfig.mockReturnValue([
+        mockProjects[0],
+      ]);
+      projectActivationMock.isActivatedInConfig.mockResolvedValue(true);
+      vi.spyOn(
+        service as unknown as {
+          copyElementsDocument: (...args: string[]) => Promise<unknown[]>;
+        },
+        'copyElementsDocument'
+      ).mockResolvedValue([]);
+
+      await service.migrateToServerMode(
+        'cloud-dropbox-1',
+        'config-123',
+        'testuser'
+      );
+
+      expect(service.migrationState().completedProjects).toBe(1);
+      expect(localProjectService.markProjectAsMigrated).toHaveBeenCalledWith(
+        'cloud-dropbox-1',
+        'test-project-1',
+        'test-project-1',
+        'http://localhost:8333',
+        'testuser'
+      );
+    });
+
+    it('does not ask about downloads for a Browser profile', async () => {
+      setMockProjects([mockProjects[0]]);
+
+      await service.migrateToServerMode('local', 'config-123', 'testuser');
+
+      expect(projectActivationMock.isActivatedInConfig).not.toHaveBeenCalled();
+      expect(service.migrationState().completedProjects).toBe(1);
     });
 
     it('should do nothing when no local projects exist', async () => {

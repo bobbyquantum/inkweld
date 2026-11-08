@@ -87,12 +87,17 @@ import {
 /** Optional data: which view to open with */
 export interface ProfileManagerDialogData {
   /**
-   * `add-server` opens the server form, the start of the guided move of the
-   * active profile's projects to a server
+   * `add-server` opens the server form, the start of the guided move of a
+   * profile's projects to a server
    */
   view?: 'list' | 'upgrade' | 'add-server';
   /** Server address to prefill in the server form */
   serverUrl?: string;
+  /**
+   * The profile `add-server` moves projects from ("Connect to sync" names
+   * it). Defaults to the active profile.
+   */
+  sourceProfileId?: string;
 }
 
 @Component({
@@ -212,10 +217,15 @@ export class ProfileManagerDialogComponent {
 
   // Migration state (for local -> server transitions)
   protected migrationState = this.migrationService.migrationState;
-  /** Profile that was active when the move started (the source) */
+  /** Profile the move started from (the source) */
   private readonly migrationSource = signal<string | null>(null);
   /**
-   * Projects the move to a server would carry, read from the active profile
+   * The profile "Connect to sync" opened the server form for, until the
+   * form is left. Null means the active profile.
+   */
+  private namedMoveSource = this.dialogData?.sourceProfileId ?? null;
+  /**
+   * Projects the move to a server would carry, read from the move's source
    * when the server form opens. The list stays as it was read while the
    * sign-in switches to the server and the projects move.
    */
@@ -442,12 +452,23 @@ export class ProfileManagerDialogComponent {
   }
 
   /**
-   * Read the projects a move to a server would carry from the active
-   * profile, the one the move starts from. Only Browser and Cloud Sync
-   * profiles move up to a server; a server profile has nothing to carry.
+   * The profile a move to a server starts from: the one "Connect to sync"
+   * named, else the active profile
+   */
+  private moveSource(): ServerConfig | undefined {
+    const named = this.namedMoveSource
+      ? this.storageContext.getConfigById(this.namedMoveSource)
+      : undefined;
+    return named ?? this.activeProfile() ?? undefined;
+  }
+
+  /**
+   * Read the projects a move to a server would carry from the move's
+   * source. Only Browser and Cloud Sync profiles move up to a server; a
+   * server profile has nothing to carry.
    */
   private loadProjectsToMove(): void {
-    const source = this.activeProfile();
+    const source = this.moveSource();
     this.localProjects.set(
       source?.type === 'local' || source?.type === 'cloud'
         ? this.migrationService.getLocalProjects(source.id)
@@ -460,6 +481,7 @@ export class ProfileManagerDialogComponent {
    */
   cancelAddServer(): void {
     this.currentView.set('list');
+    this.namedMoveSource = null;
     this.resetAddServerForm();
   }
 
@@ -555,7 +577,7 @@ export class ProfileManagerDialogComponent {
     // Always show the auth form - user needs to authenticate on the new server
     // The migration view handles both auth and optional project migration
     this.pendingServerUrl = url;
-    this.migrationSource.set(this.activeProfile()?.id ?? null);
+    this.migrationSource.set(this.moveSource()?.id ?? null);
     this.currentView.set('migrate');
     this.showAuthForm.set(true);
     void this.loadTargetFeatures(url);
@@ -870,6 +892,7 @@ export class ProfileManagerDialogComponent {
    */
   async cancelMigration(): Promise<void> {
     this.currentView.set('list');
+    this.namedMoveSource = null;
     if (this.migrationSource()) await this.restoreSourceProfile();
     this.resetMigrationForm();
   }

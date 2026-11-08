@@ -95,6 +95,8 @@ export class LocalStorageService {
   private readonly storageContext = inject(StorageContextService);
   private db: IDBDatabase | null = null;
   private initPromise: Promise<IDBDatabase> | null = null;
+  /** Name of the database `db` holds (or is opening) */
+  private ownDbName: string | null = null;
 
   /** Cache of active blob URLs to prevent memory leaks */
   private readonly activeUrls = new Map<string, string>();
@@ -124,8 +126,10 @@ export class LocalStorageService {
       return this.initPromise;
     }
 
+    const config = this.dbConfig;
+    this.ownDbName = config.dbName;
     this.initPromise = this.storageService
-      .initializeDatabase(this.dbConfig)
+      .initializeDatabase(config)
       .then(db => {
         this.db = db;
         return db;
@@ -334,6 +338,9 @@ export class LocalStorageService {
    * switched the app to the target, so neither side can go through the
    * active profile's database. Media the target already has is kept.
    * Throws when a file can't be copied. Returns how many were copied.
+   *
+   * The connections it opens are closed afterwards, so they can't block
+   * deleting either profile later (cancelling the move removes the target).
    */
   async copyProjectMediaBetweenProfiles(
     fromConfigId: string,
@@ -341,38 +348,51 @@ export class LocalStorageService {
     fromProjectKey: string,
     toProjectKey: string
   ): Promise<number> {
-    const source = await this.openProfileDb(fromConfigId);
-    const keys = await this.projectMediaKeys(source, fromProjectKey);
-    if (keys.length === 0) return 0;
-    const target = await this.openProfileDb(toConfigId);
-    let copied = 0;
-    // Sequential: media blobs are large; one file at a time bounds memory.
-    await forEachSequential(keys, async key => {
-      const record = await this.storageService.get<StoredMedia>(
-        source,
-        STORE_NAME,
-        key
-      );
-      if (!record) return;
-      const id = `${toProjectKey}:${this.parseKey(key).mediaId}`;
-      const existing = await this.storageService.get<StoredMedia>(
-        target,
-        STORE_NAME,
-        id
-      );
-      if (existing) return;
-      await this.storageService.put(target, STORE_NAME, { ...record, id });
-      copied++;
-    });
-    return copied;
+    const fromDbName = this.profileDbName(fromConfigId);
+    const toDbName = this.profileDbName(toConfigId);
+    try {
+      const source = await this.openProfileDb(fromDbName);
+      const keys = await this.projectMediaKeys(source, fromProjectKey);
+      if (keys.length === 0) return 0;
+      const target = await this.openProfileDb(toDbName);
+      let copied = 0;
+      // Sequential: media blobs are large; one file at a time bounds memory.
+      await forEachSequential(keys, async key => {
+        const record = await this.storageService.get<StoredMedia>(
+          source,
+          STORE_NAME,
+          key
+        );
+        if (!record) return;
+        const id = `${toProjectKey}:${this.parseKey(key).mediaId}`;
+        const existing = await this.storageService.get<StoredMedia>(
+          target,
+          STORE_NAME,
+          id
+        );
+        if (existing) return;
+        await this.storageService.put(target, STORE_NAME, { ...record, id });
+        copied++;
+      });
+      return copied;
+    } finally {
+      this.releaseProfileDb(fromDbName);
+      this.releaseProfileDb(toDbName);
+    }
   }
 
-  /** A profile's media database, whichever profile is active */
-  private openProfileDb(configId: string): Promise<IDBDatabase> {
-    return this.storageService.initializeDatabase({
-      ...this.dbConfig,
-      dbName: `${this.storageContext.getPrefixForConfig(configId)}${MEDIA_DB_BASE_NAME}`,
-    });
+  /** Name of a profile's media database, whichever profile is active */
+  private profileDbName(configId: string): string {
+    return `${this.storageContext.getPrefixForConfig(configId)}${MEDIA_DB_BASE_NAME}`;
+  }
+
+  private openProfileDb(dbName: string): Promise<IDBDatabase> {
+    return this.storageService.initializeDatabase({ ...this.dbConfig, dbName });
+  }
+
+  /** Close a profile's media database, unless this service is using it */
+  private releaseProfileDb(dbName: string): void {
+    if (dbName !== this.ownDbName) this.storageService.closeDatabase(dbName);
   }
 
   /** Keys of every media record of one project in a media database */

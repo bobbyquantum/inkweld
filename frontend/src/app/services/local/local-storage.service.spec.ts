@@ -7,10 +7,11 @@ import {
 } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { PublicProjectContextService } from '../core/public-project-context.service';
+import { StorageContextService } from '../core/storage-context.service';
 import { LocalStorageService } from './local-storage.service';
 import { StorageService } from './storage.service';
 
@@ -57,6 +58,7 @@ describe('LocalStorageService', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     service.revokeAllUrls();
     storageService.closeAll();
     // Reset IndexedDB for clean state
@@ -405,6 +407,63 @@ describe('LocalStorageService', () => {
           'bobby/empty'
         )
       ).resolves.toBe(0);
+    });
+
+    it('closes the databases it opened, so deleting either profile is not blocked', async () => {
+      await put('local-abc:', 'bobby/novel:cover', 'cover');
+      const close = vi.spyOn(storageService, 'closeDatabase');
+
+      await service.copyProjectMediaBetweenProfiles(
+        'local-abc',
+        'srv1',
+        'bobby/novel',
+        'mover/my-novel'
+      );
+
+      expect(close).toHaveBeenCalledWith('local-abc:inkweld-media');
+      expect(close).toHaveBeenCalledWith('srv:srv1:inkweld-media');
+    });
+
+    it('closes them when a file fails to copy', async () => {
+      await put('local-abc:', 'bobby/novel:cover', 'cover');
+      vi.spyOn(storageService, 'put').mockRejectedValueOnce(
+        new Error('quota exceeded')
+      );
+      const close = vi.spyOn(storageService, 'closeDatabase');
+
+      await expect(
+        service.copyProjectMediaBetweenProfiles(
+          'local-abc',
+          'srv1',
+          'bobby/novel',
+          'mover/my-novel'
+        )
+      ).rejects.toThrow('quota exceeded');
+
+      expect(close).toHaveBeenCalledWith('local-abc:inkweld-media');
+      expect(close).toHaveBeenCalledWith('srv:srv1:inkweld-media');
+    });
+
+    it('leaves open the database it uses for the active profile', async () => {
+      const context = TestBed.inject(StorageContextService);
+      vi.spyOn(context, 'getPrefixForConfig').mockImplementation(id =>
+        id === 'active' ? context.getPrefix() : `srv:${id}:`
+      );
+      await service.saveMedia('bobby/novel', 'cover', createTestBlob('cover'));
+      const close = vi.spyOn(storageService, 'closeDatabase');
+
+      await service.copyProjectMediaBetweenProfiles(
+        'active',
+        'srv1',
+        'bobby/novel',
+        'mover/my-novel'
+      );
+
+      expect(close).toHaveBeenCalledWith('srv:srv1:inkweld-media');
+      expect(close).not.toHaveBeenCalledWith(
+        context.prefixDbName('inkweld-media')
+      );
+      expect(await service.getMedia('bobby/novel', 'cover')).not.toBeNull();
     });
   });
 

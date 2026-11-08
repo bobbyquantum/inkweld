@@ -108,12 +108,18 @@ user-menu switcher and the Profile settings tab are thin views over it.
 - **Upgrading to a server** is the profile manager's guided move (sign in,
   pick projects, copy, sync), also when it is chosen on the welcome screen:
   that opens the profile manager on its server form
-  (`{ view: 'add-server' }`) rather than adding a bare server profile, which
-  would leave the projects behind. The move reads the source profile by its
-  id (`MigrationService` and `LocalProjectService.getProjectsInConfig`),
-  because the sign-in has already made the server profile active and the
-  source need not be the first Browser profile (`local`). Its media is copied
-  database to database (`LocalStorageService.copyProjectMediaBetweenProfiles`).
+  (`{ view: 'add-server', sourceProfileId }`, the profile being upgraded)
+  rather than adding a bare server profile, which would leave the projects
+  behind. The move reads the source profile by its id (`MigrationService`
+  and `LocalProjectService.getProjectsInConfig`), because the sign-in has
+  already made the server profile active and the source need not be the
+  first Browser profile (`local`). Its media is copied database to database
+  (`LocalStorageService.copyProjectMediaBetweenProfiles`), which closes the
+  connections it opened afterwards. A Cloud Sync project that isn't
+  activated on this device (a cover from another device) is refused
+  (`ProjectActivationService.isActivatedInConfig`): its documents are only
+  in the cloud. A project is marked migrated in its source profile only
+  after it is registered for sync, so a failed move can be retried.
 - **Migration history** is recorded with `StorageContextService.recordMigration`
   when projects are copied from one profile to another (e.g. Browser to a
   server): both configurations get a `MigrationRecord` with the other side's

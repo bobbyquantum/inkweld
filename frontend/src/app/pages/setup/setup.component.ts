@@ -392,17 +392,7 @@ export class SetupComponent implements OnInit {
   ): void {
     switch (mode) {
       case 'cloud':
-        if (this.isUpgrade()) {
-          if (!this.offersCloud()) return;
-        } else if (!this.canUseLocalMode()) {
-          if (!this.isReconnectableProvider(provider)) return;
-          this.reconnectProvider.set(provider);
-        }
-        this.chooseCloudMode();
-        if (provider === 'nextcloud') {
-          this.showCloudSetup.set(false);
-          this.showNextcloudSetup.set(true);
-        }
+        this.openRequestedCloudStep(provider);
         break;
       case 'server':
         if (this.offersServer()) this.chooseServerMode();
@@ -412,6 +402,21 @@ export class SetupComponent implements OnInit {
         break;
       default:
         break;
+    }
+  }
+
+  /** `?mode=cloud`, with `&provider=nextcloud` opening its address form */
+  private openRequestedCloudStep(provider: string | null): void {
+    if (this.isUpgrade()) {
+      if (!this.offersCloud()) return;
+    } else if (!this.canUseLocalMode()) {
+      if (!this.isReconnectableProvider(provider)) return;
+      this.reconnectProvider.set(provider);
+    }
+    this.chooseCloudMode();
+    if (provider === 'nextcloud') {
+      this.showCloudSetup.set(false);
+      this.showNextcloudSetup.set(true);
     }
   }
 
@@ -480,15 +485,17 @@ export class SetupComponent implements OnInit {
    * Upgrading to a server is the profile manager's guided move: it signs in
    * on the server and copies the projects across. Adding a bare server
    * profile here would leave them behind in the old profile. The move starts
-   * from the active profile, which is the one "Connect to sync" was opened
-   * for.
+   * from the profile named by `?upgradeFrom`, not whichever profile is
+   * active when the dialog opens.
    */
   private async moveToServer(): Promise<void> {
+    const sourceProfileId = peekProfileUpgradeSource() ?? undefined;
     this.forgetUpgrade();
     await this.router.navigate(['/']);
     await this.dialogGateway.openProfileManagerDialog({
       view: 'add-server',
       serverUrl: this.serverUrl.trim() || undefined,
+      sourceProfileId,
     });
   }
 

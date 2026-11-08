@@ -1035,9 +1035,12 @@ describe('SetupComponent', () => {
       expect(component['showServerSetup']()).toBe(false);
       expect(mockSetupService.configureServerMode).not.toHaveBeenCalled();
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/']);
+      // The move starts from the profile being upgraded, named here because
+      // the upgrade marker is cleared before the dialog opens
       expect(mockDialogGateway.openProfileManagerDialog).toHaveBeenCalledWith({
         view: 'add-server',
         serverUrl: component['serverUrl'],
+        sourceProfileId: 'local',
       });
       expect(
         sessionStorage.getItem('inkweld-profile-upgrade-source')

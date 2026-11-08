@@ -8,6 +8,7 @@ import {
   type Project,
   ProjectsService,
 } from '@inkweld/index';
+import { TranslocoService } from '@jsverse/transloco';
 import { firstValueFrom } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import * as Y from 'yjs';
@@ -18,6 +19,7 @@ import { StorageContextService } from '../core/storage-context.service';
 import { UserService } from '../user/user.service';
 import { LocalProjectService } from './local-project.service';
 import { LocalStorageService } from './local-storage.service';
+import { ProjectActivationService } from './project-activation.service';
 import { ProjectSyncService } from './project-sync.service';
 
 /**
@@ -112,6 +114,8 @@ export class MigrationService {
   private readonly localProjectService = inject(LocalProjectService);
   private readonly localStorage = inject(LocalStorageService);
   private readonly projectSyncService = inject(ProjectSyncService);
+  private readonly projectActivation = inject(ProjectActivationService);
+  private readonly transloco = inject(TranslocoService);
   private readonly logger = inject(LoggerService);
   private readonly authenticationService = inject(AuthenticationService);
   private readonly authTokenService = inject(AuthTokenService);
@@ -284,7 +288,8 @@ export class MigrationService {
    * Stages:
    * 1. Elements - Copy elements Yjs doc from the source prefix to srv:configId:
    * 2. Media - Copy all media files from the source media database to the target's
-   * 3. ProjectEntry - Mark project as migrated and mark pending creation for sync
+   * 3. ProjectEntry - Add it to the target profile, mark it pending creation
+   *    for sync, then mark it migrated in the source profile
    *
    * @param project - The project to migrate
    * @param sourceConfigId - The profile the project comes from
@@ -321,6 +326,8 @@ export class MigrationService {
     }));
 
     try {
+      await this.assertDownloadedHere(project, sourceConfigId);
+
       // ═══════════════════════════════════════════════════════════════════════
       // STAGE 1: ELEMENTS - Copy elements Yjs document between prefixes
       // ═══════════════════════════════════════════════════════════════════════
@@ -424,7 +431,7 @@ export class MigrationService {
       );
 
       // ═══════════════════════════════════════════════════════════════════════
-      // STAGE 4: PROJECT ENTRY - Mark project as migrated
+      // STAGE 4: PROJECT ENTRY - Add the project to the target profile
       // ═══════════════════════════════════════════════════════════════════════
       this.updateProjectStatus(
         targetSlug,
@@ -441,16 +448,6 @@ export class MigrationService {
       this.logger.info(
         'MigrationService',
         `[${targetSlug}] Stage 4: Creating project entry`
-      );
-
-      // Record the move in the source profile, so it isn't offered again
-      const serverUrl = this.storageContextService.getServerUrl() || 'unknown';
-      this.localProjectService.markProjectAsMigrated(
-        sourceConfigId,
-        project.slug,
-        targetSlug,
-        serverUrl,
-        targetUsername
       );
 
       // Create the project entry in the TARGET config's storage
@@ -489,6 +486,17 @@ export class MigrationService {
         description: project.description || undefined,
       });
 
+      // Record the move in the source profile, so it isn't offered again.
+      // Last: if any step above failed, the project can be picked again.
+      const serverUrl = this.storageContextService.getServerUrl() || 'unknown';
+      this.localProjectService.markProjectAsMigrated(
+        sourceConfigId,
+        project.slug,
+        targetSlug,
+        serverUrl,
+        targetUsername
+      );
+
       // ═══════════════════════════════════════════════════════════════════════
       // SUCCESS
       // ═══════════════════════════════════════════════════════════════════════
@@ -525,6 +533,32 @@ export class MigrationService {
         currentStage: undefined,
       }));
     }
+  }
+
+  /**
+   * A Cloud Sync project made on another device shows here as a cover until
+   * it is opened (activated); its documents are only in the cloud. Moving it
+   * would copy empty databases to the server, so it fails instead and stays
+   * in its profile to be moved once it has downloaded.
+   */
+  private async assertDownloadedHere(
+    project: Project,
+    sourceConfigId: string
+  ): Promise<void> {
+    const source = this.storageContextService.getConfigById(sourceConfigId);
+    if (source?.type !== 'cloud') return;
+    const projectKey = `${project.username}/${project.slug}`;
+    if (
+      await this.projectActivation.isActivatedInConfig(
+        sourceConfigId,
+        projectKey
+      )
+    ) {
+      return;
+    }
+    throw new Error(
+      this.transloco.translate('dialogs.profileManager.projectNotDownloaded')
+    );
   }
 
   /**

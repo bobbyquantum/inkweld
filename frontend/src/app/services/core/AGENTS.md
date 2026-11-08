@@ -99,13 +99,17 @@ described in `backend/AGENTS.md`.
   offers only `AppModePolicyService.upgradeTargets()`, never a Browser
   profile.
 - A move to a server always goes through the profile manager's guided flow
-  (`openProfileManagerDialog({ view: 'add-server' })` from the welcome
-  screen). Never add a bare server profile for an upgrade: the projects
-  would stay behind.
+  (`openProfileManagerDialog({ view: 'add-server', sourceProfileId })` from
+  the welcome screen, with the `?upgradeFrom` profile). Never add a bare
+  server profile for an upgrade: the projects would stay behind.
 - The move reads its source by profile id, never through the active profile
   (the sign-in has switched to the server by then) and never as `local`
-  (any Browser or Cloud Sync profile can be the source). Details:
-  `docs/site/docs/developer/cloud-sync.md`.
+  (any Browser or Cloud Sync profile can be the source). A Cloud Sync
+  project not activated on this device fails the move instead of copying
+  empty databases. The source is marked migrated last, so a failed step
+  leaves the project to pick again. Connections the move opens to another
+  profile's databases are closed afterwards, so that profile can still be
+  deleted. Details: `docs/site/docs/developer/cloud-sync.md`.
 
 ## APP_MODE (which profiles may be added)
 
