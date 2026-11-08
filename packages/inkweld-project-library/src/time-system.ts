@@ -804,6 +804,7 @@ export function checkTimeSystem(system: TimeSystem): TimeSystemWarning[] {
   return [...formatWarnings(system), ...overrideWarnings(system)];
 }
 
+/** Warnings about the display format: placeholders past the last unit, or none at all. */
 function formatWarnings(system: TimeSystem): TimeSystemWarning[] {
   const last = system.unitLabels.length - 1;
   const tokens = [...system.format.matchAll(TOKEN_RE)];
@@ -831,6 +832,7 @@ function formatWarnings(system: TimeSystem): TimeSystemWarning[] {
   return warnings;
 }
 
+/** Warnings about `unitSubdivisionOverrides` that never apply. */
 function overrideWarnings(system: TimeSystem): TimeSystemWarning[] {
   const last = system.unitLabels.length - 1;
   return (system.unitSubdivisionOverrides ?? []).flatMap((entry, unit) => {

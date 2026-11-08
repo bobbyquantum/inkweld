@@ -791,6 +791,7 @@ describe('checkTimeSystem', () => {
     format: '{u0}-{a1}-{u2}',
     parseSeparator: '-',
   };
+  /** The warning codes for `system`, in order. */
   const codes = (system: TimeSystem) => checkTimeSystem(system).map(w => w.code);
 
   it('has nothing to say about the templates', () => {

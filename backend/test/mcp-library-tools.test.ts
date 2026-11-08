@@ -350,6 +350,19 @@ describe('update_time_system', () => {
     });
   });
 
+  it('returns warnings in the structured result and the text', async () => {
+    seedProject();
+    const json = await call('update_time_system', {
+      timeSystemId: 'ts-reckoning',
+      format: 'Age {u0}, {u1} {u7}',
+    });
+    expect(json.result?.isError).toBeUndefined();
+    const { warnings } = structured<{ timeSystem: { warnings: string[] } }>(json).timeSystem;
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('{u7}');
+    expect(textOf(json)).toContain(`Warnings: ${warnings[0]}`);
+  });
+
   it('replaces and clears per-unit lists', async () => {
     const project = seedProject({
       timeSystems: [{ ...reckoning, unitAllowZero: [true, true] }],
