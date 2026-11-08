@@ -210,7 +210,7 @@ export class StorageService {
    * `prefix` (one profile's databases), so deleting them isn't blocked
    */
   closeDatabasesWithPrefix(prefix: string): void {
-    for (const dbName of [...this.dbConnections.keys()]) {
+    for (const dbName of this.dbConnections.keys()) {
       if (dbName.startsWith(prefix)) this.closeDatabase(dbName);
     }
   }
