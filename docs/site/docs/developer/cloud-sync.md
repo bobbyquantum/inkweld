@@ -118,11 +118,14 @@ user-menu switcher and the Profile settings tab are thin views over it.
   (`LocalStorageService.copyProjectMediaBetweenProfiles`), which closes the
   connections it opened afterwards. A Cloud Sync project moves only once a
   full sync pass has finished on this device: it must be activated
-  (`ProjectActivationService.isActivatedInConfig`) and have a sync record
-  for its `project.json` (`CloudSyncStateService.hasRecordInConfig`), which
-  a pass writes last and a cover-only adoption never writes. Activation
-  alone isn't enough, because opening a project records it before the
-  download runs. A project "Connect to sync" named that is no longer on the
+  (`ProjectActivationService.isActivatedInConfig`) and its last pass must
+  have finished (`CloudSyncStateService.hasRecordInConfig` on
+  `syncCompletePath`, a local-only record each `syncProject` pass clears
+  when it starts and writes when it ends; a cover-only adoption never
+  writes it). Activation alone isn't enough, because opening a project
+  records it before the download runs, and an earlier finished pass isn't
+  either, because a later one can fail after pulling new elements but
+  before their documents. A project "Connect to sync" named that is no longer on the
   device stops the move. A moved project's cover is queued as a pending cover upload
   (creating the project doesn't send it) and the project is activated in
   the server profile straight away, so it opens before the server has it.

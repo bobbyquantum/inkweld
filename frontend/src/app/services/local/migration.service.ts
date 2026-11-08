@@ -14,7 +14,7 @@ import { IndexeddbPersistence } from 'y-indexeddb';
 import * as Y from 'yjs';
 
 import { AuthTokenService } from '../auth/auth-token.service';
-import { projectJsonPath } from '../cloud-sync/cloud-sync-layout';
+import { syncCompletePath } from '../cloud-sync/cloud-sync-layout';
 import { CloudSyncStateService } from '../cloud-sync/cloud-sync-state.service';
 import { LoggerService } from '../core/logger.service';
 import { StorageContextService } from '../core/storage-context.service';
@@ -582,10 +582,10 @@ export class MigrationService {
    * it is opened (activated), and opening it records the activation before
    * the download runs. Moving it before a download has finished would copy
    * empty or partial databases to the server, so it fails instead and stays
-   * in its profile. A finished pass is confirmed by the sync record of
-   * `project.json`, which a pass writes last and a cover-only adoption never
-   * writes. A project made here and not yet synced is refused too, until it
-   * syncs.
+   * in its profile. The last sync pass must have finished: each pass clears
+   * its completion marker when it starts and writes it only at the end, and
+   * a cover-only adoption never writes it. A project made here and not yet
+   * synced is refused too, until it syncs.
    */
   private async assertDownloadedHere(
     project: Project,
@@ -601,7 +601,7 @@ export class MigrationService {
       )) &&
       (await this.cloudSyncState.hasRecordInConfig(
         sourceConfigId,
-        projectJsonPath(project.username, project.slug)
+        syncCompletePath(project.username, project.slug)
       ));
     if (downloaded) return;
     throw new Error(

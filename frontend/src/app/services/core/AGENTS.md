@@ -106,9 +106,10 @@ described in `backend/AGENTS.md`.
   (the sign-in has switched to the server by then) and never as `local`
   (any Browser or Cloud Sync profile can be the source). A named source
   that is gone stops the move; it never falls back to the active profile.
-  A Cloud Sync project moves only once a full sync pass has finished on this
-  device (activation alone is recorded before the download runs), else it
-  fails instead of copying empty or partial databases. The move queues the
+  A Cloud Sync project moves only once its last sync pass on this device has
+  finished (`syncCompletePath` marker; activation alone is recorded before
+  the download runs), else it fails instead of copying empty or partial
+  databases. The move queues the
   project's cover for upload and activates it in the server profile. The
   source is marked migrated last, so a failed step leaves the project to
   pick again. Cancelling returns to the profile that was active, which may

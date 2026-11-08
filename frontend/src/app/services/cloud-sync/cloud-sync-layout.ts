@@ -28,6 +28,15 @@ export function projectJsonPath(username: string, slug: string): string {
   return `${projectFolder(username, slug)}/project.json`;
 }
 
+/**
+ * Key of the local-only record that a project's last sync pass finished. It
+ * is never a remote file; it sits under the project folder so forgetting
+ * the project's records clears it too.
+ */
+export function syncCompletePath(username: string, slug: string): string {
+  return `${projectFolder(username, slug)}/.sync-complete`;
+}
+
 export function elementsPath(username: string, slug: string): string {
   return `${projectFolder(username, slug)}/elements${YJS_EXTENSION}`;
 }

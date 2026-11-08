@@ -24,6 +24,7 @@ import {
   mediaPath,
   projectJsonPath,
   snapshotPath,
+  syncCompletePath,
 } from './cloud-sync-layout';
 import {
   type CloudFileRecord,
@@ -123,7 +124,10 @@ describe('CloudProjectMirrorService', () => {
         records.set(rec.path, rec);
         return Promise.resolve();
       }),
-      delete: vi.fn(),
+      delete: vi.fn((path: string) => {
+        records.delete(path);
+        return Promise.resolve();
+      }),
       deleteByPrefix: vi.fn((prefix: string) => {
         for (const k of [...records.keys()]) {
           if (k.startsWith(prefix)) records.delete(k);
@@ -280,6 +284,63 @@ describe('CloudProjectMirrorService', () => {
     expect(docs.released).toEqual(
       expect.arrayContaining([elementsId, documentDocId(username, slug, 'e1')])
     );
+  });
+
+  describe('the sync-complete marker', () => {
+    const marker = syncCompletePath(username, slug);
+
+    it('is written when a pass finishes', async () => {
+      seedElements([{ id: 'e1', type: ElementType.Item }]);
+
+      await service.syncProject(store, username, slug);
+
+      expect(records.has(marker)).toBe(true);
+    });
+
+    it('is cleared by a later pass that fails part-way, until one finishes', async () => {
+      seedElements([{ id: 'e1', type: ElementType.Item }]);
+      await service.syncProject(store, username, slug);
+      expect(records.has(marker)).toBe(true);
+
+      // Another device adds an element and its document; this device pulls
+      // the elements, then fails to download the new document
+      const remote = new Y.Doc();
+      Y.applyUpdate(remote, Y.encodeStateAsUpdate(docs.doc(elementsId)));
+      remote.getArray('elements').push([{ id: 'e2', type: 'ITEM' }]);
+      store.seed(elementsPath(username, slug), Y.encodeStateAsUpdate(remote));
+      const newDoc = new Y.Doc();
+      newDoc.getXmlFragment('prosemirror').insert(0, [new Y.XmlText('New')]);
+      store.seed(
+        documentPath(username, slug, 'e2'),
+        Y.encodeStateAsUpdate(newDoc)
+      );
+      const get = store.get.bind(store);
+      const failing = vi
+        .spyOn(store, 'get')
+        .mockImplementation((path: string) =>
+          path === documentPath(username, slug, 'e2')
+            ? Promise.reject(new Error('network down'))
+            : get(path)
+        );
+
+      await expect(service.syncProject(store, username, slug)).rejects.toThrow(
+        'network down'
+      );
+      expect(records.has(marker)).toBe(false);
+
+      failing.mockRestore();
+      await service.syncProject(store, username, slug);
+      expect(records.has(marker)).toBe(true);
+    });
+
+    it('is forgotten with the rest of the project when it is deleted', async () => {
+      seedElements([{ id: 'e1', type: ElementType.Item }]);
+      await service.syncProject(store, username, slug);
+
+      await service.deleteRemoteProject(store, username, slug);
+
+      expect(records.has(marker)).toBe(false);
+    });
   });
 
   it('is idempotent: a second pass with no changes pushes nothing', async () => {

@@ -519,7 +519,7 @@ describe('MigrationService', () => {
 
       expect(cloudSyncStateMock.hasRecordInConfig).toHaveBeenCalledWith(
         'cloud-dropbox-1',
-        '/projects/testuser/test-project-1/project.json'
+        '/projects/testuser/test-project-1/.sync-complete'
       );
       expect(service.migrationState().failedProjects).toBe(1);
       expect(copyElements).not.toHaveBeenCalled();

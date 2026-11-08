@@ -27,6 +27,7 @@ import {
   projectKeyOf,
   type RemotePathKind,
   snapshotPath,
+  syncCompletePath,
   worldbuildingDocId,
   worldbuildingPath,
 } from './cloud-sync-layout';
@@ -210,6 +211,11 @@ export class CloudProjectMirrorService {
     remoteFiles?: Map<string, RemoteFileInfo>
   ): Promise<ProjectSyncSummary> {
     const projectKey = projectKeyOf(username, slug);
+    // Until this pass finishes, the project counts as not fully synced (the
+    // move to a server waits for that): a pass that fails part-way, after
+    // pulling new elements but not their documents, leaves no marker
+    const completePath = syncCompletePath(username, slug);
+    await this.state.delete(completePath);
     const files =
       remoteFiles ??
       this.indexFiles(
@@ -280,6 +286,12 @@ export class CloudProjectMirrorService {
     summary.description = project?.description ?? undefined;
     summary.updatedAt = project?.updatedDate ?? summary.updatedAt;
 
+    await this.state.set({
+      path: completePath,
+      remoteVersion: '',
+      localDigest: '',
+      syncedAt: new Date().toISOString(),
+    });
     return summary;
   }
 
