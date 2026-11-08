@@ -6,10 +6,27 @@
  *
  * A {@link TimeSystem} describes a calendar: unit labels from most-significant
  * to least-significant (e.g. `["Year","Month","Day"]`) and the subdivisions
- * between each level (e.g. `[12, 30]`). This is intentionally simple so that
- * custom fictional calendars can be modelled without leap-year-style
- * irregularities; irregular calendars can be added later via an optional
- * per-unit table.
+ * between each level (e.g. `[12, 30]`).
+ *
+ * Irregular lengths: {@link TimeSystem.unitSubdivisionOverrides} gives one
+ * value of a unit its own count of the next unit, shorter or longer than the
+ * regular `subdivisions` count (month 2 with 28 days, or month 10 with 40 in a
+ * calendar of 36-day months). An override belongs to the value, not to the
+ * date: month 10 has 40 days in every year, and there is no rule keyed on
+ * another unit (no leap years). Every function here follows the overrides:
+ *
+ * - a date is valid only up to its parent's own length
+ *   ({@link unitMaxValueFor}); {@link unitMaxValue} is the largest value a
+ *   unit takes under any parent;
+ * - {@link timePointToAbsolute} counts the real lengths, so dates stay in
+ *   order and the last day of month 10 is one tick before the first day of
+ *   month 11.
+ *
+ * An override only counts for a value its unit can take: a length for
+ * month 13 in a 12-month calendar does nothing (see {@link checkTimeSystem}).
+ * A calendar with no overrides converts exactly as `Σ units[i] × weight[i]`
+ * with uniform weights. Absolute ticks are for ordering and layout only and
+ * are never stored, so changing a calendar's lengths moves nothing on disk.
  *
  * A {@link TimePoint} is a value in a system, stored as an array of decimal
  * strings so arbitrarily large magnitudes (epochs of billions of years) can
@@ -100,7 +117,8 @@ export interface TimeSystem {
    * sub-units (i.e. units of level `i+1`) inside one occurrence of unit `i`
    * with that value. Use this to express irregular calendars such as
    * Gregorian months: `unitSubdivisionOverrides[1] = { '2': 28, '4': 30, ... }`
-   * keyed by month value.
+   * keyed by month value. An override may be shorter or longer than the
+   * regular count; keys are matched by numeric value (`'02'` is month 2).
    *
    * A missing entry (or missing key) means "use the default
    * {@link subdivisions} value for this position". The leaf unit cannot
@@ -202,7 +220,13 @@ function assertPerUnitArrayLength(
   }
 }
 
-/** Returns true if `units` is a valid value for `system`. */
+const INTEGER_RE = /^-?\d+$/;
+
+/**
+ * Returns true if `units` is a valid value for `system`: every unit is at
+ * least its minimum, and every unit below the top fits in its parent's own
+ * length (overrides included, see {@link unitMaxValueFor}).
+ */
 export function isValidTimePointFor(
   point: TimePoint,
   system: TimeSystem
@@ -211,15 +235,248 @@ export function isValidTimePointFor(
   if (point.units.length !== system.unitLabels.length) return false;
   for (let i = 0; i < point.units.length; i++) {
     const u = point.units[i];
-    if (!/^-?\d+$/.test(u)) return false;
+    if (!INTEGER_RE.test(u)) return false;
     const numValue = Number(u);
     if (!Number.isFinite(numValue)) return false;
     const min = unitMinValue(system, i);
-    const max = unitMaxValue(system, i);
+    const max = unitMaxValueFor(system, i, point.units[i - 1] ?? '');
     if (numValue < min) return false;
     if (max !== null && numValue > max) return false;
   }
   return true;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Unit lengths
+//
+// The absolute layout. Unit `i` with value `v` starts `offsetOf(level i, v)`
+// ticks into its parent, where
+//
+//   offsetOf(level, v) = v × regular + Σ (length(k) − regular)
+//                        over the values k < v that have an override,
+//
+// so consecutive values sit back to back: `offsetOf(v + 1) − offsetOf(v)` is
+// the length of `v`. A point's tick is the sum of its units' offsets. With no
+// overrides `regular` is the uniform weight and the sum is the plain
+// `Σ units[i] × weight[i]`, the same numbers as before overrides counted.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** A value of a unit with its own length, in smallest-unit ticks. */
+interface IrregularValue {
+  readonly value: bigint;
+  readonly length: bigint;
+}
+
+/** How long each value of one unit is, in smallest-unit ticks. */
+interface LevelLayout {
+  /** Length of a value with no override. */
+  readonly regular: bigint;
+  /** Values the unit can take that have an override, ascending. */
+  readonly irregular: readonly IrregularValue[];
+}
+
+/** The unit value `raw` as a bigint, or null when it is not an integer. */
+function parseUnitValue(raw: string): bigint | null {
+  return INTEGER_RE.test(raw) ? BigInt(raw) : null;
+}
+
+/**
+ * The sub-unit count that `overrides` gives `value`, matched by numeric
+ * value. The first valid key wins when two keys name the same number.
+ */
+function overrideCount(
+  overrides: Readonly<Record<string, number>> | undefined,
+  value: bigint
+): number | undefined {
+  if (!overrides) return undefined;
+  for (const [key, count] of Object.entries(overrides)) {
+    if (!Number.isInteger(count) || count <= 0) continue;
+    if (parseUnitValue(key) === value) return count;
+  }
+  return undefined;
+}
+
+/**
+ * The overrides of unit `i` for values it can take (`min` to `max`, `max`
+ * null for the unbounded top unit), keyed by numeric value.
+ */
+function reachableOverrides(
+  system: TimeSystem,
+  i: number,
+  min: bigint,
+  max: bigint | null
+): Map<bigint, number> {
+  const out = new Map<bigint, number>();
+  const overrides = system.unitSubdivisionOverrides?.[i];
+  if (!overrides || i >= system.unitLabels.length - 1) return out;
+  for (const [key, count] of Object.entries(overrides)) {
+    if (!Number.isInteger(count) || count <= 0) continue;
+    const value = parseUnitValue(key);
+    if (value === null || value < min || (max !== null && value > max)) {
+      continue;
+    }
+    if (!out.has(value)) out.set(value, count);
+  }
+  return out;
+}
+
+/** What one unit can hold: its value range and the overrides that apply. */
+interface UnitShape {
+  readonly min: bigint;
+  /** Largest value under any parent; null for the top unit (unbounded). */
+  readonly max: bigint | null;
+  /** Sub-unit counts of the values that have an override. */
+  readonly counts: ReadonlyMap<bigint, number>;
+}
+
+/** Each unit's value range, from the top down (a unit's range bounds its overrides). */
+function unitShapes(system: TimeSystem): UnitShape[] {
+  const shapes: UnitShape[] = [];
+  let max: bigint | null = null;
+  for (let i = 0; i < system.unitLabels.length; i++) {
+    const min = BigInt(unitMinValue(system, i));
+    const counts = reachableOverrides(system, i, min, max);
+    shapes.push({ min, max, counts });
+    const largest = largestCount(system.subdivisions[i], counts, min, max);
+    max =
+      largest === null ? null : BigInt(unitMinValue(system, i + 1) + largest - 1);
+  }
+  return shapes;
+}
+
+/**
+ * The most sub-units any value of a unit holds: the largest override, or the
+ * regular count when some value has none. Null when the regular count is not
+ * a positive integer (an unchecked system; its children are then unbounded).
+ */
+function largestCount(
+  regular: number | undefined,
+  counts: ReadonlyMap<bigint, number>,
+  min: bigint,
+  max: bigint | null
+): number | null {
+  if (regular === undefined || !Number.isInteger(regular) || regular <= 0) {
+    return null;
+  }
+  const everyValueOverridden =
+    max !== null && BigInt(counts.size) >= max - min + 1n;
+  let largest = everyValueOverridden ? 0 : regular;
+  for (const count of counts.values()) largest = Math.max(largest, count);
+  return largest;
+}
+
+/** The layout of every unit, smallest last. */
+function calendarLayout(system: TimeSystem): LevelLayout[] {
+  const shapes = unitShapes(system);
+  const n = shapes.length;
+  const layout = new Array<LevelLayout>(n);
+  layout[n - 1] = { regular: 1n, irregular: [] };
+  for (let i = n - 2; i >= 0; i--) {
+    const child = layout[i + 1];
+    const childMin = shapes[i + 1].min;
+    // Ticks in `count` consecutive child values starting at the child's minimum.
+    const span = (count: number) =>
+      offsetOf(child, childMin + BigInt(count)) - offsetOf(child, childMin);
+    const irregular = [...shapes[i].counts]
+      .sort(([a], [b]) => compareBigInt(a, b))
+      .map(([value, count]) => ({ value, length: span(count) }));
+    layout[i] = { regular: span(system.subdivisions[i]), irregular };
+  }
+  return layout;
+}
+
+/** Ticks from the start of a parent to the start of `value` (see above). */
+function offsetOf(level: LevelLayout, value: bigint): bigint {
+  let offset = value * level.regular;
+  for (const irregular of level.irregular) {
+    if (irregular.value >= value) break;
+    offset += irregular.length - level.regular;
+  }
+  return offset;
+}
+
+/** The value whose span holds offset `ticks`: the inverse of {@link offsetOf}. */
+function valueAtOffset(level: LevelLayout, ticks: bigint): bigint {
+  let shift = 0n;
+  for (const { value, length } of level.irregular) {
+    const start = value * level.regular + shift;
+    if (ticks < start) break;
+    if (ticks < start + length) return value;
+    shift += length - level.regular;
+  }
+  return floorDiv(ticks - shift, level.regular);
+}
+
+/**
+ * `out[i]` is the tick offset of the first value of every unit from `i`
+ * down, i.e. how far the first smallest unit sits into a unit of level
+ * `i - 1`. `out[n]` is 0.
+ */
+function minimumOffsets(system: TimeSystem, layout: readonly LevelLayout[]): bigint[] {
+  const n = layout.length;
+  const out = new Array<bigint>(n + 1).fill(0n);
+  for (let i = n - 1; i >= 0; i--) {
+    out[i] = out[i + 1] + offsetOf(layout[i], BigInt(unitMinValue(system, i)));
+  }
+  return out;
+}
+
+/** Sum of the offsets of `units`, which need not be in range. */
+function ticksOf(layout: readonly LevelLayout[], units: readonly string[]): bigint {
+  let total = 0n;
+  for (let i = 0; i < units.length; i++) {
+    total += offsetOf(layout[i], BigInt(units[i]));
+  }
+  return total;
+}
+
+function compareBigInt(a: bigint, b: bigint): number {
+  if (a < b) return -1;
+  return a > b ? 1 : 0;
+}
+
+/**
+ * Length of one unit `i` in smallest-unit ticks: of the given `value` (its
+ * override, if it has one), or the regular length when `value` is omitted.
+ * A month of 40 days in a calendar of 24-hour days is 960 ticks.
+ */
+export function unitLengthInTicks(
+  system: TimeSystem,
+  i: number,
+  value?: string
+): bigint {
+  const level = calendarLayout(system)[i];
+  if (!level) throw new Error(`TimeSystem has no unit ${i}`);
+  const wanted = value === undefined ? null : parseUnitValue(value);
+  return (
+    level.irregular.find(irregular => irregular.value === wanted)?.length ??
+    level.regular
+  );
+}
+
+/**
+ * Tick of the first smallest unit inside the unit that `prefix` names
+ * (values of units `0` to `prefix.length - 1`, every lower unit at its
+ * minimum): `['5', '10']` is the tick of day 1 of month 10 of year 5.
+ * Values are not range-checked, so a ruler can step past the last valid
+ * value; out-of-range values carry on the layout the way
+ * {@link normalizeTimePoint} reads them.
+ *
+ * @throws if a value is not an integer string or `prefix` is longer than the
+ * system's units.
+ */
+export function unitStartTick(
+  system: TimeSystem,
+  prefix: readonly string[]
+): bigint {
+  if (prefix.length > system.unitLabels.length) {
+    throw new Error('unitStartTick: prefix is longer than the units');
+  }
+  if (!prefix.every(value => INTEGER_RE.test(value))) {
+    throw new Error('unitStartTick: values must be integers');
+  }
+  const layout = calendarLayout(system);
+  return ticksOf(layout, prefix) + minimumOffsets(system, layout)[prefix.length];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -228,8 +485,10 @@ export function isValidTimePointFor(
 
 /**
  * Convert a {@link TimePoint} to a single orderable {@link BigInt} expressed
- * in the smallest unit of the system. Uniform subdivisions are assumed (no
- * irregular months/leap years in v1).
+ * in the smallest unit of the system, counting each unit's real length (see
+ * "Irregular lengths" in the module comment). Without overrides this is
+ * `Σ units[i] × weight[i]`. The result orders points and lays out timelines;
+ * nothing stores it.
  *
  * @throws if `point` is not valid for `system`.
  */
@@ -240,19 +499,7 @@ export function timePointToAbsolute(
   if (!isValidTimePointFor(point, system)) {
     throw new Error('TimePoint does not match TimeSystem');
   }
-  // Weight of unit i in smallest-unit counts.
-  // Weight of the last unit is 1; each step up multiplies by the subdivision.
-  const n = system.unitLabels.length;
-  const weights: bigint[] = new Array<bigint>(n);
-  weights[n - 1] = 1n;
-  for (let i = n - 2; i >= 0; i--) {
-    weights[i] = weights[i + 1] * BigInt(system.subdivisions[i]);
-  }
-  let total = 0n;
-  for (let i = 0; i < n; i++) {
-    total += BigInt(point.units[i]) * weights[i];
-  }
-  return total;
+  return ticksOf(calendarLayout(system), point.units);
 }
 
 /**
@@ -262,42 +509,28 @@ export function timePointToAbsolute(
  * Unlike a simple division/modulo inverse, this respects per-unit minimums
  * (for example Month/Day values that start at 1), so adjacent ticks around
  * boundaries map to valid dates such as `2019-12-30` instead of invalid
- * values such as `2020-1-0`.
+ * values such as `2020-1-0`, and it follows overrides, so the tick after
+ * day 40 of a 40-day month is day 1 of the next month.
  */
 export function absoluteToTimePoint(
   tick: bigint,
   system: TimeSystem
 ): TimePoint {
-  const n = system.unitLabels.length;
-  const weights = timeSystemUnitWeights(system);
-  const minSuffix: bigint[] = new Array<bigint>(n + 1).fill(0n);
-  for (let i = n - 1; i >= 1; i--) {
-    minSuffix[i] =
-      minSuffix[i + 1] + BigInt(unitMinValue(system, i)) * weights[i];
+  const layout = calendarLayout(system);
+  const minimums = minimumOffsets(system, layout);
+  const units: string[] = [];
+  let remaining = tick;
+  for (let i = 0; i < layout.length; i++) {
+    const value = valueAtOffset(layout[i], remaining - minimums[i + 1]);
+    units.push(value.toString());
+    remaining -= offsetOf(layout[i], value);
   }
-
-  const units: string[] = Array.from({ length: n }, () => '0');
-  let consumed = 0n;
-  for (let i = 0; i < n; i++) {
-    const weight = weights[i];
-    const remaining = tick - consumed;
-    let value: bigint;
-    if (i === 0) {
-      value = n === 1 ? remaining : floorDiv(remaining - minSuffix[1], weight);
-    } else {
-      value =
-        BigInt(unitMinValue(system, i)) +
-        floorDiv(remaining - minSuffix[i], weight);
-    }
-    units[i] = value.toString();
-    consumed += value * weight;
-  }
-
   return { systemId: system.id, units };
 }
 
 /**
- * Canonicalize a time point that may have overflowed bounded units.
+ * Canonicalize a time point that may have overflowed bounded units (day 41
+ * of a 40-day month becomes day 1 of the next month).
  * Returns `null` when the point does not belong to the system or cannot be
  * represented as a valid point after normalization.
  */
@@ -307,31 +540,16 @@ export function normalizeTimePoint(
 ): TimePoint | null {
   if (point.systemId !== system.id) return null;
   if (point.units.length !== system.unitLabels.length) return null;
-  if (!point.units.every(unit => /^-?\d+$/.test(unit))) return null;
+  if (!point.units.every(unit => INTEGER_RE.test(unit))) return null;
   if (isValidTimePointFor(point, system)) return point;
 
-  let tick = 0n;
-  const weights = timeSystemUnitWeights(system);
-  for (let i = 0; i < point.units.length; i++) {
-    tick += BigInt(point.units[i]) * weights[i];
-  }
-
+  const tick = ticksOf(calendarLayout(system), point.units);
   const normalized = {
     ...point,
     units: absoluteToTimePoint(tick, system).units,
   } satisfies TimePoint;
 
   return isValidTimePointFor(normalized, system) ? normalized : null;
-}
-
-function timeSystemUnitWeights(system: TimeSystem): bigint[] {
-  const n = system.unitLabels.length;
-  const weights: bigint[] = new Array<bigint>(n);
-  weights[n - 1] = 1n;
-  for (let i = n - 2; i >= 0; i--) {
-    weights[i] = weights[i + 1] * BigInt(system.subdivisions[i]);
-  }
-  return weights;
 }
 
 function floorDiv(value: bigint, divisor: bigint): bigint {
@@ -367,15 +585,16 @@ export function unitMinValue(system: TimeSystem, i: number): number {
 }
 
 /**
- * Maximum allowed value for unit `i`, or `null` for the top-level unit which
- * is unbounded. For non-top units, the maximum is
- * `unitMin + subdivisions[i-1] - 1`.
+ * Largest value unit `i` takes under any parent, or `null` for the top-level
+ * unit which is unbounded. Without overrides this is
+ * `unitMin + subdivisions[i-1] - 1`; a longer override raises it (a 40-day
+ * month in a calendar of 36-day months gives 40). Use {@link unitMaxValueFor}
+ * when the parent's value is known.
  */
 export function unitMaxValue(system: TimeSystem, i: number): number | null {
   if (i <= 0) return null;
-  const sub = system.subdivisions[i - 1];
-  if (!Number.isInteger(sub) || sub <= 0) return null;
-  return unitMinValue(system, i) + sub - 1;
+  const max = unitShapes(system)[i]?.max ?? null;
+  return max === null ? null : Number(max);
 }
 
 /**
@@ -383,8 +602,8 @@ export function unitMaxValue(system: TimeSystem, i: number): number | null {
  * Uses {@link effectiveSubdivision} so that, e.g., February in a Gregorian
  * calendar correctly reports 28 or 29 days rather than the generic 31.
  *
- * Falls back to the uniform {@link unitMaxValue} when no parent-specific
- * override applies.
+ * Falls back to the regular length when no override applies for
+ * `parentValue`.
  */
 export function unitMaxValueFor(
   system: TimeSystem,
@@ -393,16 +612,16 @@ export function unitMaxValueFor(
 ): number | null {
   if (i <= 0) return null;
   const sub = effectiveSubdivision(system, i, parentValue);
-  if (sub === null || sub <= 0) return null;
+  if (sub === null || !Number.isInteger(sub) || sub <= 0) return null;
   return unitMinValue(system, i) + sub - 1;
 }
 
 /**
  * Effective subdivision (count of sub-units) of unit `i` when the parent
- * unit (`i - 1`) has the given `parentValue`. Returns the entry from
- * {@link TimeSystem.unitSubdivisionOverrides}`[i - 1][parentValue]` when
- * present, otherwise falls back to the uniform {@link TimeSystem.subdivisions}
- * value.
+ * unit (`i - 1`) has the given `parentValue`. Returns the override from
+ * {@link TimeSystem.unitSubdivisionOverrides}`[i - 1]` for that value
+ * (matched by number, so `'02'` finds the key `'2'`) when present, otherwise
+ * falls back to the uniform {@link TimeSystem.subdivisions} value.
  *
  * Returns `null` for the top unit (no parent → no subdivision context).
  */
@@ -412,11 +631,12 @@ export function effectiveSubdivision(
   parentValue: string
 ): number | null {
   if (i <= 0) return null;
-  const override = system.unitSubdivisionOverrides?.[i - 1]?.[parentValue];
-  if (Number.isInteger(override) && (override as number) > 0) {
-    return override as number;
-  }
-  return system.subdivisions[i - 1] ?? null;
+  const parent = parseUnitValue(parentValue);
+  const override =
+    parent === null
+      ? undefined
+      : overrideCount(system.unitSubdivisionOverrides?.[i - 1], parent);
+  return override ?? system.subdivisions[i - 1] ?? null;
 }
 
 /**
@@ -444,16 +664,23 @@ export function unitInputModeFor(
  * that should be stored in {@link TimePoint.units}; `label` is the alias when
  * one exists, otherwise the numeric value.
  *
- * For bounded units this enumerates `[unitMin, unitMax]`. For unbounded
- * (top-level) units, only the keys defined in {@link TimeSystem.unitAliases}
- * are returned (sorted numerically when possible).
+ * For bounded units this enumerates `[unitMin, unitMax]`: up to
+ * {@link unitMaxValueFor} when `parentValue` (the value of unit `i - 1`) is
+ * given, so a 28-day month lists 28 days, otherwise up to
+ * {@link unitMaxValue}. For unbounded (top-level) units, only the keys
+ * defined in {@link TimeSystem.unitAliases} are returned (sorted numerically
+ * when possible).
  */
 export function unitDropdownOptions(
   system: TimeSystem,
-  i: number
+  i: number,
+  parentValue?: string
 ): readonly { readonly value: string; readonly label: string }[] {
   const aliases = system.unitAliases?.[i];
-  const max = unitMaxValue(system, i);
+  const max =
+    parentValue === undefined
+      ? unitMaxValue(system, i)
+      : unitMaxValueFor(system, i, parentValue);
   if (max === null) {
     if (!aliases) return [];
     return Object.keys(aliases)
@@ -554,13 +781,12 @@ export type TimeSystemWarningCode =
   | 'format-no-units'
   | 'format-unknown-unit'
   | 'override-on-smallest-unit'
-  | 'override-value-out-of-range'
-  | 'override-longer-than-default';
+  | 'override-value-out-of-range';
 
 /**
  * Something {@link assertValidTimeSystem} accepts but that is probably not
  * what the system's author meant: a format that shows nothing for a unit, or
- * a subdivision override that never applies or allows dates that are invalid.
+ * a subdivision override that never applies.
  */
 export interface TimeSystemWarning {
   code: TimeSystemWarningCode;
@@ -619,45 +845,42 @@ function overrideWarnings(system: TimeSystem): TimeSystemWarning[] {
         },
       ];
     }
-    return Object.entries(entry).flatMap(([key, length]) =>
-      overrideEntryWarnings(system, unit, key, length)
+    const min = unitMinValue(system, unit);
+    const max = unitMaxValue(system, unit);
+    return Object.keys(entry).flatMap(key =>
+      overrideKeyInRange(key, min, max)
+        ? []
+        : [overrideOutOfRange(system, unit, key, min, max)]
     );
   });
 }
 
-/** Warnings for one override: `unit` value `key` holds `length` of the next unit. */
-function overrideEntryWarnings(
+/** Whether `key` is a value the unit can take (`min` to `max`, `max` null for unbounded). */
+function overrideKeyInRange(
+  key: string,
+  min: number,
+  max: number | null
+): boolean {
+  const value = parseUnitValue(key);
+  if (value === null || value < BigInt(min)) return false;
+  return max === null || value <= BigInt(max);
+}
+
+/** The warning for an override of `unit` value `key`, a value the unit never takes. */
+function overrideOutOfRange(
   system: TimeSystem,
   unit: number,
   key: string,
-  length: number
-): TimeSystemWarning[] {
+  min: number,
+  max: number | null
+): TimeSystemWarning {
   const label = system.unitLabels[unit];
-  const warnings: TimeSystemWarning[] = [];
-  const min = unitMinValue(system, unit);
-  const max = unitMaxValue(system, unit);
-  const value = Number(key);
-  if (!/^-?\d+$/.test(key) || value < min || (max !== null && value > max)) {
-    const range = max === null ? `start at ${min}` : `run from ${min} to ${max}`;
-    warnings.push({
-      code: 'override-value-out-of-range',
-      unit,
-      message: `unitSubdivisionOverrides[${unit}] sets a length for ${label} ${key}, but ${label} values ${range}, so it never applies.`,
-    });
-  }
-  // Dates are checked against the regular length (isValidTimePointFor), so a
-  // longer override offers values that are then rejected.
-  const regular = system.subdivisions[unit];
-  if (length > regular) {
-    const child = system.unitLabels[unit + 1];
-    const lastChild = unitMinValue(system, unit + 1) + regular - 1;
-    warnings.push({
-      code: 'override-longer-than-default',
-      unit,
-      message: `${label} ${key} is set to ${length} ${child} units, more than the regular ${regular}, but dates stop at ${child} ${lastChild}, so an override can only make a ${label} shorter.`,
-    });
-  }
-  return warnings;
+  const range = max === null ? `start at ${min}` : `run from ${min} to ${max}`;
+  return {
+    code: 'override-value-out-of-range',
+    unit,
+    message: `unitSubdivisionOverrides[${unit}] sets a length for ${label} ${key}, but ${label} values ${range}, so it never applies.`,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

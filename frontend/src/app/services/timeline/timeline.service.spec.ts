@@ -181,6 +181,59 @@ describe('TimelineService', () => {
       expect(config.eras[0].end.units).toEqual(['2021', '1', '1']);
     });
 
+    it('reads stored dates by the calendar’s own month lengths', () => {
+      // Month 2 has 30 days and month 10 has 40, in a calendar of 36-day months.
+      const longMonth: TimeSystem = {
+        id: 'long-month',
+        name: 'Long Month',
+        isBuiltIn: false,
+        unitLabels: ['Year', 'Month', 'Day'],
+        subdivisions: [12, 36],
+        format: '{u0}-{u1}-{u2}',
+        parseSeparator: '-',
+        unitSubdivisionOverrides: [undefined, { '10': 40, '2': 30 }, undefined],
+      };
+      const before = installedSystems();
+      installedSystems.set([...before, longMonth]);
+      try {
+        const stored = createDefaultTimelineConfig('timeline-1');
+        const trackId = stored.tracks[0].id;
+        const event = (id: string, units: string[]) => ({
+          id,
+          trackId,
+          title: id,
+          start: { systemId: longMonth.id, units },
+        });
+        mockElements.set([
+          makeTimelineElement({
+            metadata: {
+              [TIMELINE_CONFIG_META_KEY]: JSON.stringify({
+                version: stored.version,
+                timeSystemId: longMonth.id,
+                tracks: stored.tracks,
+                // Day 31 of month 2 was accepted before short months were
+                // enforced; it now reads as the day after month 2 ends.
+                events: [
+                  event('long', ['5', '10', '40']),
+                  event('short', ['5', '2', '31']),
+                ],
+                eras: [],
+              }),
+            },
+          }),
+        ]);
+
+        const config = service.loadConfig('timeline-1');
+
+        expect(config.events.map(e => e.start.units)).toEqual([
+          ['5', '10', '40'],
+          ['5', '3', '1'],
+        ]);
+      } finally {
+        installedSystems.set(before);
+      }
+    });
+
     it('falls back to defaults on malformed JSON', () => {
       mockElements.set([
         makeTimelineElement({

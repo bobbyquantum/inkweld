@@ -29,6 +29,7 @@
     "addNewTrack": "Add new track",
     "renameTrack": "Rename track"
   },
+  "unitRange": "In {{parent}} {{parentValue}}, {{unit}} runs from {{min}} to {{max}}.",
   "eventDialog": {
     "editTitle": "Edit event",
     "addTitle": "Add event",
@@ -42,6 +43,7 @@
     "endSection": "End",
     "endDateAria": "End date",
     "endAfterStart": "End must be at or after start",
+    "invalidForSystem": "A date doesn't fit this timeline's time system.",
     "descriptionLabel": "Description",
     "descriptionAria": "Description",
     "titleRequired": "Title is required",
@@ -95,7 +97,7 @@
     "numeric": "Numeric",
     "dropdown": "Dropdown",
     "overrides": "Overrides",
-    "overridesHelp": "Override how a specific value of this unit is named or how many sub-units it contains. Example: month 2 could be named \"February\" and have 28 sub-units.",
+    "overridesHelp": "Override how a specific value of this unit is named or how many sub-units it contains, fewer or more than usual. Example: month 2 could be named \"February\" and have 28 sub-units. A count applies to that value every time it occurs.",
     "valueLabel": "Value",
     "removeOverride": "Remove override",
     "noOverrides": "No overrides yet.",

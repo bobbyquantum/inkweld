@@ -289,10 +289,10 @@ describe('create_time_system', () => {
     expect(json.result?.isError).toBeUndefined();
     expect(project.timeSystems()).toHaveLength(1);
     const { warnings } = structured<{ timeSystem: { warnings: string[] } }>(json).timeSystem;
-    expect(warnings).toHaveLength(3);
+    // The 40-day month 10 is fine; the length for month 13 never applies.
+    expect(warnings).toHaveLength(2);
     expect(warnings[0]).toContain('{u7}');
-    expect(warnings.join(' ')).toContain('Month values run from 1 to 12');
-    expect(warnings.join(' ')).toContain('dates stop at Day 30');
+    expect(warnings[1]).toContain('Month values run from 1 to 12');
     expect(textOf(json)).toContain('Warnings: The format uses {u7}');
 
     const listed = structured<{ timeSystems: Array<{ warnings?: string[] }> }>(

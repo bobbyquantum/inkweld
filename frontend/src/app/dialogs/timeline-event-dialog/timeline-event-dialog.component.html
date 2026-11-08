@@ -60,7 +60,7 @@
             <mat-select
               [formField]="item"
               [attr.data-testid]="'timeline-event-start-unit-' + i">
-              @for (opt of optionsFor(i); track opt.value) {
+              @for (opt of optionsFor(i, model().startUnits); track opt.value) {
                 <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
               }
             </mat-select>
@@ -78,6 +78,11 @@
         }
       }
     </div>
+    @if (startRangeProblem(); as problem) {
+      <div class="field-error" data-testid="timeline-event-start-unit-range">
+        {{ 'timeline.unitRange' | transloco: problem }}
+      </div>
+    }
     <mat-checkbox [formField]="form.ranged" data-testid="timeline-event-ranged">
       {{ 'timeline.eventDialog.rangedEvent' | transloco }}
     </mat-checkbox>
@@ -110,7 +115,7 @@
               <mat-select
                 [formField]="item"
                 [attr.data-testid]="'timeline-event-end-unit-' + i">
-                @for (opt of optionsFor(i); track opt.value) {
+                @for (opt of optionsFor(i, model().endUnits); track opt.value) {
                   <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
                 }
               </mat-select>
@@ -128,6 +133,11 @@
           }
         }
       </div>
+      @if (endRangeProblem(); as problem) {
+        <div class="field-error" data-testid="timeline-event-end-unit-range">
+          {{ 'timeline.unitRange' | transloco: problem }}
+        </div>
+      }
       @if (
         form()
           .errors()
@@ -137,6 +147,17 @@
           {{ 'timeline.eventDialog.endAfterStart' | transloco }}
         </div>
       }
+    }
+    @if (
+      !startRangeProblem() &&
+      !(model().ranged && endRangeProblem()) &&
+      form()
+        .errors()
+        .some(e => e.kind === 'invalidPoint')
+    ) {
+      <div class="field-error" data-testid="timeline-event-invalid-error">
+        {{ 'timeline.eventDialog.invalidForSystem' | transloco }}
+      </div>
     }
 
     <mat-form-field appearance="outline">
