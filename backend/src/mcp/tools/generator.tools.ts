@@ -66,6 +66,7 @@ const MAX_ENTRIES = 10_000;
 const MAX_ENTRY_LENGTH = 2000;
 const MAX_ROLLS = 50;
 const ICON_PATTERN = /^[a-z][a-z0-9_]{0,63}$/;
+const NO_GENERATORS_NOTE = 'This project has no generators yet. Create one with create_generator.';
 
 // ============================================
 // Reading
@@ -325,12 +326,11 @@ registerTool({
             };
             return textResult(JSON.stringify(payload, null, 2), payload);
           }
-          const payload = { generators: generators.map(summarizeGenerator) };
-          const text =
-            generators.length === 0
-              ? 'This project has no generators yet. Create one with create_generator.'
-              : JSON.stringify(payload, null, 2);
-          return textResult(text, payload);
+          const payload = {
+            generators: generators.map(summarizeGenerator),
+            ...(generators.length === 0 ? { note: NO_GENERATORS_NOTE } : {}),
+          };
+          return textResult(JSON.stringify(payload, null, 2), payload);
         },
         { commit: false }
       )
@@ -419,13 +419,24 @@ registerTool({
             exclude,
             ...(seed === undefined ? {} : { seed }),
           });
-          const payload = { generatorId: generator.id, generatorName: generator.name, results };
           const shortfall =
             results.length < count
-              ? ` Only ${results.length} of ${count}: the generator has too few distinct results left.`
-              : '';
-          const lines = results.map((r) => `- ${r.text}`).join('\n');
-          return textResult(`${generator.name}:\n${lines}${shortfall}`, payload);
+              ? `Only ${results.length} of ${count}: the generator has too few distinct results left.`
+              : undefined;
+          // Clients may show only the structured result, so the shortfall goes in it too.
+          const payload = {
+            generatorId: generator.id,
+            generatorName: generator.name,
+            requested: count,
+            results,
+            ...(shortfall ? { note: shortfall } : {}),
+          };
+          const lines = [
+            `${generator.name}:`,
+            ...results.map((r) => `- ${r.text}`),
+            ...(shortfall ? [shortfall] : []),
+          ];
+          return textResult(lines.join('\n'), payload);
         },
         { commit: false }
       )
@@ -446,7 +457,8 @@ registerTool({
       'Create a random generator in the project (Settings → Generators in the app), e.g. for ' +
       `character names or tavern names. ${ruleSyntax} A plain word list is a template "#word#" with ` +
       'one rule. The generator must be rollable (every #key# has a rule with entries, no rule only ' +
-      'refers back to itself), or nothing is saved. Returns a few sample rolls.',
+      'refers back to itself), or nothing is saved. Returns a few sample rolls. To offer it as a dice ' +
+      "button on a template field, set the field's generatorId with create_schema or update_schema.",
     inputSchema: {
       type: 'object',
       properties: {

@@ -166,10 +166,20 @@ describe('list_time_systems', () => {
     expect(payload.templates.find((t) => t.id === 'gregorian')?.installed).toBe(false);
   });
 
-  it('says how to start when there are none', async () => {
+  it('says how to start when there are none, in the structured result too', async () => {
     seedProject({ timeSystems: [] });
     const json = await call('list_time_systems', {}, READ);
     expect(textOf(json)).toContain('no time systems yet');
+    expect(structured<{ note: string }>(json).note).toContain('create_time_system');
+  });
+
+  it('adds no note or warnings to a sound system', async () => {
+    seedProject();
+    const payload = structured<{ timeSystems: Array<Record<string, unknown>> }>(
+      await call('list_time_systems', {}, READ)
+    );
+    expect(payload).not.toHaveProperty('note');
+    expect(payload.timeSystems[0]).not.toHaveProperty('warnings');
   });
 
   it('skips rows that are not time systems', async () => {
@@ -240,8 +250,55 @@ describe('create_time_system', () => {
       subdivisions: [],
     });
     expect(json.result?.isError).toBe(true);
-    expect(textOf(json)).toContain('subdivisions length must equal unitLabels.length - 1');
+    expect(textOf(json)).toContain(
+      'subdivisions has 0 entries but needs 1, one fewer than the units (Year, Day)'
+    );
     expect(project.timeSystems()).toHaveLength(0);
+  });
+
+  it('says which per-unit list has the wrong length', async () => {
+    seedProject({ timeSystems: [] });
+    const json = await call('create_time_system', {
+      name: 'Bad',
+      unitLabels: ['Year', 'Month'],
+      subdivisions: [12],
+      unitAllowZero: [true],
+    });
+    expect(textOf(json)).toBe(
+      'Error: unitAllowZero has 1 entry but needs 2, one per unit (Year, Month). ' +
+        'Pass one entry per unit, or null to drop the list.'
+    );
+    const single = await call('create_time_system', {
+      name: 'Bad',
+      unitLabels: ['Turn'],
+      subdivisions: [4],
+    });
+    expect(textOf(single)).toContain('subdivisions has 1 entry but needs 0');
+    expect(textOf(single)).toContain('[] for a single unit');
+  });
+
+  it('saves a system with warnings about what will not work', async () => {
+    const project = seedProject({ timeSystems: [] });
+    const json = await call('create_time_system', {
+      name: 'Odd',
+      unitLabels: ['Year', 'Month', 'Day'],
+      subdivisions: [12, 30],
+      format: '{u0}-{u1}-{u2} {u7}',
+      unitSubdivisionOverrides: [null, { '10': 40, '13': 20 }, null],
+    });
+    expect(json.result?.isError).toBeUndefined();
+    expect(project.timeSystems()).toHaveLength(1);
+    const { warnings } = structured<{ timeSystem: { warnings: string[] } }>(json).timeSystem;
+    expect(warnings).toHaveLength(3);
+    expect(warnings[0]).toContain('{u7}');
+    expect(warnings.join(' ')).toContain('Month values run from 1 to 12');
+    expect(warnings.join(' ')).toContain('dates stop at Day 30');
+    expect(textOf(json)).toContain('Warnings: The format uses {u7}');
+
+    const listed = structured<{ timeSystems: Array<{ warnings?: string[] }> }>(
+      await call('list_time_systems', {}, READ)
+    );
+    expect(listed.timeSystems[0].warnings).toEqual(warnings);
   });
 
   it.each([
@@ -293,6 +350,19 @@ describe('update_time_system', () => {
     });
   });
 
+  it('returns warnings in the structured result and the text', async () => {
+    seedProject();
+    const json = await call('update_time_system', {
+      timeSystemId: 'ts-reckoning',
+      format: 'Age {u0}, {u1} {u7}',
+    });
+    expect(json.result?.isError).toBeUndefined();
+    const { warnings } = structured<{ timeSystem: { warnings: string[] } }>(json).timeSystem;
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('{u7}');
+    expect(textOf(json)).toContain(`Warnings: ${warnings[0]}`);
+  });
+
   it('replaces and clears per-unit lists', async () => {
     const project = seedProject({
       timeSystems: [{ ...reckoning, unitAllowZero: [true, true] }],
@@ -315,7 +385,9 @@ describe('update_time_system', () => {
       subdivisions: [1000, 360],
     });
     expect(json.result?.isError).toBe(true);
-    expect(textOf(json)).toContain('unitAllowZero length must equal unitLabels.length');
+    expect(textOf(json)).toContain(
+      'unitAllowZero has 2 entries but needs 3, one per unit (Age, Year, Day)'
+    );
     expect(project.timeSystems()[0].unitLabels).toEqual(['Age', 'Year']);
   });
 
@@ -393,9 +465,14 @@ describe('list_generators', () => {
     expect(payload.usedByFields).toEqual(['Character → Name']);
   });
 
-  it('says how to start when there are none', async () => {
+  it('says how to start when there are none, in the structured result too', async () => {
     seedProject({ generators: [] });
-    expect(textOf(await call('list_generators', {}, READ))).toContain('no generators yet');
+    const json = await call('list_generators', {}, READ);
+    expect(textOf(json)).toContain('no generators yet');
+    expect(structured(json)).toEqual({
+      generators: [],
+      note: 'This project has no generators yet. Create one with create_generator.',
+    });
   });
 
   it('normalises malformed rows the way the app does', async () => {
@@ -423,6 +500,8 @@ describe('roll_generator', () => {
     const { results } = structured<{ results: Array<{ text: string; seed: number }> }>(json);
     expect(results).toEqual(rollGenerator(dwarfNames, { count: 3, seed: 42 }));
     expect(textOf(json)).toContain(`- ${results[0].text}`);
+    expect(structured(json)).toMatchObject({ requested: 3 });
+    expect(structured(json)).not.toHaveProperty('note');
   });
 
   it('skips element names and excluded results, and says when it ran short', async () => {
@@ -438,9 +517,16 @@ describe('roll_generator', () => {
       },
       READ
     );
-    const texts = structured<{ results: Array<{ text: string }> }>(json).results.map((r) => r.text);
-    expect(texts.sort()).toEqual(['Brom Stonehelm', 'Dagna Ironfoot']);
+    const payload = structured<{
+      requested: number;
+      note: string;
+      results: Array<{ text: string }>;
+    }>(json);
+    expect(payload.results.map((r) => r.text).sort()).toEqual(['Brom Stonehelm', 'Dagna Ironfoot']);
     expect(textOf(json)).toContain('Only 2 of 4');
+    // Clients that show only the structured result still learn why it ran short.
+    expect(payload.requested).toBe(4);
+    expect(payload.note).toContain('Only 2 of 4');
   });
 
   it('refuses a generator with errors, and bad counts', async () => {

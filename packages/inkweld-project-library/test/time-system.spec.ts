@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   absoluteToTimePoint,
   assertValidTimeSystem,
+  checkTimeSystem,
   compareTimePoints,
   effectiveSubdivision,
   findTemplateSystem,
@@ -582,5 +583,110 @@ describe('time-system', () => {
         unitMaxValue(systemWithOverrides, 2)
       );
     });
+  });
+});
+
+describe('checkTimeSystem', () => {
+  const months: TimeSystem = {
+    id: 'months',
+    name: 'Months',
+    isBuiltIn: false,
+    unitLabels: ['Year', 'Month', 'Day'],
+    subdivisions: [12, 30],
+    format: '{u0}-{a1}-{u2}',
+    parseSeparator: '-',
+  };
+  /** The warning codes for `system`, in order. */
+  const codes = (system: TimeSystem) => checkTimeSystem(system).map(w => w.code);
+
+  it('has nothing to say about the templates', () => {
+    for (const template of TIME_SYSTEM_TEMPLATES) {
+      expect(checkTimeSystem(template)).toEqual([]);
+    }
+  });
+
+  it('warns about format units past the last one, once each', () => {
+    const warnings = checkTimeSystem({
+      ...months,
+      format: '{u0}-{u1}-{u2} {u7} {a5} {u7}',
+    });
+    expect(warnings).toEqual([
+      expect.objectContaining({ code: 'format-unknown-unit', unit: 7 }),
+      expect.objectContaining({ code: 'format-unknown-unit', unit: 5 }),
+    ]);
+    expect(warnings[0].message).toContain('{u7}');
+    expect(warnings[0].message).toContain('numbered 0 to 2');
+  });
+
+  it('warns about a format that shows no unit', () => {
+    const [warning] = checkTimeSystem({ ...months, format: 'Someday' });
+    expect(warning.code).toBe('format-no-units');
+    expect(warning.message).toContain('{u0} to {u2}');
+    expect(
+      checkTimeSystem({
+        ...months,
+        unitLabels: ['Turn'],
+        subdivisions: [],
+        format: 'Now',
+      })[0].message
+    ).toContain('Use {u0}.');
+  });
+
+  it('warns about overrides for values a unit never takes', () => {
+    const warnings = checkTimeSystem({
+      ...months,
+      unitSubdivisionOverrides: [{ '0': 6, '-3': 4 }, { '13': 20, '2': 28 }, undefined],
+    });
+    expect(warnings.map(w => [w.code, w.unit])).toEqual([
+      ['override-value-out-of-range', 0],
+      ['override-value-out-of-range', 0],
+      ['override-value-out-of-range', 1],
+    ]);
+    expect(warnings[0].message).toContain('Year values start at 1');
+    expect(warnings[2].message).toContain('Month values run from 1 to 12');
+  });
+
+  it('takes allowZero into account for override values', () => {
+    expect(
+      codes({
+        ...months,
+        unitAllowZero: [false, true, false],
+        unitSubdivisionOverrides: [undefined, { '0': 20, '11': 20 }, undefined],
+      })
+    ).toEqual([]);
+    expect(
+      codes({
+        ...months,
+        unitAllowZero: [false, true, false],
+        unitSubdivisionOverrides: [undefined, { '12': 20 }, undefined],
+      })
+    ).toEqual(['override-value-out-of-range']);
+  });
+
+  it('warns that an override longer than the regular length makes invalid dates', () => {
+    const system: TimeSystem = {
+      ...months,
+      unitSubdivisionOverrides: [undefined, { '10': 40 }, undefined],
+    };
+    const [warning] = checkTimeSystem(system);
+    expect(warning).toMatchObject({ code: 'override-longer-than-default', unit: 1 });
+    expect(warning.message).toContain('dates stop at Day 30');
+    // The reason for the warning: the date editor offers day 40, which is invalid.
+    expect(unitMaxValueFor(system, 2, '10')).toBe(40);
+    expect(isValidTimePointFor({ systemId: 'months', units: ['1', '10', '40'] }, system)).toBe(
+      false
+    );
+  });
+
+  it('warns that overrides on the smallest unit are ignored', () => {
+    const [warning] = checkTimeSystem({
+      ...months,
+      unitSubdivisionOverrides: [undefined, undefined, { '1': 5 }],
+    });
+    expect(warning).toMatchObject({ code: 'override-on-smallest-unit', unit: 2 });
+    expect(warning.message).toContain('Day is the smallest unit');
+    expect(
+      codes({ ...months, unitSubdivisionOverrides: [undefined, undefined, {}] })
+    ).toEqual([]);
   });
 });
