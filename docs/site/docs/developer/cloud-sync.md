@@ -118,8 +118,11 @@ user-menu switcher and the Profile settings tab are thin views over it.
   connections it opened afterwards. A Cloud Sync project that isn't
   activated on this device (a cover from another device) is refused
   (`ProjectActivationService.isActivatedInConfig`): its documents are only
-  in the cloud. A project is marked migrated in its source profile only
-  after it is registered for sync, so a failed move can be retried.
+  in the cloud. A moved project's cover is queued as a pending cover upload
+  (creating the project doesn't send it) and the project is activated in
+  the server profile straight away, so it opens before the server has it.
+  A project is marked migrated in its source profile only after it is
+  registered for sync, so a failed move can be retried.
 - **Migration history** is recorded with `StorageContextService.recordMigration`
   when projects are copied from one profile to another (e.g. Browser to a
   server): both configurations get a `MigrationRecord` with the other side's

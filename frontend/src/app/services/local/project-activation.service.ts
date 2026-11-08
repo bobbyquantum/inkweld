@@ -58,21 +58,29 @@ export class ProjectActivationService {
     );
   }
 
+  /**
+   * Drop the connection and cached activations of a profile that is no
+   * longer active (the move to a server switches without a reload), so
+   * they are read again for the active one and the old database can be
+   * deleted.
+   */
+  private forgetInactiveProfile(): void {
+    if (!this.currentDbName || this.currentDbName === this.dbConfig.dbName) {
+      return;
+    }
+    // Through StorageService, so its cache doesn't hand out the closed
+    // connection to the next caller
+    this.storageService.closeDatabase(this.currentDbName);
+    this.db = null;
+    this.currentDbName = null;
+    this.initPromise = null;
+    this.initializePromise = null;
+    this.activatedKeys.set(new Set());
+  }
+
   private ensureDb(): Promise<IDBDatabase> {
     const expectedDbName = this.dbConfig.dbName;
-
-    if (this.db && this.currentDbName !== expectedDbName) {
-      // Through StorageService, so its cache doesn't hand out the closed
-      // connection to the next caller
-      if (this.currentDbName) {
-        this.storageService.closeDatabase(this.currentDbName);
-      }
-      this.db = null;
-      this.currentDbName = null;
-      this.initPromise = null;
-      this.initializePromise = null;
-      this.activatedKeys.set(new Set());
-    }
+    this.forgetInactiveProfile();
 
     if (this.db) {
       return Promise.resolve(this.db);
@@ -103,15 +111,7 @@ export class ProjectActivationService {
     }
 
     // Reset if the storage context has changed (e.g., user switched servers)
-    const expectedDbName = this.dbConfig.dbName;
-    if (this.currentDbName && this.currentDbName !== expectedDbName) {
-      this.storageService.closeDatabase(this.currentDbName);
-      this.db = null;
-      this.currentDbName = null;
-      this.initPromise = null;
-      this.initializePromise = null;
-      this.activatedKeys.set(new Set());
-    }
+    this.forgetInactiveProfile();
 
     this.initializePromise ??= this.doInitialize();
     return this.initializePromise;
@@ -183,19 +183,53 @@ export class ProjectActivationService {
     configId: string,
     projectKey: string
   ): Promise<boolean> {
-    const dbName = `${this.storageContext.getPrefixForConfig(configId)}${ACTIVATION_DB_BASE_NAME}`;
+    const record = await this.withProfileDb(configId, db =>
+      this.storageService.get<StoredActivation>(db, STORE_NAME, projectKey)
+    );
+    return record !== undefined;
+  }
+
+  /**
+   * Activate a project in a given profile, whichever profile is active. The
+   * move to a server activates what it moved in the server profile.
+   */
+  async activateInConfig(configId: string, projectKey: string): Promise<void> {
+    if (this.profileDbName(configId) === this.dbConfig.dbName) {
+      await this.initialize();
+      await this.activate(projectKey);
+      return;
+    }
+    const record: StoredActivation = {
+      projectKey,
+      activatedAt: new Date().toISOString(),
+    };
+    await this.withProfileDb(configId, db =>
+      this.storageService.put(db, STORE_NAME, record)
+    );
+  }
+
+  private profileDbName(configId: string): string {
+    return `${this.storageContext.getPrefixForConfig(configId)}${ACTIVATION_DB_BASE_NAME}`;
+  }
+
+  /**
+   * Run against a profile's activation database. Unless it is the active
+   * profile's, it is closed again afterwards, so it can't block deleting
+   * that profile.
+   */
+  private async withProfileDb<T>(
+    configId: string,
+    use: (db: IDBDatabase) => Promise<T>
+  ): Promise<T> {
+    this.forgetInactiveProfile();
+    const dbName = this.profileDbName(configId);
     try {
       const db = await this.storageService.initializeDatabase(
         activationDbConfig(dbName)
       );
-      const record = await this.storageService.get<StoredActivation>(
-        db,
-        STORE_NAME,
-        projectKey
-      );
-      return record !== undefined;
+      return await use(db);
     } finally {
-      if (dbName !== this.currentDbName && dbName !== this.dbConfig.dbName) {
+      if (dbName !== this.dbConfig.dbName) {
         this.storageService.closeDatabase(dbName);
       }
     }

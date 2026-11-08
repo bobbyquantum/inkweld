@@ -444,6 +444,24 @@ describe('LocalStorageService', () => {
       expect(close).toHaveBeenCalledWith('srv:srv1:inkweld-media');
     });
 
+    it("reads the new active profile's media after a switch without a reload", async () => {
+      const context = TestBed.inject(StorageContextService);
+      const prefix = vi
+        .spyOn(context, 'prefixDbName')
+        .mockImplementation(name => `local-abc:${name}`);
+      await service.saveMedia('bobby/novel', 'cover', createTestBlob('cover'));
+      const close = vi.spyOn(storageService, 'closeDatabase');
+
+      // The sign-in of a move to a server makes the server profile active
+      prefix.mockImplementation(name => `srv:srv1:${name}`);
+
+      expect(await service.getMedia('bobby/novel', 'cover')).toBeNull();
+      expect(close).toHaveBeenCalledWith('local-abc:inkweld-media');
+
+      prefix.mockImplementation(name => `local-abc:${name}`);
+      expect(await service.getMedia('bobby/novel', 'cover')).not.toBeNull();
+    });
+
     it('leaves open the database it uses for the active profile', async () => {
       const context = TestBed.inject(StorageContextService);
       vi.spyOn(context, 'getPrefixForConfig').mockImplementation(id =>

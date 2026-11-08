@@ -485,6 +485,8 @@ export class MigrationService {
         slug: targetSlug,
         description: project.description || undefined,
       });
+      await this.registerCoverUpload(project, projectKey);
+      await this.activateMovedProject(targetConfigId, projectKey);
 
       // Record the move in the source profile, so it isn't offered again.
       // Last: if any step above failed, the project can be picked again.
@@ -532,6 +534,43 @@ export class MigrationService {
         failedProjects: state.failedProjects + 1,
         currentStage: undefined,
       }));
+    }
+  }
+
+  /**
+   * Queue the project's cover for upload. Creating the project on the
+   * server doesn't send it, and the generic media copy doesn't either: only
+   * the pending-cover upload sets a server project's cover.
+   */
+  private async registerCoverUpload(
+    project: Project,
+    projectKey: string
+  ): Promise<void> {
+    const coverMediaId = project.coverImage?.replace(/\.[^.]+$/, '');
+    // The sync uploads only `cover…` media ids as covers
+    if (!coverMediaId?.startsWith('cover')) return;
+    await this.projectSyncService.markPendingUpload(projectKey, coverMediaId);
+  }
+
+  /**
+   * Open the moved project on this device straight away, as a project made
+   * here is. The sync activates it too once the server has it, but until
+   * then (offline, or creation failed) opening it would bounce to home
+   * although its documents are already here. Not fatal: that sync still
+   * activates it.
+   */
+  private async activateMovedProject(
+    targetConfigId: string,
+    projectKey: string
+  ): Promise<void> {
+    try {
+      await this.projectActivation.activateInConfig(targetConfigId, projectKey);
+    } catch (error) {
+      this.logger.warn(
+        'MigrationService',
+        `Moved ${projectKey} but could not activate it`,
+        error
+      );
     }
   }
 

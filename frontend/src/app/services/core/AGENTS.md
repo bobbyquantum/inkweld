@@ -106,8 +106,10 @@ described in `backend/AGENTS.md`.
   (the sign-in has switched to the server by then) and never as `local`
   (any Browser or Cloud Sync profile can be the source). A Cloud Sync
   project not activated on this device fails the move instead of copying
-  empty databases. The source is marked migrated last, so a failed step
-  leaves the project to pick again. Connections the move opens to another
+  empty databases. The move queues the project's cover for upload and
+  activates it in the server profile. The source is marked migrated last, so
+  a failed step leaves the project to pick again. Cancelling returns to the
+  profile that was active, which may not be the source. Connections the move opens to another
   profile's databases are closed afterwards, so that profile can still be
   deleted. Details: `docs/site/docs/developer/cloud-sync.md`.
 

@@ -225,6 +225,12 @@ export class ProfileManagerDialogComponent {
    */
   private namedMoveSource = this.dialogData?.sourceProfileId ?? null;
   /**
+   * The profile that was active when the move started, which cancelling or
+   * a failed sign-in returns to. Usually the source; not when "Connect to
+   * sync" named another profile.
+   */
+  private profileBeforeMove: string | null = null;
+  /**
    * Projects the move to a server would carry, read from the move's source
    * when the server form opens. The list stays as it was read while the
    * sign-in switches to the server and the projects move.
@@ -578,6 +584,7 @@ export class ProfileManagerDialogComponent {
     // The migration view handles both auth and optional project migration
     this.pendingServerUrl = url;
     this.migrationSource.set(this.moveSource()?.id ?? null);
+    this.profileBeforeMove = this.activeProfile()?.id ?? null;
     this.currentView.set('migrate');
     this.showAuthForm.set(true);
     void this.loadTargetFeatures(url);
@@ -934,6 +941,7 @@ export class ProfileManagerDialogComponent {
     this.isCheckingConflicts.set(false);
     this.pendingServerUrl = '';
     this.migrationSource.set(null);
+    this.profileBeforeMove = null;
     this.migrationTargetId = null;
     this.migrationUsername = '';
     this.createdProfileIds.clear();
@@ -1313,18 +1321,18 @@ export class ProfileManagerDialogComponent {
   }
 
   /**
-   * Go back to the profile the move started from. Profiles this flow created
-   * are removed unless the user is signed in to them; the source profile
-   * and its projects are never touched.
+   * Go back to the profile that was active when the move started. Profiles
+   * this flow created are removed unless the user is signed in to them; the
+   * source profile and its projects are never touched.
    */
   private async restoreSourceProfile(): Promise<void> {
-    const sourceId = this.migrationSource();
+    const returnTo = this.profileBeforeMove ?? this.migrationSource();
     if (
-      sourceId &&
-      this.activeProfile()?.id !== sourceId &&
-      this.storageContext.getConfigById(sourceId)
+      returnTo &&
+      this.activeProfile()?.id !== returnTo &&
+      this.storageContext.getConfigById(returnTo)
     ) {
-      this.storageContext.switchToConfig(sourceId);
+      this.storageContext.switchToConfig(returnTo);
     }
     if (!this.isAuthenticated()) {
       for (const id of this.createdProfileIds) this.discardProfile(id);

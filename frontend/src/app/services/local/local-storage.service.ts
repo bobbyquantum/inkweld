@@ -118,6 +118,16 @@ export class LocalStorageService {
    * Initialize the media database. Called automatically on first use.
    */
   private ensureDb(): Promise<IDBDatabase> {
+    const config = this.dbConfig;
+    // The move to a server switches profiles without a reload: read the
+    // active profile's media, not the one opened before the switch
+    if (this.ownDbName && this.ownDbName !== config.dbName) {
+      this.storageService.closeDatabase(this.ownDbName);
+      this.db = null;
+      this.initPromise = null;
+      this.ownDbName = null;
+    }
+
     if (this.db) {
       return Promise.resolve(this.db);
     }
@@ -126,7 +136,6 @@ export class LocalStorageService {
       return this.initPromise;
     }
 
-    const config = this.dbConfig;
     this.ownDbName = config.dbName;
     this.initPromise = this.storageService
       .initializeDatabase(config)

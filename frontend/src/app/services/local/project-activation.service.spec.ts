@@ -198,6 +198,23 @@ describe('ProjectActivationService', () => {
       expect(service.isActivated('bob/other')).toBe(true);
     });
 
+    it('closes the connection of a profile that is no longer active', async () => {
+      await service.initialize();
+      await service.activate(TEST_PROJECT_KEY);
+      // The sign-in of a move to a server switches profiles without a reload
+      mockStorageContext.prefixDbName.mockImplementation(
+        (name: string) => `srv:other:${name}`
+      );
+      const close = vi.spyOn(storageService, 'closeDatabase');
+
+      expect(await service.isActivatedInConfig('test', TEST_PROJECT_KEY)).toBe(
+        true
+      );
+
+      expect(close).toHaveBeenCalledWith('srv:test:inkweld-activations');
+      expect(service.isActivated(TEST_PROJECT_KEY)).toBe(false);
+    });
+
     it('reopens a profile it switched away from instead of reusing a closed connection', async () => {
       await service.initialize();
       await service.activate(TEST_PROJECT_KEY);
@@ -206,6 +223,30 @@ describe('ProjectActivationService', () => {
       );
       await service.initialize();
 
+      expect(await service.isActivatedInConfig('test', TEST_PROJECT_KEY)).toBe(
+        true
+      );
+    });
+  });
+
+  describe('activateInConfig', () => {
+    it('activates in another profile and closes its database again', async () => {
+      const close = vi.spyOn(storageService, 'closeDatabase');
+
+      await service.activateInConfig('srv2', TEST_PROJECT_KEY);
+
+      expect(close).toHaveBeenCalledWith('srv2:inkweld-activations');
+      expect(await service.isActivatedInConfig('srv2', TEST_PROJECT_KEY)).toBe(
+        true
+      );
+      // Not the active profile's
+      expect(service.isActivated(TEST_PROJECT_KEY)).toBe(false);
+    });
+
+    it('activates in the active profile so it opens straight away', async () => {
+      await service.activateInConfig('test', TEST_PROJECT_KEY);
+
+      expect(service.isActivated(TEST_PROJECT_KEY)).toBe(true);
       expect(await service.isActivatedInConfig('test', TEST_PROJECT_KEY)).toBe(
         true
       );

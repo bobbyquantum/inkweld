@@ -633,6 +633,37 @@ describe('ProfileManagerDialogComponent', () => {
       }
     });
 
+    it('cancelling goes back to the profile that was active, not the named source', async () => {
+      storageContextMock.configurations.set([
+        mockLocalConfig,
+        secondBrowser,
+        mockServerConfig,
+      ]);
+      storageContextMock.activeConfig.set(mockLocalConfig);
+
+      const ref = openWith({
+        view: 'add-server',
+        serverUrl: 'https://inkweld.example.com',
+        sourceProfileId: secondBrowser.id,
+      });
+      try {
+        ref.instance.addServer();
+        // The sign-in makes the server profile active
+        storageContextMock.activeConfig.set(mockServerConfig);
+
+        await ref.instance.cancelMigration();
+
+        expect(storageContextMock.switchToConfig).toHaveBeenCalledWith(
+          mockLocalConfig.id
+        );
+        expect(storageContextMock.switchToConfig).not.toHaveBeenCalledWith(
+          secondBrowser.id
+        );
+      } finally {
+        ref.destroy();
+      }
+    });
+
     it('falls back to the active profile when the named one is gone', () => {
       storageContextMock.activeConfig.set(secondBrowser);
       storageContextMock.configurations.set([

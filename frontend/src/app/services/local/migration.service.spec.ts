@@ -84,9 +84,11 @@ describe('MigrationService', () => {
   };
   let projectSyncServiceMock: {
     markPendingCreation: ReturnType<typeof vi.fn>;
+    markPendingUpload: ReturnType<typeof vi.fn>;
   };
   let projectActivationMock: {
     isActivatedInConfig: ReturnType<typeof vi.fn>;
+    activateInConfig: ReturnType<typeof vi.fn>;
   };
 
   const mockProjects: Project[] = [
@@ -161,9 +163,11 @@ describe('MigrationService', () => {
 
     projectSyncServiceMock = {
       markPendingCreation: vi.fn().mockResolvedValue(undefined),
+      markPendingUpload: vi.fn().mockResolvedValue(undefined),
     };
     projectActivationMock = {
       isActivatedInConfig: vi.fn().mockResolvedValue(false),
+      activateInConfig: vi.fn().mockResolvedValue(undefined),
     };
 
     storageContextServiceMock = {
@@ -379,6 +383,53 @@ describe('MigrationService', () => {
       const marked =
         localProjectService.markProjectAsMigrated.mock.invocationCallOrder[0];
       expect(registered).toBeLessThan(marked);
+    });
+
+    it("queues the project's cover for upload before marking it migrated", async () => {
+      setMockProjects([{ ...mockProjects[0], coverImage: 'cover-123.jpg' }]);
+
+      await service.migrateToServerMode('local', 'config-123', 'testuser');
+
+      expect(projectSyncServiceMock.markPendingUpload).toHaveBeenCalledWith(
+        'testuser/test-project-1',
+        'cover-123'
+      );
+      expect(
+        projectSyncServiceMock.markPendingUpload.mock.invocationCallOrder[0]
+      ).toBeLessThan(
+        localProjectService.markProjectAsMigrated.mock.invocationCallOrder[0]
+      );
+    });
+
+    it('queues no cover for a project without one', async () => {
+      setMockProjects([mockProjects[0]]);
+
+      await service.migrateToServerMode('local', 'config-123', 'testuser');
+
+      expect(projectSyncServiceMock.markPendingUpload).not.toHaveBeenCalled();
+    });
+
+    it('activates the moved project in the server profile, so it opens before the server has it', async () => {
+      setMockProjects([mockProjects[0]]);
+
+      await service.migrateToServerMode('local', 'config-123', 'mover');
+
+      expect(projectActivationMock.activateInConfig).toHaveBeenCalledWith(
+        'config-123',
+        'mover/test-project-1'
+      );
+    });
+
+    it('still moves the project when activating it fails', async () => {
+      setMockProjects([mockProjects[0]]);
+      projectActivationMock.activateInConfig.mockRejectedValue(
+        new Error('IndexedDB closed')
+      );
+
+      await service.migrateToServerMode('local', 'config-123', 'testuser');
+
+      expect(service.migrationState().completedProjects).toBe(1);
+      expect(localProjectService.markProjectAsMigrated).toHaveBeenCalled();
     });
 
     it('leaves the project to pick again when it cannot be registered for sync', async () => {
