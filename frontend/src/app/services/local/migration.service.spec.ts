@@ -38,11 +38,11 @@ describe('MigrationService', () => {
   let localProjectService: {
     projects: ReturnType<typeof signal<Project[]>>;
     getNonMigratedProjects: ReturnType<typeof vi.fn>;
-    getLocalModeProjects: ReturnType<typeof vi.fn>;
+    getProjectsInConfig: ReturnType<typeof vi.fn>;
     markProjectAsMigrated: ReturnType<typeof vi.fn>;
     createProjectInConfig: ReturnType<typeof vi.fn>;
     deleteProject: ReturnType<typeof vi.fn>;
-    deleteLocalModeProject: ReturnType<typeof vi.fn>;
+    deleteProjectInConfig: ReturnType<typeof vi.fn>;
   };
   let localElementsServiceMock: {
     loadElements: ReturnType<typeof vi.fn>;
@@ -75,6 +75,7 @@ describe('MigrationService', () => {
     getMedia: ReturnType<typeof vi.fn>;
     saveMedia: ReturnType<typeof vi.fn>;
     deleteMedia: ReturnType<typeof vi.fn>;
+    copyProjectMediaBetweenProfiles: ReturnType<typeof vi.fn>;
   };
   let projectsApiMock: {
     createProject: ReturnType<typeof vi.fn>;
@@ -139,6 +140,7 @@ describe('MigrationService', () => {
       getMedia: vi.fn().mockResolvedValue(null),
       saveMedia: vi.fn().mockResolvedValue(undefined),
       deleteMedia: vi.fn().mockResolvedValue(undefined),
+      copyProjectMediaBetweenProfiles: vi.fn().mockResolvedValue(0),
     };
 
     projectsApiMock = {
@@ -169,7 +171,7 @@ describe('MigrationService', () => {
       }),
       updateConfigUserProfile: vi.fn(),
       getPrefixForConfig: vi.fn((id: string) =>
-        id === 'local' ? 'local:' : `srv:${id}:`
+        id === 'local' || id.startsWith('local-') ? `${id}:` : `srv:${id}:`
       ),
       storagePrefix: signal('local'),
     };
@@ -177,11 +179,11 @@ describe('MigrationService', () => {
     localProjectService = {
       projects: signal<Project[]>([]),
       getNonMigratedProjects: vi.fn().mockReturnValue([]),
-      getLocalModeProjects: vi.fn().mockReturnValue([]),
+      getProjectsInConfig: vi.fn().mockReturnValue([]),
       markProjectAsMigrated: vi.fn(),
       createProjectInConfig: vi.fn(),
       deleteProject: vi.fn(),
-      deleteLocalModeProject: vi.fn(),
+      deleteProjectInConfig: vi.fn(),
     };
 
     localElementsServiceMock = {
@@ -218,11 +220,11 @@ describe('MigrationService', () => {
     expect(service).toBeTruthy();
   });
 
-  // Helper to set mock projects (updates signal, getNonMigratedProjects, and getLocalModeProjects mocks)
+  // Helper to set mock projects (updates signal, getNonMigratedProjects, and getProjectsInConfig mocks)
   const setMockProjects = (projects: Project[]) => {
     localProjectService.projects.set(projects);
     localProjectService.getNonMigratedProjects.mockReturnValue(projects);
-    localProjectService.getLocalModeProjects.mockReturnValue(projects);
+    localProjectService.getProjectsInConfig.mockReturnValue(projects);
   };
 
   describe('initial state', () => {
@@ -236,23 +238,23 @@ describe('MigrationService', () => {
     });
 
     it('should return false when no offline projects exist', () => {
-      expect(service.hasLocalProjects()).toBe(false);
-      expect(service.getLocalProjectsCount()).toBe(0);
+      expect(service.hasLocalProjects('local')).toBe(false);
+      expect(service.getLocalProjectsCount('local')).toBe(0);
     });
 
     it('should detect offline projects when they exist', () => {
       setMockProjects(mockProjects);
-      expect(service.hasLocalProjects()).toBe(true);
-      expect(service.getLocalProjectsCount()).toBe(2);
+      expect(service.hasLocalProjects('local')).toBe(true);
+      expect(service.getLocalProjectsCount('local')).toBe(2);
     });
 
     it('should return empty array from getLocalProjects when no projects exist', () => {
-      expect(service.getLocalProjects()).toEqual([]);
+      expect(service.getLocalProjects('local')).toEqual([]);
     });
 
     it('should return local projects from getLocalProjects', () => {
       setMockProjects(mockProjects);
-      expect(service.getLocalProjects()).toEqual(mockProjects);
+      expect(service.getLocalProjects('local')).toEqual(mockProjects);
     });
   });
 
@@ -288,8 +290,69 @@ describe('MigrationService', () => {
   });
 
   describe('migrateToServerMode', () => {
+    it('moves the projects of the profile it is given, not the first Browser profile', async () => {
+      localProjectService.getProjectsInConfig.mockImplementation(
+        (id: string) =>
+          id === 'local-abc' ? [mockProjects[0]] : [mockProjects[1]]
+      );
+      const copyElements = vi
+        .spyOn(
+          service as unknown as {
+            copyElementsDocument: (...args: string[]) => Promise<unknown[]>;
+          },
+          'copyElementsDocument'
+        )
+        .mockResolvedValue([]);
+
+      await service.migrateToServerMode('local-abc', 'config-123', 'mover');
+
+      expect(localProjectService.getProjectsInConfig).toHaveBeenCalledWith(
+        'local-abc'
+      );
+      expect(copyElements).toHaveBeenCalledWith(
+        'local-abc',
+        'testuser',
+        'test-project-1',
+        'config-123',
+        'mover',
+        'test-project-1'
+      );
+      expect(
+        localStorageMock.copyProjectMediaBetweenProfiles
+      ).toHaveBeenCalledWith(
+        'local-abc',
+        'config-123',
+        'testuser/test-project-1',
+        'mover/test-project-1'
+      );
+      expect(localProjectService.markProjectAsMigrated).toHaveBeenCalledWith(
+        'local-abc',
+        'test-project-1',
+        'test-project-1',
+        'http://localhost:8333',
+        'mover'
+      );
+      expect(
+        service.migrationState().projectStatuses.map(p => p.projectSlug)
+      ).toEqual(['test-project-1']);
+    });
+
+    it('fails the project, leaving it unmigrated, when its media cannot be copied', async () => {
+      setMockProjects([mockProjects[0]]);
+      localStorageMock.copyProjectMediaBetweenProfiles.mockRejectedValue(
+        new Error('quota')
+      );
+
+      await service.migrateToServerMode('local', 'config-123', 'testuser');
+
+      const state = service.migrationState();
+      expect(state.failedProjects).toBe(1);
+      expect(localProjectService.markProjectAsMigrated).not.toHaveBeenCalled();
+      expect(projectSyncServiceMock.markPendingCreation).not.toHaveBeenCalled();
+    });
+
     it('should do nothing when no local projects exist', async () => {
-      await service.migrateToServerMode('config-123', 'testuser');
+      await service.migrateToServerMode('local', 'config-123', 'testuser');
 
       expect(loggerMock.info).toHaveBeenCalledWith(
         'MigrationService',
@@ -300,7 +363,7 @@ describe('MigrationService', () => {
     it('should migrate local projects to server mode storage', async () => {
       setMockProjects(mockProjects);
 
-      await service.migrateToServerMode('config-123', 'testuser');
+      await service.migrateToServerMode('local', 'config-123', 'testuser');
 
       const state = service.migrationState();
       expect(state.status).toBe(MigrationStatus.Completed);
@@ -312,10 +375,11 @@ describe('MigrationService', () => {
     it('should mark projects as migrated after successful migration', async () => {
       setMockProjects([mockProjects[0]]);
 
-      await service.migrateToServerMode('config-123', 'testuser');
+      await service.migrateToServerMode('local', 'config-123', 'testuser');
 
-      // markProjectAsMigrated(slug, targetSlug, serverUrl, targetUsername)
+      // markProjectAsMigrated(sourceConfigId, slug, targetSlug, serverUrl, targetUsername)
       expect(localProjectService.markProjectAsMigrated).toHaveBeenCalledWith(
+        'local',
         'test-project-1',
         'test-project-1',
         'http://localhost:8333',
@@ -330,7 +394,7 @@ describe('MigrationService', () => {
         'copyDocumentFiles'
       ).mockRejectedValue(new Error('Failed to copy document x'));
 
-      await service.migrateToServerMode('config-123', 'testuser');
+      await service.migrateToServerMode('local', 'config-123', 'testuser');
 
       const state = service.migrationState();
       expect(state.failedProjects).toBe(1);
@@ -342,7 +406,7 @@ describe('MigrationService', () => {
     it('should update project statuses during migration', async () => {
       setMockProjects([mockProjects[0]]);
 
-      await service.migrateToServerMode('config-123', 'testuser');
+      await service.migrateToServerMode('local', 'config-123', 'testuser');
 
       const state = service.migrationState();
       expect(state.projectStatuses).toHaveLength(1);
@@ -354,15 +418,16 @@ describe('MigrationService', () => {
     it('should only migrate selected projects when projectSlugs is provided', async () => {
       setMockProjects(mockProjects);
 
-      await service.migrateToServerMode('config-123', 'testuser', [
+      await service.migrateToServerMode('local', 'config-123', 'testuser', [
         'test-project-1',
       ]);
 
       expect(localProjectService.markProjectAsMigrated).toHaveBeenCalledTimes(
         1
       );
-      // markProjectAsMigrated(slug, targetSlug, serverUrl, targetUsername)
+      // markProjectAsMigrated(sourceConfigId, slug, targetSlug, serverUrl, targetUsername)
       expect(localProjectService.markProjectAsMigrated).toHaveBeenCalledWith(
+        'local',
         'test-project-1',
         'test-project-1',
         'http://localhost:8333',
@@ -377,7 +442,7 @@ describe('MigrationService', () => {
     it('should do nothing when projectSlugs is empty array', async () => {
       setMockProjects(mockProjects);
 
-      await service.migrateToServerMode('config-123', 'testuser', []);
+      await service.migrateToServerMode('local', 'config-123', 'testuser', []);
 
       expect(localProjectService.markProjectAsMigrated).not.toHaveBeenCalled();
       expect(loggerMock.info).toHaveBeenCalledWith(
@@ -389,7 +454,7 @@ describe('MigrationService', () => {
     it('should do nothing when projectSlugs contains no matching slugs', async () => {
       setMockProjects(mockProjects);
 
-      await service.migrateToServerMode('config-123', 'testuser', [
+      await service.migrateToServerMode('local', 'config-123', 'testuser', [
         'non-existent-project',
       ]);
 
@@ -406,15 +471,17 @@ describe('MigrationService', () => {
       const renames = new Map([['test-project-1', 'renamed-project-1']]);
 
       await service.migrateToServerMode(
+        'local',
         'config-123',
         'testuser',
         ['test-project-1'],
         renames
       );
 
-      // markProjectAsMigrated(slug, targetSlug, serverUrl, targetUsername)
+      // markProjectAsMigrated(sourceConfigId, slug, targetSlug, serverUrl, targetUsername)
       // The renamed slug should be used for targetSlug
       expect(localProjectService.markProjectAsMigrated).toHaveBeenCalledWith(
+        'local',
         'test-project-1',
         'renamed-project-1',
         'http://localhost:8333',
@@ -428,6 +495,7 @@ describe('MigrationService', () => {
       const renames = new Map([['test-project-1', 'renamed-project-1']]);
 
       await service.migrateToServerMode(
+        'local',
         'config-123',
         'testuser',
         ['test-project-1'],
@@ -450,10 +518,11 @@ describe('MigrationService', () => {
     it('should call migrateToServerMode with current config', async () => {
       setMockProjects([mockProjects[0]]);
 
-      await service.migrateToServer();
+      await service.migrateToServer('local');
 
-      // markProjectAsMigrated(slug, targetSlug, serverUrl, targetUsername)
+      // markProjectAsMigrated(sourceConfigId, slug, targetSlug, serverUrl, targetUsername)
       expect(localProjectService.markProjectAsMigrated).toHaveBeenCalledWith(
+        'local',
         'test-project-1',
         'test-project-1',
         'http://localhost:8333',
@@ -464,7 +533,7 @@ describe('MigrationService', () => {
     it('should throw error when no current config exists', async () => {
       storageContextServiceMock.getActiveConfig.mockReturnValue(null);
 
-      await expect(service.migrateToServer()).rejects.toThrow(
+      await expect(service.migrateToServer('local')).rejects.toThrow(
         'No server configuration found'
       );
     });
@@ -477,7 +546,7 @@ describe('MigrationService', () => {
         userProfile: undefined, // No user profile
       });
 
-      await expect(service.migrateToServer()).rejects.toThrow(
+      await expect(service.migrateToServer('local')).rejects.toThrow(
         'No current user found'
       );
     });
@@ -723,16 +792,18 @@ describe('MigrationService', () => {
     it('should delete all offline projects', () => {
       setMockProjects(mockProjects);
 
-      service.cleanupLocalData();
+      service.cleanupLocalData('local');
 
-      expect(localProjectService.deleteLocalModeProject).toHaveBeenCalledTimes(
+      expect(localProjectService.deleteProjectInConfig).toHaveBeenCalledTimes(
         2
       );
-      expect(localProjectService.deleteLocalModeProject).toHaveBeenCalledWith(
+      expect(localProjectService.deleteProjectInConfig).toHaveBeenCalledWith(
+        'local',
         'testuser',
         'test-project-1'
       );
-      expect(localProjectService.deleteLocalModeProject).toHaveBeenCalledWith(
+      expect(localProjectService.deleteProjectInConfig).toHaveBeenCalledWith(
+        'local',
         'testuser',
         'test-project-2'
       );
@@ -741,13 +812,13 @@ describe('MigrationService', () => {
     it('should clear offline localStorage items', () => {
       localStorage.setItem('inkweld-local-user', 'test-user');
 
-      service.cleanupLocalData();
+      service.cleanupLocalData('local');
 
       expect(localStorage.getItem('inkweld-local-user')).toBeNull();
     });
 
     it('should log cleanup operation', () => {
-      service.cleanupLocalData();
+      service.cleanupLocalData('local');
 
       expect(loggerMock.warn).toHaveBeenCalledWith(
         'MigrationService',
@@ -762,9 +833,9 @@ describe('MigrationService', () => {
     it('should handle empty projects list', () => {
       setMockProjects([]);
 
-      service.cleanupLocalData();
+      service.cleanupLocalData('local');
 
-      expect(localProjectService.deleteLocalModeProject).not.toHaveBeenCalled();
+      expect(localProjectService.deleteProjectInConfig).not.toHaveBeenCalled();
       expect(loggerMock.info).toHaveBeenCalledWith(
         'MigrationService',
         'Local data cleanup completed'
@@ -774,12 +845,13 @@ describe('MigrationService', () => {
     it('should only delete selected projects when projectSlugs is provided', () => {
       setMockProjects(mockProjects);
 
-      service.cleanupLocalData(['test-project-1']);
+      service.cleanupLocalData('local', ['test-project-1']);
 
-      expect(localProjectService.deleteLocalModeProject).toHaveBeenCalledTimes(
+      expect(localProjectService.deleteProjectInConfig).toHaveBeenCalledTimes(
         1
       );
-      expect(localProjectService.deleteLocalModeProject).toHaveBeenCalledWith(
+      expect(localProjectService.deleteProjectInConfig).toHaveBeenCalledWith(
+        'local',
         'testuser',
         'test-project-1'
       );
@@ -789,7 +861,7 @@ describe('MigrationService', () => {
       localStorage.setItem('inkweld-local-user', 'test-user');
       setMockProjects(mockProjects);
 
-      service.cleanupLocalData(['test-project-1']);
+      service.cleanupLocalData('local', ['test-project-1']);
 
       // The local user should still exist after selective cleanup
       expect(localStorage.getItem('inkweld-local-user')).toBe('test-user');
@@ -798,7 +870,7 @@ describe('MigrationService', () => {
     it('should log selective cleanup when projectSlugs is provided', () => {
       setMockProjects(mockProjects);
 
-      service.cleanupLocalData(['test-project-1', 'test-project-2']);
+      service.cleanupLocalData('local', ['test-project-1', 'test-project-2']);
 
       expect(loggerMock.warn).toHaveBeenCalledWith(
         'MigrationService',
@@ -813,6 +885,7 @@ describe('MigrationService', () => {
       (
         service as unknown as {
           copyDocumentFiles: (
+            sourceConfigId: string,
             sourceUsername: string,
             sourceSlug: string,
             targetConfigId: string,
@@ -838,6 +911,7 @@ describe('MigrationService', () => {
       const copyDocumentFiles = getCopyDocumentFiles();
 
       await copyDocumentFiles(
+        'local',
         'testuser',
         'my-slug',
         'cfg1',
@@ -867,6 +941,7 @@ describe('MigrationService', () => {
       const copyDocumentFiles = getCopyDocumentFiles();
 
       await copyDocumentFiles(
+        'local',
         'olduser',
         'old-slug',
         'cfg1',
@@ -896,6 +971,7 @@ describe('MigrationService', () => {
       ];
 
       await copyDocumentFiles(
+        'local',
         'olduser',
         'old-slug',
         'cfg1',
@@ -916,6 +992,7 @@ describe('MigrationService', () => {
 
       // Should not throw
       await copyDocumentFiles(
+        'local',
         'olduser',
         'old-slug',
         'cfg1',
@@ -938,6 +1015,7 @@ describe('MigrationService', () => {
       ];
 
       await copyDocumentFiles(
+        'local',
         'olduser',
         'old-slug',
         'cfg1',

@@ -853,9 +853,9 @@ export class ProjectStateService implements OnDestroy {
    * or subscription keeps the project alive after the component is gone.
    *
    * Public (unlike {@link clearProjectState}) so the project component can
-   * call it from ngOnDestroy to guarantee connections close on exit — the
-   * route is no longer reused (see app.routes `reuseComponent: false`), so
-   * ngOnDestroy now actually runs when leaving a project.
+   * call it from ngOnDestroy to guarantee connections close on exit — no
+   * page is kept after leaving it (see CustomRouteReuseStrategy), so
+   * ngOnDestroy runs when leaving a project.
    */
   disconnectSync(): void {
     this.worldbuildingService.disconnectPublicConnections();

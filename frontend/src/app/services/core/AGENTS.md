@@ -91,6 +91,22 @@ records are appended under fresh keys, other records only fill free keys.
 Don't add a second copy step in front of it. The server side of a rename is
 described in `backend/AGENTS.md`.
 
+## Upgrading a profile ("Connect to sync")
+
+- The welcome screen is in upgrade mode only when the visit names the source
+  (`?upgradeFrom=`) or comes back from a cloud provider (`?cloud=`); any
+  other visit drops a leftover sessionStorage marker. In upgrade mode it
+  offers only `AppModePolicyService.upgradeTargets()`, never a Browser
+  profile.
+- A move to a server always goes through the profile manager's guided flow
+  (`openProfileManagerDialog({ view: 'add-server' })` from the welcome
+  screen). Never add a bare server profile for an upgrade: the projects
+  would stay behind.
+- The move reads its source by profile id, never through the active profile
+  (the sign-in has switched to the server by then) and never as `local`
+  (any Browser or Cloud Sync profile can be the source). Details:
+  `docs/site/docs/developer/cloud-sync.md`.
+
 ## APP_MODE (which profiles may be added)
 
 `APP_MODE` (`ONLINE` | `LOCAL` | `BOTH`, backend env, sent as `appMode` in

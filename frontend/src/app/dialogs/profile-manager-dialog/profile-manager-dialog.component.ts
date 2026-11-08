@@ -86,7 +86,13 @@ import {
  */
 /** Optional data: which view to open with */
 export interface ProfileManagerDialogData {
-  view?: 'list' | 'upgrade';
+  /**
+   * `add-server` opens the server form, the start of the guided move of the
+   * active profile's projects to a server
+   */
+  view?: 'list' | 'upgrade' | 'add-server';
+  /** Server address to prefill in the server form */
+  serverUrl?: string;
 }
 
 @Component({
@@ -141,7 +147,7 @@ export class ProfileManagerDialogComponent {
   // View state
   protected currentView = signal<
     'list' | 'add' | 'add-local' | 'migrate' | 'upgrade'
-  >(this.dialogData?.view ?? 'list');
+  >(initialView(this.dialogData?.view));
 
   // Add local form
   protected localUsername = signal('');
@@ -193,7 +199,7 @@ export class ProfileManagerDialogComponent {
   );
 
   // Add server form
-  protected newServerUrl = signal('');
+  protected newServerUrl = signal(this.dialogData?.serverUrl ?? '');
   protected newServerName = signal('');
   protected isConnecting = signal(false);
   protected connectionError = signal<string | null>(null);
@@ -206,12 +212,15 @@ export class ProfileManagerDialogComponent {
 
   // Migration state (for local -> server transitions)
   protected migrationState = this.migrationService.migrationState;
-  protected localProjectsCount = computed(() =>
-    this.migrationService.getLocalProjectsCount()
-  );
-  protected localProjects = computed(() =>
-    this.migrationService.getLocalProjects()
-  );
+  /** Profile that was active when the move started (the source) */
+  private readonly migrationSource = signal<string | null>(null);
+  /**
+   * Projects the move to a server would carry, read from the active profile
+   * when the server form opens. The list stays as it was read while the
+   * sign-in switches to the server and the projects move.
+   */
+  protected localProjects = signal<Project[]>([]);
+  protected localProjectsCount = computed(() => this.localProjects().length);
   protected selectedProjectSlugs = signal<Set<string>>(new Set());
 
   // Slug conflict tracking - maps original slug to server conflict status
@@ -313,14 +322,16 @@ export class ProfileManagerDialogComponent {
     // adding a profile (upgrade choices, add server).
     if (
       this.activeProfile()?.type === 'server' ||
-      this.currentView() === 'upgrade'
+      this.currentView() === 'upgrade' ||
+      this.currentView() === 'add'
     ) {
       void this.appModePolicy.ready();
     }
+    if (this.currentView() === 'add') this.loadProjectsToMove();
     // Closing the dialog part-way through the move must not leave the app
     // on the target profile the sign-in switched to.
     inject(DestroyRef).onDestroy(() => {
-      if (this.migrationSourceId && !this.migrationStarted) {
+      if (this.migrationSource() && !this.migrationStarted) {
         void this.restoreSourceProfile();
       }
     });
@@ -331,8 +342,6 @@ export class ProfileManagerDialogComponent {
 
   // Pending server URL for migration (exposed to template for registration form)
   protected pendingServerUrl = '';
-  /** Profile that was active when the migration started (the source) */
-  private migrationSourceId: string | null = null;
   /** Server profile the login landed in (the destination) */
   private migrationTargetId: string | null = null;
   /** Username the user logged in or registered with on the target server */
@@ -429,6 +438,21 @@ export class ProfileManagerDialogComponent {
     void this.appModePolicy.ready();
     this.currentView.set('add');
     this.resetAddServerForm();
+    this.loadProjectsToMove();
+  }
+
+  /**
+   * Read the projects a move to a server would carry from the active
+   * profile, the one the move starts from. Only Browser and Cloud Sync
+   * profiles move up to a server; a server profile has nothing to carry.
+   */
+  private loadProjectsToMove(): void {
+    const source = this.activeProfile();
+    this.localProjects.set(
+      source?.type === 'local' || source?.type === 'cloud'
+        ? this.migrationService.getLocalProjects(source.id)
+        : []
+    );
   }
 
   /**
@@ -531,7 +555,7 @@ export class ProfileManagerDialogComponent {
     // Always show the auth form - user needs to authenticate on the new server
     // The migration view handles both auth and optional project migration
     this.pendingServerUrl = url;
-    this.migrationSourceId = this.activeProfile()?.id ?? null;
+    this.migrationSource.set(this.activeProfile()?.id ?? null);
     this.currentView.set('migrate');
     this.showAuthForm.set(true);
     void this.loadTargetFeatures(url);
@@ -846,7 +870,7 @@ export class ProfileManagerDialogComponent {
    */
   async cancelMigration(): Promise<void> {
     this.currentView.set('list');
-    if (this.migrationSourceId) await this.restoreSourceProfile();
+    if (this.migrationSource()) await this.restoreSourceProfile();
     this.resetMigrationForm();
   }
 
@@ -886,7 +910,7 @@ export class ProfileManagerDialogComponent {
     this.isMigrating.set(false);
     this.isCheckingConflicts.set(false);
     this.pendingServerUrl = '';
-    this.migrationSourceId = null;
+    this.migrationSource.set(null);
     this.migrationTargetId = null;
     this.migrationUsername = '';
     this.createdProfileIds.clear();
@@ -1271,7 +1295,7 @@ export class ProfileManagerDialogComponent {
    * and its projects are never touched.
    */
   private async restoreSourceProfile(): Promise<void> {
-    const sourceId = this.migrationSourceId;
+    const sourceId = this.migrationSource();
     if (
       sourceId &&
       this.activeProfile()?.id !== sourceId &&
@@ -1379,8 +1403,11 @@ export class ProfileManagerDialogComponent {
   }
 
   private async runMigrationAndSync(selectedSlugs: string[]): Promise<void> {
+    const sourceId = this.migrationSource();
+    if (!sourceId) throw new Error('No profile to move projects from');
     const renames = this.projectRenames();
     await this.migrationService.migrateToServer(
+      sourceId,
       selectedSlugs,
       renames.size > 0 ? renames : undefined
     );
@@ -1396,7 +1423,7 @@ export class ProfileManagerDialogComponent {
 
         if (syncSuccess) {
           this.syncSuccess.set(true);
-          this.migrationService.cleanupLocalData(selectedSlugs);
+          this.migrationService.cleanupLocalData(sourceId, selectedSlugs);
           this.recordMigrationHistory(selectedSlugs.length);
         } else {
           this.syncError.set(
@@ -1425,10 +1452,11 @@ export class ProfileManagerDialogComponent {
    * so the connections list can explain where a user's work went.
    */
   private recordMigrationHistory(projectCount: number): void {
-    if (!this.migrationSourceId || !this.migrationTargetId) return;
+    const sourceId = this.migrationSource();
+    if (!sourceId || !this.migrationTargetId) return;
     if (projectCount === 0) return;
     const targetId = this.migrationTargetId;
-    this.storageContext.recordMigration(this.migrationSourceId, targetId, {
+    this.storageContext.recordMigration(sourceId, targetId, {
       username: this.migrationUsername || undefined,
       projectCount,
     });
@@ -1557,4 +1585,12 @@ export class ProfileManagerDialogComponent {
   wouldSlugConflict(newSlug: string): boolean {
     return this.serverSlugs().has(newSlug);
   }
+}
+
+/** The view a requested starting point opens */
+function initialView(
+  view: ProfileManagerDialogData['view']
+): 'list' | 'add' | 'upgrade' {
+  if (view === 'add-server') return 'add';
+  return view ?? 'list';
 }

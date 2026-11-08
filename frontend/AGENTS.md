@@ -28,6 +28,14 @@ Never run `npm install` here; install from the repo root with `bun install`.
 - Signals for reactive state where appropriate; strict typing, no `any`.
 - Alias imports (`@components`, `@services`, …).
 - Never edit `src/api-client/`; it is generated (see the root `AGENTS.md`).
+- **Leaving a page destroys it.** `CustomRouteReuseStrategy` keeps no page
+  for a later visit, so `ngOnInit` reads the query params and resets the
+  form on every visit. Don't bring back a page cache: a kept page skipped
+  `ngOnInit` and came back as it was left. A navigation that stays on the
+  same route (only the params or query params change) reuses the component
+  in place, so read params from the observables or set
+  `data: { reuseComponent: false }` to get a fresh component, as setup and
+  the project tabs do.
 
 `src/app/` holds `components/` (shared UI), `pages/` (routed pages),
 `dialogs/`, `services/`, `guards/`, `interceptors/`, `models/`, `pipes/`,
@@ -231,7 +239,7 @@ Settings appears once there is more than one language.
 
 | Area | Notes |
 |---|---|
-| Profile-scoped storage, server profile ids, project rename, APP_MODE, backgrounds, update dialog | `src/app/services/core/AGENTS.md` |
+| Profile-scoped storage, server profile ids, profile upgrades, project rename, APP_MODE, backgrounds, update dialog | `src/app/services/core/AGENTS.md` |
 | Starting offline, bulk sync planner | `src/app/services/sync/AGENTS.md` |
 | Canvas Yjs model | `src/app/services/canvas/AGENTS.md` |
 | Where the session token is sent, passkeys, policy acceptance | `src/app/services/auth/AGENTS.md` |

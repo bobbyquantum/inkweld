@@ -13,6 +13,12 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/setup/setup.component').then(m => m.SetupComponent),
     title: 'Setup',
+    data: {
+      // Recreate the page on every navigation, even one that only changes
+      // the query params (/setup → /setup?mode=cloud&upgradeFrom=…): the
+      // step to open is read once, in ngOnInit.
+      reuseComponent: false,
+    },
   },
   {
     path: 'reset',
@@ -207,14 +213,6 @@ export const routes: Routes = [
       ),
     title: 'Create New Project',
     canActivate: [authGuard],
-    data: {
-      // The custom route reuse strategy caches any route with a path. Caching
-      // this page kept the previous project's title/slug/description in the
-      // form, because ngOnInit (which clears it) does not re-run when a
-      // detached route is re-attached. Disable reuse so each visit gets a
-      // fresh component and a blank form.
-      reuseComponent: false,
-    },
   },
   {
     path: 'settings',
@@ -310,16 +308,11 @@ export const routes: Routes = [
         inject(CanDeactivateProjectGuard).canDeactivate(component),
     ],
     data: {
-      // The project component owns live collaboration connections (per-doc
-      // WebSockets via DocumentService + the elements WebSocket via
-      // ProjectStateService). Reusing (detaching) this route on exit stored
-      // the component instead of destroying it, so ngOnDestroy never fired and
-      // those connections — and their reconnect loops — leaked indefinitely,
-      // hammering the Durable Object after the user had left the project.
-      // Disabling reuse makes leaving the project destroy the component, which
-      // runs the connection teardown in ngOnDestroy. Intra-project tab switches
-      // are unaffected: those deactivate only the child tab routes, not this
-      // parent, so editor state is still preserved while you move between tabs.
+      // CustomRouteReuseStrategy ignores this flag for the project itself
+      // (reused within one project, recreated for another; leaving destroys
+      // it, so ngOnDestroy closes its collaboration connections). The home
+      // tab (empty path) inherits it, so like the other tabs it is recreated
+      // rather than reused in place.
       reuseComponent: false,
     },
     children: projectTabRoutes,

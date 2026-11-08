@@ -328,6 +328,71 @@ export class LocalStorageService {
     });
   }
 
+  /**
+   * Copy one project's media from one profile's database into another's,
+   * under a new project key. The move to a server runs after the sign-in
+   * switched the app to the target, so neither side can go through the
+   * active profile's database. Media the target already has is kept.
+   * Throws when a file can't be copied. Returns how many were copied.
+   */
+  async copyProjectMediaBetweenProfiles(
+    fromConfigId: string,
+    toConfigId: string,
+    fromProjectKey: string,
+    toProjectKey: string
+  ): Promise<number> {
+    const source = await this.openProfileDb(fromConfigId);
+    const keys = await this.projectMediaKeys(source, fromProjectKey);
+    if (keys.length === 0) return 0;
+    const target = await this.openProfileDb(toConfigId);
+    let copied = 0;
+    // Sequential: media blobs are large; one file at a time bounds memory.
+    await forEachSequential(keys, async key => {
+      const record = await this.storageService.get<StoredMedia>(
+        source,
+        STORE_NAME,
+        key
+      );
+      if (!record) return;
+      const id = `${toProjectKey}:${this.parseKey(key).mediaId}`;
+      const existing = await this.storageService.get<StoredMedia>(
+        target,
+        STORE_NAME,
+        id
+      );
+      if (existing) return;
+      await this.storageService.put(target, STORE_NAME, { ...record, id });
+      copied++;
+    });
+    return copied;
+  }
+
+  /** A profile's media database, whichever profile is active */
+  private openProfileDb(configId: string): Promise<IDBDatabase> {
+    return this.storageService.initializeDatabase({
+      ...this.dbConfig,
+      dbName: `${this.storageContext.getPrefixForConfig(configId)}${MEDIA_DB_BASE_NAME}`,
+    });
+  }
+
+  /** Keys of every media record of one project in a media database */
+  private projectMediaKeys(
+    db: IDBDatabase,
+    projectKey: string
+  ): Promise<string[]> {
+    const keyPrefix = `${projectKey}:`;
+    return new Promise<string[]>((resolve, reject) => {
+      const request = db
+        .transaction(STORE_NAME, 'readonly')
+        .objectStore(STORE_NAME)
+        .getAllKeys(IDBKeyRange.bound(keyPrefix, `${keyPrefix}￿`));
+      request.onsuccess = () =>
+        resolve(request.result.filter(k => typeof k === 'string'));
+      request.onerror = () =>
+        reject(new Error(`Failed to list media: ${request.error?.message}`));
+    });
+  }
+
   // ============================================
   // BLOB URL MANAGEMENT
   // ============================================

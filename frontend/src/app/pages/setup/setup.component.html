@@ -87,7 +87,7 @@
         } @else if (shouldShowModeSelection()) {
           <!-- Initial choice screen -->
           <div class="setup-options" data-testid="setup-options">
-            @if (canUseLocalMode()) {
+            @if (offersBrowser()) {
               <button
                 class="option-card"
                 (click)="chooseLocalMode()"
@@ -103,7 +103,7 @@
               </button>
             }
 
-            @if (canUseCloudMode()) {
+            @if (offersCloud()) {
               <button
                 class="option-card"
                 (click)="chooseCloudMode()"
@@ -119,7 +119,7 @@
               </button>
             }
 
-            @if (canUseServerMode()) {
+            @if (offersServer()) {
               <button
                 class="option-card"
                 (click)="chooseServerMode()"

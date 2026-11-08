@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import {
+  type ActivatedRouteSnapshot,
   type CanDeactivateFn,
   type Route,
   UrlSegment,
@@ -11,6 +12,7 @@ import { translocoTestProvider } from '../testing/transloco-test-provider';
 import { routes } from './app.routes';
 import { CanDeactivateProjectGuard } from './guards/can-deactivate-project.guard';
 import type { ProjectComponent } from './pages/project/project.component';
+import { CustomRouteReuseStrategy } from './utils/custom-route-reuse-strategy';
 
 function flattenRoutes(routeList: Route[]): Route[] {
   return routeList.flatMap(route => [
@@ -64,15 +66,14 @@ describe('app.routes', () => {
     }
   }, 60000);
 
-  it('disables project route reuse and configures child routes and redirects', () => {
+  it('configures the project route, its child routes and redirects', () => {
     const projectRoute = flatRoutes.find(
       route => route.path === ':username/:slug'
     );
     const childPaths = projectRoute?.children?.map(route => route.path) ?? [];
 
-    // reuseComponent is intentionally false so leaving a project destroys the
-    // component (firing ngOnDestroy's connection teardown) instead of detaching
-    // it and leaking its WebSocket providers.
+    // Inherited by the home tab (empty path), so it is recreated like the
+    // other tabs; the project itself is handled by CustomRouteReuseStrategy.
     expect(projectRoute?.data).toEqual({ reuseComponent: false });
     expect(childPaths).toContain('document/:tabId');
     expect(childPaths).toContain('canvas/:tabId');
@@ -87,15 +88,26 @@ describe('app.routes', () => {
     ]);
   });
 
-  it('disables create-project route reuse so the form starts blank', () => {
-    // The reuse strategy caches any route with a path; re-attaching the page
-    // skips ngOnInit (which clears the form), so a second visit would show the
-    // previously created project's title/slug/description.
-    const createRoute = flatRoutes.find(
-      route => route.path === 'create-project'
+  it('keeps no page after leaving it, so each visit starts afresh', () => {
+    // A kept page skipped ngOnInit on its next visit: "Connect to sync"
+    // reopened setup's Browser form, forgot-password still said "check your
+    // email", create-project showed the last project's title.
+    const strategy = new CustomRouteReuseStrategy();
+    const kept = flatRoutes.filter(route =>
+      strategy.shouldDetach({
+        routeConfig: route,
+        params: {},
+        data: route.data ?? {},
+      } as unknown as ActivatedRouteSnapshot)
     );
 
-    expect(createRoute?.data).toEqual({ reuseComponent: false });
+    expect(kept.map(route => route.path)).toEqual([]);
+  });
+
+  it('recreates setup even when only its query params change', () => {
+    const setupRoute = flatRoutes.find(route => route.path === 'setup');
+
+    expect(setupRoute?.data).toEqual({ reuseComponent: false });
   });
 
   it('delegates project canDeactivate checks through the injected guard', () => {

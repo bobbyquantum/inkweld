@@ -100,8 +100,20 @@ user-menu switcher and the Profile settings tab are thin views over it.
   Browser profile is removed, and the app reloads into the new profile. A
   Browser placeholder name (`Local User`) is replaced by the account's name. Activations travel with the data, so the engine's first full pass
   pushes every project to the cloud folder. The pending upgrade is remembered
-  in sessionStorage across the OAuth redirect. Upgrading to a server reuses
-  the migration flow.
+  in sessionStorage across the OAuth redirect. The welcome screen honours it
+  only on a visit that names it (`?upgradeFrom=`) or returns from a provider
+  (`?cloud=`); any other visit drops a leftover one. While upgrading, the
+  welcome screen ("Connect to sync") offers only where the profile can move
+  up to (`AppModePolicyService.upgradeTargets`), never a new Browser profile.
+- **Upgrading to a server** is the profile manager's guided move (sign in,
+  pick projects, copy, sync), also when it is chosen on the welcome screen:
+  that opens the profile manager on its server form
+  (`{ view: 'add-server' }`) rather than adding a bare server profile, which
+  would leave the projects behind. The move reads the source profile by its
+  id (`MigrationService` and `LocalProjectService.getProjectsInConfig`),
+  because the sign-in has already made the server profile active and the
+  source need not be the first Browser profile (`local`). Its media is copied
+  database to database (`LocalStorageService.copyProjectMediaBetweenProfiles`).
 - **Migration history** is recorded with `StorageContextService.recordMigration`
   when projects are copied from one profile to another (e.g. Browser to a
   server): both configurations get a `MigrationRecord` with the other side's

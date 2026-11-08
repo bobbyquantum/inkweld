@@ -69,8 +69,11 @@ describe('LocalProjectService', () => {
       prefixDocumentId: vi.fn((id: string) => `${prefixSignal()}${id}`),
       getPrefix: vi.fn(() => prefixSignal()),
       getPrefixForConfig: vi.fn((configId: string) =>
-        configId === 'local' ? 'local:' : `srv:${configId}:`
+        configId === 'local' || configId.startsWith('local-')
+          ? `${configId}:`
+          : `srv:${configId}:`
       ),
+      getActiveConfig: vi.fn(() => ({ id: 'local', type: 'local' })),
     } as any;
 
     // Mock ProjectSyncService
@@ -493,7 +496,7 @@ describe('LocalProjectService', () => {
     });
   });
 
-  describe('deleteLocalModeProject', () => {
+  describe('deleteProjectInConfig', () => {
     const mockProjects: Project[] = [
       {
         id: 'project-1-id',
@@ -518,7 +521,7 @@ describe('LocalProjectService', () => {
     it('should delete project from local-mode storage', () => {
       mockLocalStorage.getItem.mockReturnValue(JSON.stringify(mockProjects));
 
-      service.deleteLocalModeProject('testuser', 'project-1');
+      service.deleteProjectInConfig('local', 'testuser', 'project-1');
 
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
         'local:inkweld-local-projects',
@@ -534,7 +537,7 @@ describe('LocalProjectService', () => {
     it('should handle non-existent project gracefully', () => {
       mockLocalStorage.getItem.mockReturnValue(JSON.stringify(mockProjects));
 
-      service.deleteLocalModeProject('testuser', 'non-existent');
+      service.deleteProjectInConfig('local', 'testuser', 'non-existent');
 
       expect(mockLocalStorage.setItem).toHaveBeenCalled();
       const savedData = JSON.parse(
@@ -543,10 +546,32 @@ describe('LocalProjectService', () => {
       expect(savedData).toHaveLength(2); // No projects deleted
     });
 
+    it('deletes from the named profile even when another one is active', () => {
+      mockStorageContext.getActiveConfig.mockReturnValue({
+        id: 'srv1',
+        type: 'server',
+      } as any);
+      service.projects.set([]);
+      mockLocalStorage.getItem.mockImplementation((key: string) =>
+        key === 'local-abc:inkweld-local-projects'
+          ? JSON.stringify(mockProjects)
+          : null
+      );
+
+      service.deleteProjectInConfig('local-abc', 'testuser', 'project-1');
+
+      expect(mockLocalStorage.setItem).toHaveBeenCalledTimes(1);
+      expect(mockLocalStorage.setItem.mock.calls[0][0]).toBe(
+        'local-abc:inkweld-local-projects'
+      );
+      // The active (server) profile's list is left alone
+      expect(service.projects()).toEqual([]);
+    });
+
     it('should handle empty storage gracefully', () => {
       mockLocalStorage.getItem.mockReturnValue(null);
 
-      service.deleteLocalModeProject('testuser', 'project-1');
+      service.deleteProjectInConfig('local', 'testuser', 'project-1');
 
       // Should not throw, and should not call setItem since there's nothing to update
       expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
@@ -754,6 +779,7 @@ describe('LocalProjectService', () => {
 
     it('should mark a project as migrated', () => {
       service.markProjectAsMigrated(
+        'local',
         'old-slug',
         'new-slug',
         'http://localhost:8333',
@@ -777,6 +803,29 @@ describe('LocalProjectService', () => {
       expect(savedData[0].migratedSlug).toBe('new-slug');
       expect(savedData[0].serverUrl).toBe('http://localhost:8333');
       expect(savedData[0].migratedUsername).toBe('testuser');
+      expect(service.isProjectMigrated('old-slug')).toBe(true);
+    });
+
+    it('records the move in the source profile while a server profile is active', () => {
+      mockStorageContext.getActiveConfig.mockReturnValue({
+        id: 'srv1',
+        type: 'server',
+      } as any);
+
+      service.markProjectAsMigrated(
+        'local-abc',
+        'novel',
+        'novel',
+        'http://localhost:8333',
+        'bobby'
+      );
+
+      const calls = mockLocalStorage.setItem.mock.calls as [string, string][];
+      expect(calls.map(c => c[0])).toEqual([
+        'local-abc:inkweld-migrated-projects',
+      ]);
+      // Not mixed into the active profile's list
+      expect(service.isProjectMigrated('novel')).toBe(false);
     });
 
     it('should return true for migrated projects', () => {
@@ -875,9 +924,35 @@ describe('LocalProjectService', () => {
 
       const newService = TestBed.inject(LocalProjectService);
 
-      const nonMigrated = newService.getNonMigratedProjects();
+      const nonMigrated = newService.getNonMigratedProjects('local');
       expect(nonMigrated).toHaveLength(1);
       expect(nonMigrated[0].slug).toBe('project-2');
+    });
+
+    it('reads the projects of the profile it is asked about', () => {
+      const project: Project = {
+        id: '3',
+        title: 'Second Browser Novel',
+        slug: 'second',
+        username: 'bobby',
+        createdDate: '2024-01-01',
+        updatedDate: '2024-01-01',
+      };
+      mockLocalStorage.getItem.mockImplementation((key: string) =>
+        key === 'local-abc:inkweld-local-projects'
+          ? JSON.stringify([project])
+          : '[]'
+      );
+
+      expect(service.getNonMigratedProjects('local-abc')).toEqual([project]);
+      expect(service.getNonMigratedProjects('local')).toEqual([]);
+    });
+
+    it('treats an unreadable list as empty', () => {
+      mockLocalStorage.getItem.mockReturnValue('{"not":"a list"}');
+
+      expect(service.getProjectsInConfig('local')).toEqual([]);
+      expect(service.getMigratedProjectsInConfig('local')).toEqual([]);
     });
 
     it('should get migration info for a migrated project', () => {

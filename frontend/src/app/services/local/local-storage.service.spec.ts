@@ -312,6 +312,102 @@ describe('LocalStorageService', () => {
     });
   });
 
+  describe('copyProjectMediaBetweenProfiles', () => {
+    const MEDIA_DB = {
+      version: 1,
+      stores: { media: 'id' },
+    };
+
+    /** Open one profile's media database directly, by its prefix */
+    function openDb(prefix: string): Promise<IDBDatabase> {
+      return storageService.initializeDatabase({
+        ...MEDIA_DB,
+        dbName: `${prefix}inkweld-media`,
+      });
+    }
+
+    async function put(prefix: string, id: string, content: string) {
+      await storageService.put(await openDb(prefix), 'media', {
+        id,
+        blob: createTestBlob(content),
+        mimeType: 'image/jpeg',
+        size: content.length,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        filename: `${id.split(':').pop()}.jpg`,
+      });
+    }
+
+    async function ids(prefix: string): Promise<string[]> {
+      const records = await storageService.getAll<{ id: string }>(
+        await openDb(prefix),
+        'media'
+      );
+      return records.map(r => r.id).sort();
+    }
+
+    it("copies one project's media into the other profile under its new address", async () => {
+      await put('local-abc:', 'bobby/novel:cover', 'cover');
+      await put('local-abc:', 'bobby/novel:img-1', 'image');
+      await put('local-abc:', 'bobby/other:cover', 'not this one');
+
+      const copied = await service.copyProjectMediaBetweenProfiles(
+        'local-abc',
+        'srv1',
+        'bobby/novel',
+        'mover/my-novel'
+      );
+
+      expect(copied).toBe(2);
+      expect(await ids('srv:srv1:')).toEqual([
+        'mover/my-novel:cover',
+        'mover/my-novel:img-1',
+      ]);
+      // The source is left as it was
+      expect(await ids('local-abc:')).toEqual([
+        'bobby/novel:cover',
+        'bobby/novel:img-1',
+        'bobby/other:cover',
+      ]);
+      const record = await storageService.get<{ filename: string }>(
+        await openDb('srv:srv1:'),
+        'media',
+        'mover/my-novel:cover'
+      );
+      expect(record?.filename).toBe('cover.jpg');
+    });
+
+    it('keeps media the target profile already has', async () => {
+      await put('local-abc:', 'bobby/novel:cover', 'source cover');
+      await put('srv:srv1:', 'bobby/novel:cover', 'target cover');
+
+      const copied = await service.copyProjectMediaBetweenProfiles(
+        'local-abc',
+        'srv1',
+        'bobby/novel',
+        'bobby/novel'
+      );
+
+      expect(copied).toBe(0);
+      const record = await storageService.get<{ size: number }>(
+        await openDb('srv:srv1:'),
+        'media',
+        'bobby/novel:cover'
+      );
+      expect(record?.size).toBe('target cover'.length);
+    });
+
+    it('copies nothing for a project without media', async () => {
+      await expect(
+        service.copyProjectMediaBetweenProfiles(
+          'local',
+          'srv1',
+          'bobby/empty',
+          'bobby/empty'
+        )
+      ).resolves.toBe(0);
+    });
+  });
+
   describe('convenience methods - user avatars', () => {
     it('should save and get user avatar', async () => {
       const blob = createTestBlob();
