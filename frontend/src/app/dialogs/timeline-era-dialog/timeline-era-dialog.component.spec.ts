@@ -1,7 +1,11 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { GREGORIAN_SYSTEM, RELATIVE_YEARS_SYSTEM } from '@models/time-system';
+import {
+  GREGORIAN_SYSTEM,
+  RELATIVE_YEARS_SYSTEM,
+  type TimeSystem,
+} from '@models/time-system';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -449,6 +453,83 @@ describe('TimelineEraDialogComponent', () => {
         era: { imageUrl?: string };
       };
       expect(result.era.imageUrl).toBeUndefined();
+    });
+  });
+
+  // ─── Irregular month lengths ───────────────────────────────────────────────
+
+  describe('with months of their own length', () => {
+    /** 12 months of 36 days, but month 2 has 30 and month 10 has 40. */
+    const longMonth: TimeSystem = {
+      id: 'long-month',
+      name: 'Long Month',
+      isBuiltIn: false,
+      unitLabels: ['Year', 'Month', 'Day'],
+      subdivisions: [12, 36],
+      format: '{u0}-{u1}-{u2}',
+      parseSeparator: '-',
+      unitInputMode: ['numeric', 'numeric', 'dropdown'],
+      unitSubdivisionOverrides: [undefined, { '10': 40, '2': 30 }, undefined],
+    };
+    const data: TimelineEraDialogData = {
+      ...baseData,
+      system: longMonth,
+      defaultStart: { systemId: 'long-month', units: ['5', '1', '1'] },
+      defaultEnd: { systemId: 'long-month', units: ['5', '10', '40'] },
+    };
+
+    it('offers the days of the selected month', async () => {
+      const { component } = await createComponent(data);
+      const optionsFor = (
+        component as unknown as {
+          optionsFor: (i: number, units?: readonly string[]) => unknown[];
+        }
+      ).optionsFor.bind(component);
+      expect(optionsFor(2, ['5', '10', '1'])).toHaveLength(40);
+      expect(optionsFor(2, ['5', '2', '1'])).toHaveLength(30);
+    });
+
+    it('saves an era ending on day 40 of the 40-day month', async () => {
+      const { component, closeSpy } = await createComponent(data);
+      component.form.name().value.set('Long Autumn');
+      (component as unknown as { onSave: () => void }).onSave();
+      expect(closeSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: 'save' })
+      );
+    });
+
+    it('says how long the month is when a day is past its end', async () => {
+      const { component, closeSpy, fixture } = await createComponent(data);
+      component.form.name().value.set('Short Winter');
+      component.model.update(m => ({ ...m, startUnits: ['5', '2', '31'] }));
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const hint = fixture.nativeElement.querySelector(
+        '[data-testid="timeline-era-start-unit-range"]'
+      ) as HTMLElement | null;
+      expect(hint?.textContent?.trim()).toBe(
+        'In Month 2, Day runs from 1 to 30.'
+      );
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="timeline-era-invalid-error"]'
+        )
+      ).toBeNull();
+      (component as unknown as { onSave: () => void }).onSave();
+      expect(closeSpy).not.toHaveBeenCalled();
+    });
+
+    it('hints at the end date as well', async () => {
+      const { component, fixture } = await createComponent(data);
+      component.model.update(m => ({ ...m, endUnits: ['5', '10', '41'] }));
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const hint = fixture.nativeElement.querySelector(
+        '[data-testid="timeline-era-end-unit-range"]'
+      ) as HTMLElement | null;
+      expect(hint?.textContent?.trim()).toBe(
+        'In Month 10, Day runs from 1 to 40.'
+      );
     });
   });
 });

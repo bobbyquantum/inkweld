@@ -43,7 +43,7 @@
             <mat-select
               [formField]="item"
               [attr.data-testid]="'timeline-era-start-unit-' + i">
-              @for (opt of optionsFor(i); track opt.value) {
+              @for (opt of optionsFor(i, model().startUnits); track opt.value) {
                 <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
               }
             </mat-select>
@@ -62,6 +62,11 @@
         }
       }
     </div>
+    @if (startRangeProblem(); as problem) {
+      <div class="field-error" data-testid="timeline-era-start-unit-range">
+        {{ 'timeline.unitRange' | transloco: problem }}
+      </div>
+    }
 
     <div class="section-label">
       {{ 'timeline.eraDialog.endSection' | transloco }}
@@ -88,7 +93,7 @@
             <mat-select
               [formField]="item"
               [attr.data-testid]="'timeline-era-end-unit-' + i">
-              @for (opt of optionsFor(i); track opt.value) {
+              @for (opt of optionsFor(i, model().endUnits); track opt.value) {
                 <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
               }
             </mat-select>
@@ -117,7 +122,14 @@
         {{ 'timeline.eraDialog.endAfterStart' | transloco }}
       </div>
     }
+    @if (endRangeProblem(); as problem) {
+      <div class="field-error" data-testid="timeline-era-end-unit-range">
+        {{ 'timeline.unitRange' | transloco: problem }}
+      </div>
+    }
     @if (
+      !startRangeProblem() &&
+      !endRangeProblem() &&
       form()
         .errors()
         .some(e => e.kind === 'invalidPoint')

@@ -347,9 +347,9 @@ const definitionProperties = {
     items: { type: ['object', 'null'], additionalProperties: { type: 'integer' } },
     description:
       'Optional irregular lengths, one entry per unit (null for none): for unit i, maps a value to ' +
-      'how many of unit i+1 it holds, e.g. [null, {"2": 28, "4": 30}, null] for short months. ' +
-      'Only shorter than the regular length: dates are checked against subdivisions, so a longer ' +
-      'unit gives dates the app rejects.',
+      'how many of unit i+1 it holds, shorter or longer than the regular length, e.g. ' +
+      '[null, {"2": 28, "10": 40}, null] for a short and a long month. A length belongs to the value: ' +
+      'month 2 has 28 days in every year (no leap years).',
   },
 } as const;
 
@@ -445,7 +445,7 @@ registerTool({
       'Add a time system (calendar) to the project, for timelines and date fields. Either install a ' +
       'template by id (see list_time_systems: gregorian, fantasy-seasons, stardate, ...), or design one ' +
       'with name, unitLabels and subdivisions. Calendars are uniform except where ' +
-      'unitSubdivisionOverrides gives a unit value its own length (short months).',
+      'unitSubdivisionOverrides gives a unit value its own length (a short or long month).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -568,8 +568,9 @@ registerTool({
     description:
       'Change a time system: rename it, or change its units, subdivisions, format or per-unit lists ' +
       '(each list you pass replaces the old one; null removes it). Potentially destructive: dates ' +
-      'already entered keep their unit values, so adding or removing units, or shrinking a unit, can ' +
-      'leave timeline events and date fields invalid. Prefer renaming or reformatting a system that is in use.',
+      'already entered keep their unit values, so adding or removing units, or shortening a unit or ' +
+      'one of its overrides, can leave timeline events and date fields invalid. Prefer renaming or ' +
+      'reformatting a system that is in use.',
     inputSchema: {
       type: 'object',
       properties: {

@@ -13,7 +13,9 @@ import {
   type TimePoint,
   timePointToAbsolute,
   type TimeSystem,
+  unitLengthInTicks,
   unitMinValue,
+  unitStartTick,
 } from '@models/time-system';
 import type { TimelineEra, TimelineEvent } from '@models/timeline.model';
 
@@ -155,6 +157,13 @@ export function computeTickMarks(
   return marks;
 }
 
+/**
+ * Ruler marks for a time system: a major mark at the start of every
+ * `stride`-th top unit (years), and, when a top unit is wide enough, minor
+ * marks at the starts of the second unit (months). Mark positions come from
+ * {@link unitStartTick}, so they follow irregular lengths (a 40-day month
+ * pushes every later month along).
+ */
 export function computeTimeSystemTickMarks(
   bounds: TimelineBounds,
   width: number,
@@ -163,18 +172,16 @@ export function computeTimeSystemTickMarks(
   const span = bounds.maxTick - bounds.minTick;
   if (span <= 0n || width <= 0) return [];
 
-  const weights = unitWeights(system);
-  const topWeight = weights[0];
-  const topUnitPx = pixelsForTicks(topWeight, span, width);
+  const topUnitPx = pixelsForTicks(unitLengthInTicks(system, 0), span, width);
   const majorUnitStride = niceCeil(Math.max(1, 112 / Math.max(1, topUnitPx)));
-  const majorStep = topWeight * BigInt(majorUnitStride);
-  const majorOffset = minimumSuffixTick(system, weights, 1);
-  const majorTicks = alignedTicks(bounds, majorStep, majorOffset).map(tick => ({
-    tick,
-    label: formatUnitLabel(tick, system, 0),
-    level: 0,
-    kind: 'major' as const,
-  }));
+  const majorTicks = topUnitStarts(bounds, system, majorUnitStride).map(
+    tick => ({
+      tick,
+      label: formatUnitLabel(tick, system, 0),
+      level: 0,
+      kind: 'major' as const,
+    })
+  );
 
   const byTick = new Map<string, TimelineTickMark>();
   for (const mark of majorTicks) {
@@ -183,15 +190,14 @@ export function computeTimeSystemTickMarks(
 
   if (system.unitLabels.length > 1 && topUnitPx >= 140) {
     const minorLevel = 1;
-    const minorWeight = weights[minorLevel];
-    const minorUnitPx = pixelsForTicks(minorWeight, span, width);
+    const minorUnitPx = pixelsForTicks(
+      unitLengthInTicks(system, minorLevel),
+      span,
+      width
+    );
     const minorStride = Math.max(1, niceCeil(10 / Math.max(1, minorUnitPx)));
-    const minorStep = minorWeight * BigInt(minorStride);
-    const minorOffset =
-      BigInt(unitMinValue(system, minorLevel)) * minorWeight +
-      minimumSuffixTick(system, weights, minorLevel + 1);
     const labelMinor = minorUnitPx >= 78;
-    for (const tick of alignedTicks(bounds, minorStep, minorOffset)) {
+    for (const tick of secondUnitStarts(bounds, system, minorStride)) {
       const key = tick.toString();
       if (byTick.has(key)) continue;
       byTick.set(key, {
@@ -206,41 +212,81 @@ export function computeTimeSystemTickMarks(
   return [...byTick.values()].sort((a, b) => (a.tick < b.tick ? -1 : 1));
 }
 
-function unitWeights(system: TimeSystem): bigint[] {
-  const weights = new Array<bigint>(system.unitLabels.length);
-  weights[weights.length - 1] = 1n;
-  for (let i = weights.length - 2; i >= 0; i--) {
-    weights[i] = weights[i + 1] * BigInt(system.subdivisions[i]);
-  }
-  return weights;
-}
-
-function minimumSuffixTick(
-  system: TimeSystem,
-  weights: readonly bigint[],
-  startLevel: number
-): bigint {
-  let tick = 0n;
-  for (let level = startLevel; level < weights.length; level++) {
-    tick += BigInt(unitMinValue(system, level)) * weights[level];
-  }
-  return tick;
-}
+/** Most marks one ruler pass produces (a guard against a huge span). */
+const MAX_MARKS = 500;
 
 function pixelsForTicks(ticks: bigint, span: bigint, width: number): number {
   return (Number(ticks) / Number(span)) * width;
 }
 
-function alignedTicks(
+/** The value of the top unit at `tick`. */
+function topValueAt(tick: bigint, system: TimeSystem): bigint {
+  return BigInt(absoluteToTimePoint(tick, system).units[0]);
+}
+
+/** Start ticks, inside `bounds`, of the top-unit values divisible by `stride`. */
+function topUnitStarts(
   bounds: TimelineBounds,
-  step: bigint,
-  offset: bigint
+  system: TimeSystem,
+  stride: number
 ): bigint[] {
-  const first = offset + floorDiv(bounds.minTick - offset, step) * step;
+  const step = BigInt(stride);
   const marks: bigint[] = [];
-  for (let tick = first; tick <= bounds.maxTick; tick += step) {
+  let value = floorDiv(topValueAt(bounds.minTick, system), step) * step;
+  for (;;) {
+    const tick = unitStartTick(system, [value.toString()]);
+    if (tick > bounds.maxTick) break;
     if (tick >= bounds.minTick) marks.push(tick);
-    if (marks.length > 500) break;
+    if (marks.length > MAX_MARKS) break;
+    value += step;
+  }
+  return marks;
+}
+
+/**
+ * Start ticks, inside `bounds`, of every `stride`-th second unit. Second
+ * units are counted on from one top unit to the next as if each held the
+ * regular `subdivisions[0]` (so a uniform calendar keeps a steady rhythm
+ * across years), and each top unit holds as many as its own length allows.
+ */
+function secondUnitStarts(
+  bounds: TimelineBounds,
+  system: TimeSystem,
+  stride: number
+): bigint[] {
+  const step = BigInt(stride);
+  const regularCount = BigInt(system.subdivisions[0]);
+  const marks: bigint[] = [];
+  let top = topValueAt(bounds.minTick, system);
+  let topStart = unitStartTick(system, [top.toString()]);
+  while (topStart <= bounds.maxTick && marks.length <= MAX_MARKS) {
+    const nextStart = unitStartTick(system, [(top + 1n).toString()]);
+    const first = floorMod(-top * regularCount, step);
+    marks.push(
+      ...secondUnitStartsIn(bounds, system, top, first, step, nextStart)
+    );
+    top += 1n;
+    topStart = nextStart;
+  }
+  return marks.slice(0, MAX_MARKS + 1);
+}
+
+/** Starts of second units `first`, `first + step`, … (0-based) inside top unit `top`. */
+function secondUnitStartsIn(
+  bounds: TimelineBounds,
+  system: TimeSystem,
+  top: bigint,
+  first: bigint,
+  step: bigint,
+  nextTopStart: bigint
+): bigint[] {
+  const min = BigInt(unitMinValue(system, 1));
+  const marks: bigint[] = [];
+  for (let k = first; ; k += step) {
+    const tick = unitStartTick(system, [top.toString(), (min + k).toString()]);
+    if (tick >= nextTopStart || tick > bounds.maxTick) break;
+    if (tick >= bounds.minTick) marks.push(tick);
+    if (marks.length > MAX_MARKS) break;
   }
   return marks;
 }
@@ -250,6 +296,10 @@ function floorDiv(value: bigint, divisor: bigint): bigint {
   const remainder = value % divisor;
   if (remainder < 0n) quotient -= 1n;
   return quotient;
+}
+
+function floorMod(value: bigint, divisor: bigint): bigint {
+  return value - floorDiv(value, divisor) * divisor;
 }
 
 function niceCeil(value: number): number {

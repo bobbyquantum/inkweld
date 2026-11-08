@@ -43,6 +43,9 @@ import { LocalStorageService } from '@services/local/local-storage.service';
 import {
   INT_RE,
   timePointToAbsoluteValue,
+  unitOptionsFor,
+  type UnitRangeProblem,
+  unitRangeProblem,
   unitsToTimePoint,
 } from '../timeline-units';
 
@@ -109,12 +112,26 @@ export class TimelineEraDialogComponent implements OnInit, OnDestroy {
     return unitInputModeFor(this.data.system, i);
   }
 
-  /** Dropdown options for unit `i` (used only when input mode is dropdown). */
+  /**
+   * Dropdown options for unit `i` (used only when input mode is dropdown),
+   * limited to what the parent value in `units` holds when it is given.
+   */
   protected optionsFor(
-    i: number
+    i: number,
+    units?: readonly string[]
   ): readonly { readonly value: string; readonly label: string }[] {
-    return unitDropdownOptions(this.data.system, i);
+    return unitOptionsFor(this.data.system, i, units);
   }
+
+  /** The start's first unit past its parent's length, for the hint under it. */
+  protected readonly startRangeProblem = computed<UnitRangeProblem | null>(() =>
+    unitRangeProblem(this.model().startUnits, this.data.system)
+  );
+
+  /** The end's first unit past its parent's length, for the hint under it. */
+  protected readonly endRangeProblem = computed<UnitRangeProblem | null>(() =>
+    unitRangeProblem(this.model().endUnits, this.data.system)
+  );
 
   private readonly startDateSignal = signal('');
   private readonly endDateSignal = signal('');
