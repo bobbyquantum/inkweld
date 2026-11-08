@@ -334,6 +334,10 @@ Docs: `docs/site/docs/developer/mcp-oauth.md`.
   first-row-per-id reading and cleanup as the tags. Validation, templates and
   the roll engine come from `@inkweld/project-library`, which the app uses
   too; never copy that logic here, or MCP and the app drift apart.
+- **MCP structured results**: some MCP clients show an agent only a tool's
+  `structuredContent`, not its text. Anything an agent needs (a
+  `note` such as a roll's shortfall, `warnings`, how to start on an empty
+  list) goes in the structured payload too, never only in the text.
 
 ## Sync socket input
 

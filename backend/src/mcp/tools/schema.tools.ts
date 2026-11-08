@@ -24,6 +24,7 @@ import { MCP_PERMISSIONS } from '../mcp-permissions';
 import { logger } from '../../services/logger.service';
 import { openEditableDocument } from '../../services/yjs-document-access';
 import { parseProjectParam } from './search.tools';
+import { readRows, type LibraryRow } from './library-store';
 import {
   FIELD_TYPES,
   type RelationshipTypeChanges,
@@ -76,7 +77,9 @@ const fieldSchemaProperty = {
     'options (select/multiselect: strings or { value, label }), rows (textarea), icon, validation ' +
     '({ required, minLength, maxLength, min, max, pattern }), layout ({ span: 1-12 }). ' +
     'Relationship fields: targetSchemaId (schema the linked element must use; omit for any), ' +
-    "multiple (allow several links), inverseLabel (label on the linked element's backlinks).",
+    "multiple (allow several links), inverseLabel (label on the linked element's backlinks). " +
+    'Text and textarea fields: generatorId (a generator id or name, see list_generators) adds a ' +
+    'dice button that fills the field with a roll.',
   properties: {
     key: { type: 'string' },
     label: { type: 'string' },
@@ -104,6 +107,11 @@ function textResult(payload: unknown): McpToolResult {
     content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
     structuredContent: payload,
   };
+}
+
+/** `{ warnings }` for a result, or nothing when there are none. */
+function warningsPayload(warnings: string[]): { warnings?: string[] } {
+  return warnings.length > 0 ? { warnings } : {};
 }
 
 /** Build an `isError` tool result with an `Error:`-prefixed message. */
@@ -214,6 +222,48 @@ function applyRelationshipTypeChanges(
     relationshipTypesRemoved,
     relationshipsRemoved,
   };
+}
+
+/** Field types the element editor shows a generator's dice button on. */
+const ROLLABLE_FIELD_TYPES: ReadonlySet<string> = new Set(['text', 'textarea']);
+
+/** The id of the generator `ref` names: its id, or else its name ignoring case when only one has it. */
+function generatorIdFor(ref: string, generators: LibraryRow[]): string {
+  if (generators.some((g) => g.id === ref)) return ref;
+  const name = ref.trim().toLowerCase();
+  const byName = generators.filter(
+    (g) => typeof g.name === 'string' && g.name.trim().toLowerCase() === name
+  );
+  return byName.length === 1 ? byName[0].id : ref;
+}
+
+/**
+ * Point each field's generatorId at a project generator, turning a name into
+ * its id as the generator tools accept either. Returns a warning for each
+ * field that offers a generator but shows no dice button in the app, which
+ * ignores unknown ids.
+ */
+function linkFieldGenerators(doc: Y.Doc, tabs: SchemaTab[]): string[] {
+  const generators = readRows(doc, 'generators');
+  const warnings: string[] = [];
+  for (const field of tabs.flatMap((tab) => tab.fields ?? [])) {
+    const ref = field.generatorId;
+    if (typeof ref !== 'string' || !ref) continue;
+    const id = generatorIdFor(ref, generators);
+    field.generatorId = id;
+    const which = `field "${field.label}" (${field.key})`;
+    if (!generators.some((g) => g.id === id)) {
+      warnings.push(
+        `The ${which} offers generator "${ref}", which is not in this project, so it shows no ` +
+          'dice button. See list_generators.'
+      );
+    } else if (!ROLLABLE_FIELD_TYPES.has(field.type)) {
+      warnings.push(
+        `The ${which} is a ${field.type} field: only text and textarea fields show a generator's dice button.`
+      );
+    }
+  }
+  return warnings;
 }
 
 /** Resolve a `tabs` argument, or an error result. */
@@ -337,6 +387,7 @@ registerTool({
           tabs = tabsOrThrow(createTabs(args.tabs ?? [{ key: 'general', label: 'General' }]));
         }
         stampRelationshipTypeIds(tabs);
+        const warnings = linkFieldGenerators(doc, tabs);
 
         const now = new Date().toISOString();
         const schema: StoredSchema = {
@@ -361,11 +412,16 @@ registerTool({
           readRelationshipTypes(doc)
         );
         schemas.push([schema]);
-        return { schema, relationships: applyRelationshipTypeChanges(doc, changes) };
+        return { schema, relationships: applyRelationshipTypeChanges(doc, changes), warnings };
       });
 
       mcpSchemaLog.info(`Created schema ${result.schema.id} in ${projectKey}`);
-      return textResult({ success: true, schema: result.schema, ...result.relationships });
+      return textResult({
+        success: true,
+        schema: result.schema,
+        ...result.relationships,
+        ...warningsPayload(result.warnings),
+      });
     });
   },
 });
@@ -513,6 +569,7 @@ registerTool({
           tabs = tabsOrThrow(createTabs(args.tabs, before));
         }
         stampRelationshipTypeIds(tabs);
+        const warnings = linkFieldGenerators(doc, tabs);
 
         const updated: StoredSchema = {
           ...schema,
@@ -533,7 +590,11 @@ registerTool({
           readRelationshipTypes(doc)
         );
         replaceAt(doc.getArray<unknown>('schemas'), index, updated);
-        return { schema: updated, relationships: applyRelationshipTypeChanges(doc, changes) };
+        return {
+          schema: updated,
+          relationships: applyRelationshipTypeChanges(doc, changes),
+          warnings,
+        };
       });
 
       mcpSchemaLog.info(`Updated schema ${schemaId} in ${projectKey}`);
@@ -542,6 +603,7 @@ registerTool({
         schema: result.schema,
         ...result.relationships,
         note: SHARED_SCHEMA_NOTE,
+        ...warningsPayload(result.warnings),
       });
     });
   },

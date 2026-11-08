@@ -16,6 +16,7 @@ import type * as Y from 'yjs';
 import {
   TIME_SYSTEM_TEMPLATES,
   assertValidTimeSystem,
+  checkTimeSystem,
   findTemplateSystem,
   formatTimePoint,
   zeroTimePoint,
@@ -55,6 +56,8 @@ const MAX_LABEL_LENGTH = 100;
 const MAX_FORMAT_LENGTH = 500;
 const MAX_SEPARATOR_LENGTH = 3;
 const MAX_ALIASES_PER_UNIT = 1000;
+const NO_SYSTEMS_NOTE =
+  'This project has no time systems yet. Install a template or design one with create_time_system.';
 
 /** The definition fields a caller may set (everything but `id` and `isBuiltIn`). */
 type TimeSystemFields = Omit<TimeSystem, 'id' | 'isBuiltIn'>;
@@ -93,11 +96,34 @@ function exampleDate(system: TimeSystem): string | null {
   }
 }
 
-/** A time system's public shape in tool results: the stored definition plus a sample date. */
+/** What is probably wrong with a valid system (see `checkTimeSystem`); none for a malformed row. */
+function systemWarnings(system: TimeSystem): string[] {
+  try {
+    return checkTimeSystem(system).map((w) => w.message);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * A time system's public shape in tool results: the stored definition, a
+ * sample date and any warnings.
+ */
 function presentTimeSystem(system: TimeSystem): Record<string, unknown> {
   const definition: Record<string, unknown> = { ...system };
   delete definition.isBuiltIn;
-  return { ...definition, exampleDate: exampleDate(system) };
+  const warnings = systemWarnings(system);
+  return {
+    ...definition,
+    exampleDate: exampleDate(system),
+    ...(warnings.length > 0 ? { warnings } : {}),
+  };
+}
+
+/** " Warnings: ..." for a tool's text, or "" when there are none. */
+function warningText(shown: Record<string, unknown>): string {
+  const warnings = shown.warnings as string[] | undefined;
+  return warnings ? ` Warnings: ${warnings.join(' ')}` : '';
 }
 
 // ============================================
@@ -225,16 +251,45 @@ function defaultFormat(unitCount: number, separator: string): string {
   return Array.from({ length: unitCount }, (_, i) => `{u${i}}`).join(separator);
 }
 
+function entries(count: number): string {
+  return count === 1 ? '1 entry' : `${count} entries`;
+}
+
+/**
+ * Check the list lengths against the units, naming the list that is off and
+ * what it needs. The app's own check (`assertValid`) says less.
+ */
+function assertListLengths(system: TimeSystem): void {
+  const units = system.unitLabels.length;
+  const unitNames = system.unitLabels.join(', ');
+  if (system.subdivisions.length !== units - 1) {
+    const what =
+      units === 1
+        ? '[] for a single unit'
+        : 'how many of each unit fit in the one above it, e.g. [12, 30] for Year, Month, Day';
+    throw new LibraryToolError(
+      `subdivisions has ${entries(system.subdivisions.length)} but needs ${units - 1}, ` +
+        `one fewer than the units (${unitNames}): ${what}`
+    );
+  }
+  for (const field of PER_UNIT_FIELDS) {
+    const list = system[field];
+    if (list && list.length !== units) {
+      throw new LibraryToolError(
+        `${field} has ${entries(list.length)} but needs ${units}, one per unit (${unitNames}). ` +
+          'Pass one entry per unit, or null to drop the list.'
+      );
+    }
+  }
+}
+
 /** Validate with the app's own check, reporting its message as a tool error. */
 function assertValid(system: TimeSystem): void {
+  assertListLengths(system);
   try {
     assertValidTimeSystem(system);
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    throw new LibraryToolError(
-      `${message}. subdivisions has one entry fewer than unitLabels (how many of each unit ` +
-        'fit in the one above it), and each per-unit list has one entry per unit.'
-    );
+    throw new LibraryToolError(err instanceof Error ? err.message : String(err));
   }
 }
 
@@ -291,7 +346,9 @@ const definitionProperties = {
     items: { type: ['object', 'null'], additionalProperties: { type: 'integer' } },
     description:
       'Optional irregular lengths, one entry per unit (null for none): for unit i, maps a value to ' +
-      'how many of unit i+1 it holds, e.g. [null, {"2": 28, "4": 30}, null] for short months.',
+      'how many of unit i+1 it holds, e.g. [null, {"2": 28, "4": 30}, null] for short months. ' +
+      'Only shorter than the regular length: dates are checked against subdivisions, so a longer ' +
+      'unit gives dates the app rejects.',
   },
 } as const;
 
@@ -337,12 +394,9 @@ registerTool({
               exampleDate: exampleDate(t),
               installed: installed.has(t.id),
             })),
+            ...(systems.length === 0 ? { note: NO_SYSTEMS_NOTE } : {}),
           };
-          const text =
-            systems.length === 0
-              ? `This project has no time systems yet. Install a template or design one with create_time_system.\n${JSON.stringify(payload, null, 2)}`
-              : JSON.stringify(payload, null, 2);
-          return textResult(text, payload);
+          return textResult(JSON.stringify(payload, null, 2), payload);
         },
         { commit: false }
       )
@@ -440,7 +494,7 @@ registerTool({
         doc.getArray<unknown>('timeSystems').push([system]);
         const shown = presentTimeSystem(system);
         return textResult(
-          `Created time system "${system.name}" (id ${system.id}), e.g. ${String(shown.exampleDate)}.`,
+          `Created time system "${system.name}" (id ${system.id}), e.g. ${String(shown.exampleDate)}.${warningText(shown)}`,
           { success: true, timeSystem: shown }
         );
       })
@@ -542,9 +596,10 @@ registerTool({
         );
         const updated = updatedSystem(existing, args);
         replaceRow(doc, 'timeSystems', updated);
-        return textResult(`Updated time system "${updated.name}".`, {
+        const shown = presentTimeSystem(updated);
+        return textResult(`Updated time system "${updated.name}".${warningText(shown)}`, {
           success: true,
-          timeSystem: presentTimeSystem(updated),
+          timeSystem: shown,
         });
       })
     );

@@ -546,6 +546,121 @@ export function parseTimePoint(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Warnings
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** What a {@link TimeSystemWarning} is about. */
+export type TimeSystemWarningCode =
+  | 'format-no-units'
+  | 'format-unknown-unit'
+  | 'override-on-smallest-unit'
+  | 'override-value-out-of-range'
+  | 'override-longer-than-default';
+
+/**
+ * Something {@link assertValidTimeSystem} accepts but that is probably not
+ * what the system's author meant: a format that shows nothing for a unit, or
+ * a subdivision override that never applies or allows dates that are invalid.
+ */
+export interface TimeSystemWarning {
+  code: TimeSystemWarningCode;
+  /** Human-readable, in English. */
+  message: string;
+  /** Index of the unit the warning is about, where there is one. */
+  unit?: number;
+}
+
+/**
+ * Warnings for a time system that passes {@link assertValidTimeSystem}.
+ * Every built-in template has none.
+ */
+export function checkTimeSystem(system: TimeSystem): TimeSystemWarning[] {
+  return [...formatWarnings(system), ...overrideWarnings(system)];
+}
+
+function formatWarnings(system: TimeSystem): TimeSystemWarning[] {
+  const last = system.unitLabels.length - 1;
+  const tokens = [...system.format.matchAll(TOKEN_RE)];
+  if (tokens.length === 0) {
+    const units = last === 0 ? '{u0}' : `{u0} to {u${last}}`;
+    return [
+      {
+        code: 'format-no-units',
+        message: `The format "${system.format}" shows no unit values, so every date looks the same. Use ${units}.`,
+      },
+    ];
+  }
+  const seen = new Set<string>();
+  const warnings: TimeSystemWarning[] = [];
+  for (const [token, , index] of tokens) {
+    const unit = Number(index);
+    if (unit <= last || seen.has(token)) continue;
+    seen.add(token);
+    warnings.push({
+      code: 'format-unknown-unit',
+      unit,
+      message: `The format uses ${token}, but the units are numbered 0 to ${last}, so it shows nothing.`,
+    });
+  }
+  return warnings;
+}
+
+function overrideWarnings(system: TimeSystem): TimeSystemWarning[] {
+  const last = system.unitLabels.length - 1;
+  return (system.unitSubdivisionOverrides ?? []).flatMap((entry, unit) => {
+    if (!entry || Object.keys(entry).length === 0) return [];
+    if (unit >= last) {
+      const label = system.unitLabels[unit];
+      return [
+        {
+          code: 'override-on-smallest-unit' as const,
+          unit,
+          message: `${label} is the smallest unit, so the lengths in unitSubdivisionOverrides[${unit}] are ignored.`,
+        },
+      ];
+    }
+    return Object.entries(entry).flatMap(([key, length]) =>
+      overrideEntryWarnings(system, unit, key, length)
+    );
+  });
+}
+
+/** Warnings for one override: `unit` value `key` holds `length` of the next unit. */
+function overrideEntryWarnings(
+  system: TimeSystem,
+  unit: number,
+  key: string,
+  length: number
+): TimeSystemWarning[] {
+  const label = system.unitLabels[unit];
+  const warnings: TimeSystemWarning[] = [];
+  const min = unitMinValue(system, unit);
+  const max = unitMaxValue(system, unit);
+  const value = Number(key);
+  if (!/^-?\d+$/.test(key) || value < min || (max !== null && value > max)) {
+    const range = max === null ? `start at ${min}` : `run from ${min} to ${max}`;
+    warnings.push({
+      code: 'override-value-out-of-range',
+      unit,
+      message: `unitSubdivisionOverrides[${unit}] sets a length for ${label} ${key}, but ${label} values ${range}, so it never applies.`,
+    });
+  }
+  // Dates are checked against the regular length (isValidTimePointFor), so a
+  // longer override offers values that are then rejected.
+  const regular = system.subdivisions[unit];
+  if (length > regular) {
+    const child = system.unitLabels[unit + 1];
+    const lastChild = unitMinValue(system, unit + 1) + regular - 1;
+    warnings.push({
+      code: 'override-longer-than-default',
+      unit,
+      message: `${label} ${key} is set to ${length} ${child} units, more than the regular ${regular}, but dates stop at ${child} ${lastChild}, so an override can only make a ${label} shorter.`,
+    });
+  }
+  return warnings;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Built-in systems
 // ─────────────────────────────────────────────────────────────────────────────
 
