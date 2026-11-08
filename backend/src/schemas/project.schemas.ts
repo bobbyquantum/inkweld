@@ -23,6 +23,12 @@ export const ProjectSchema = z
     isPublic: z.boolean().optional().openapi({
       description: 'Allow anyone with the public project URL to view the entire project',
     }),
+    publicComments: z.boolean().optional().openapi({
+      description: "Show the project's comments to people viewing it through its public link",
+    }),
+    publicActivity: z.boolean().optional().openapi({
+      description: "Show the project's activity feed to people viewing it through its public link",
+    }),
     createdDate: z.iso.datetime().openapi({ description: 'Project creation date' }),
     updatedDate: z.iso.datetime().openapi({ description: 'Last update date' }),
     // Access permissions (only set when user is authenticated)
@@ -92,6 +98,12 @@ export const UpdateProjectRequestSchema = z
     }),
     isPublic: z.boolean().optional().openapi({
       description: 'Allow anyone with the public project URL to view the entire project',
+    }),
+    publicComments: z.boolean().optional().openapi({
+      description: "Show the project's comments to people viewing it through its public link",
+    }),
+    publicActivity: z.boolean().optional().openapi({
+      description: "Show the project's activity feed to people viewing it through its public link",
     }),
   })
   .openapi('UpdateProjectRequest');

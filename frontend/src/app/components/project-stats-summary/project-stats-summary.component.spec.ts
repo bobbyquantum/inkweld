@@ -2,6 +2,7 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import type { ProjectStatsResponse } from '@models/writing-stats';
 import { LoggerService } from '@services/core/logger.service';
+import { PublicProjectContextService } from '@services/core/public-project-context.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { WritingStatsService } from '@services/stats/writing-stats.service';
@@ -45,7 +46,8 @@ describe('ProjectStatsSummaryComponent', () => {
   const setup = async (
     stats: ProjectStatsResponse | Error | undefined = makeStats(),
     proj: { username?: string; slug?: string } | null = project,
-    isLocal = false
+    isLocal = false,
+    isPublic = false
   ) => {
     statsService = mockDeep<WritingStatsService>();
     logger = mockDeep<LoggerService>();
@@ -68,6 +70,10 @@ describe('ProjectStatsSummaryComponent', () => {
         {
           provide: StorageContextService,
           useValue: { isLocalMode: localMode },
+        },
+        {
+          provide: PublicProjectContextService,
+          useValue: { active: signal(isPublic) },
         },
       ],
     }).compileComponents();
@@ -113,6 +119,12 @@ describe('ProjectStatsSummaryComponent', () => {
 
   it('skips loading entirely in local mode', async () => {
     await setup(makeStats(), project, true);
+    expect(statsService.getProjectStats).not.toHaveBeenCalled();
+    expect(el('project-stats-summary')).toBeFalsy();
+  });
+
+  it("doesn't ask for stats under a public link, which has no account", async () => {
+    await setup(makeStats(), project, false, true);
     expect(statsService.getProjectStats).not.toHaveBeenCalled();
     expect(el('project-stats-summary')).toBeFalsy();
   });

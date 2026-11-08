@@ -75,6 +75,13 @@ export const requireProjectReadAuth: MiddlewareHandler<AppContext> = async (c, n
     }
     throw new NotFoundError('Project not found');
   }
+  // Comments and the activity feed are shared only when the owner says so
+  if (
+    (c.req.path.startsWith('/api/v1/comments/') && !project.publicComments) ||
+    (c.req.path.startsWith('/api/v1/activity/projects/') && !project.publicActivity)
+  ) {
+    throw new NotFoundError('Not found');
+  }
   c.set('publicProjectRead', true);
   c.header('Cache-Control', 'no-store');
   c.header('X-Robots-Tag', 'noindex, nofollow');

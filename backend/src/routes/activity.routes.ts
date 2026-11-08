@@ -25,8 +25,15 @@ import { activityService } from '../services/activity.service';
 import { userService } from '../services/user.service';
 import { UnauthorizedError, ForbiddenError, NotFoundError } from '../errors';
 import { type AppContext, type DatabaseInstance } from '../types/context';
+import type { ActivityEventType } from '../db/schema/activity-events';
 
 const activityRoutes = new OpenAPIHono<AppContext>();
+
+/** Events about comments, left out where the project's comments are hidden. */
+const COMMENT_EVENT_TYPES: readonly ActivityEventType[] = [
+  'comment_thread_created',
+  'comment_reply_added',
+];
 
 activityRoutes.use('*', requireProjectReadAuth);
 
@@ -77,7 +84,10 @@ activityRoutes.get('/projects/:username/:slug', async (c) => {
 
   const limit = parseLimit(c.req.query('limit'));
   const before = parseBefore(c.req.query('before'));
-  const events = await activityService.listForProject(db, project.id, limit, before);
+  // A comment event carries a preview of the comment, so a public link's
+  // readers see them only when the project shares its comments too
+  const hiddenTypes = publicRead && !project.publicComments ? COMMENT_EVENT_TYPES : [];
+  const events = await activityService.listForProject(db, project.id, limit, before, hiddenTypes);
 
   const userMap = await resolveUsernames(db, events);
 

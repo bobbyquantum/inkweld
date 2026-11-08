@@ -18,6 +18,7 @@ import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { type Element, ElementType, type Project } from '@inkweld/index';
 import { CloudSyncEngineService } from '@services/cloud-sync/cloud-sync-engine.service';
 import { ProjectSearchService } from '@services/core/project-search.service';
+import { PublicProjectContextService } from '@services/core/public-project-context.service';
 import { QuickOpenService } from '@services/core/quick-open.service';
 import { SettingsService } from '@services/core/settings.service';
 import { StorageContextService } from '@services/core/storage-context.service';
@@ -182,6 +183,7 @@ describe('ProjectComponent', () => {
     projectStateService = {
       project: projectSignal,
       canWrite: signal(true),
+      showActivity: signal(true),
       elements: elementsSignal,
       pinnedElementIds: pinnedElementIdsSignal,
       openTabs: openTabsSignal,
@@ -1292,6 +1294,67 @@ describe('ProjectComponent', () => {
       expect(
         fixture.nativeElement.querySelector('.desktop-layout.dense-sidebar')
       ).toBeNull();
+    });
+  });
+
+  describe('Project Settings under a public link', () => {
+    const layouts = [
+      { layout: 'sidebar', mobile: false, collapsed: false },
+      { layout: 'collapsed', mobile: false, collapsed: true },
+      { layout: 'mobile', mobile: true, collapsed: false },
+    ];
+
+    const settingsButtonIn = async ({
+      layout,
+      mobile,
+      collapsed,
+    }: (typeof layouts)[number]) => {
+      component['isMobile'].set(mobile);
+      component['sidebarCollapsed'].set(collapsed);
+      component['showSidebar'].set(true);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      return fixture.nativeElement.querySelector(
+        `[data-testid="${layout}-settings-button"]`
+      );
+    };
+
+    it.each(layouts)('offers them to members ($layout)', async layout => {
+      expect(await settingsButtonIn(layout)).toBeTruthy();
+    });
+
+    it.each(layouts)(
+      'hides Activity when the project does not show it ($layout)',
+      async ({ layout, mobile, collapsed }) => {
+        await settingsButtonIn({ layout, mobile, collapsed });
+        const activity = () =>
+          fixture.nativeElement.querySelector(
+            `[data-testid="${layout}-activity-button"]`
+          );
+        expect(activity()).toBeTruthy();
+
+        (
+          projectStateService['showActivity'] as ReturnType<
+            typeof signal<boolean>
+          >
+        ).set(false);
+        fixture.detectChanges();
+        await fixture.whenStable();
+        expect(activity()).toBeNull();
+      }
+    );
+
+    it.each(layouts)('hides them from a reader ($layout)', async layout => {
+      Object.defineProperty(
+        TestBed.inject(PublicProjectContextService),
+        'active',
+        { value: signal(true) }
+      );
+      // A public link is public from the first render
+      fixture.destroy();
+      fixture = TestBed.createComponent(ProjectComponent);
+      component = fixture.componentInstance;
+      expect(await settingsButtonIn(layout)).toBeNull();
     });
   });
 

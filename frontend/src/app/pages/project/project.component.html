@@ -112,7 +112,7 @@
                 'project.nav.publishing' | transloco
               }}</span>
             </button>
-            @if (!isLocalMode()) {
+            @if (!isLocalMode() && projectState.showActivity()) {
               <button
                 type="button"
                 class="mobile-nav-item"
@@ -126,18 +126,20 @@
                 }}</span>
               </button>
             }
-            <button
-              type="button"
-              class="mobile-nav-item"
-              [class.selected-item]="isSystemTabSelected('settings')"
-              data-testid="mobile-settings-button"
-              (click)="onShowSettings(); toggleSidebar()"
-              [attr.aria-label]="'project.nav.projectSettings' | transloco">
-              <mat-icon>settings</mat-icon>
-              <span class="nav-title">{{
-                'project.nav.projectSettings' | transloco
-              }}</span>
-            </button>
+            @if (!publicContext.active()) {
+              <button
+                type="button"
+                class="mobile-nav-item"
+                [class.selected-item]="isSystemTabSelected('settings')"
+                data-testid="mobile-settings-button"
+                (click)="onShowSettings(); toggleSidebar()"
+                [attr.aria-label]="'project.nav.projectSettings' | transloco">
+                <mat-icon>settings</mat-icon>
+                <span class="nav-title">{{
+                  'project.nav.projectSettings' | transloco
+                }}</span>
+              </button>
+            }
             <button
               type="button"
               class="mobile-nav-item exit-item"
@@ -298,7 +300,7 @@
                     [attr.aria-label]="'project.nav.publishing' | transloco">
                     <mat-icon>auto_stories</mat-icon>
                   </button>
-                  @if (!isLocalMode()) {
+                  @if (!isLocalMode() && projectState.showActivity()) {
                     <button
                       mat-icon-button
                       appTooltipAriaLabel
@@ -310,18 +312,20 @@
                       <mat-icon>history</mat-icon>
                     </button>
                   }
-                  <button
-                    mat-icon-button
-                    appTooltipAriaLabel
-                    (click)="onShowSettings()"
-                    [class.active]="isSystemTabSelected('settings')"
-                    [matTooltip]="'project.nav.projectSettings' | transloco"
-                    data-testid="collapsed-settings-button"
-                    [attr.aria-label]="
-                      'project.nav.projectSettings' | transloco
-                    ">
-                    <mat-icon>settings</mat-icon>
-                  </button>
+                  @if (!publicContext.active()) {
+                    <button
+                      mat-icon-button
+                      appTooltipAriaLabel
+                      (click)="onShowSettings()"
+                      [class.active]="isSystemTabSelected('settings')"
+                      [matTooltip]="'project.nav.projectSettings' | transloco"
+                      data-testid="collapsed-settings-button"
+                      [attr.aria-label]="
+                        'project.nav.projectSettings' | transloco
+                      ">
+                      <mat-icon>settings</mat-icon>
+                    </button>
+                  }
                   <button
                     mat-icon-button
                     appTooltipAriaLabel
@@ -390,7 +394,7 @@
                       'project.nav.publishing' | transloco
                     }}</span>
                   </button>
-                  @if (!isLocalMode()) {
+                  @if (!isLocalMode() && projectState.showActivity()) {
                     <button
                       type="button"
                       class="sidebar-nav-item"
@@ -404,20 +408,22 @@
                       }}</span>
                     </button>
                   }
-                  <button
-                    type="button"
-                    class="sidebar-nav-item"
-                    [class.selected-item]="isSystemTabSelected('settings')"
-                    data-testid="sidebar-settings-button"
-                    (click)="onShowSettings()"
-                    [attr.aria-label]="
-                      'project.nav.projectSettings' | transloco
-                    ">
-                    <mat-icon>settings</mat-icon>
-                    <span class="nav-title">{{
-                      'project.nav.projectSettings' | transloco
-                    }}</span>
-                  </button>
+                  @if (!publicContext.active()) {
+                    <button
+                      type="button"
+                      class="sidebar-nav-item"
+                      [class.selected-item]="isSystemTabSelected('settings')"
+                      data-testid="sidebar-settings-button"
+                      (click)="onShowSettings()"
+                      [attr.aria-label]="
+                        'project.nav.projectSettings' | transloco
+                      ">
+                      <mat-icon>settings</mat-icon>
+                      <span class="nav-title">{{
+                        'project.nav.projectSettings' | transloco
+                      }}</span>
+                    </button>
+                  }
                   <button
                     type="button"
                     class="sidebar-nav-item exit-item"

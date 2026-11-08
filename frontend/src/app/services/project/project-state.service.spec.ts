@@ -2579,6 +2579,29 @@ describe('ProjectStateService', () => {
       expect(service.accessLoaded()).toBe(true);
     });
 
+    it('shows comments and activity only when the project shares them', () => {
+      service.project.set(publicProject);
+      expect(service.showComments()).toBe(false);
+      expect(service.showActivity()).toBe(false);
+
+      service.project.set({
+        ...publicProject,
+        publicComments: true,
+        publicActivity: true,
+      });
+      expect(service.showComments()).toBe(true);
+      expect(service.showActivity()).toBe(true);
+    });
+
+    it('always shows them to members', () => {
+      vi.mocked(
+        TestBed.inject(PublicProjectContextService).active
+      ).mockReturnValue(false);
+      service.project.set(publicProject);
+      expect(service.showComments()).toBe(true);
+      expect(service.showActivity()).toBe(true);
+    });
+
     it('has no access information before the project loads', () => {
       service.project.set(undefined);
       expect(service.accessLoaded()).toBe(false);

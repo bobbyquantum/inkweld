@@ -5,7 +5,10 @@ import { adminGuard } from './guards/admin.guard';
 import { authGuard } from './guards/auth.guard';
 import { CanDeactivateProjectGuard } from './guards/can-deactivate-project.guard';
 import type { ProjectComponent } from './pages/project/project.component';
-import { projectTabRoutes } from './pages/project/project-tab.routes';
+import {
+  projectTabRoutes,
+  publicProjectTabRoutes,
+} from './pages/project/project-tab.routes';
 
 export const routes: Routes = [
   {
@@ -294,7 +297,7 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/project/project.component').then(m => m.ProjectComponent),
     data: { reuseComponent: false },
-    children: projectTabRoutes,
+    children: publicProjectTabRoutes,
   },
   // Project route (GitHub style: /:username/:slug)
   {

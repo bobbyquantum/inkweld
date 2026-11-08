@@ -105,3 +105,21 @@ export const projectTabRoutes: Routes = [
     data: { reuseComponent: false },
   },
 ];
+
+/** Paths that open Project Settings, directly or through an old redirect. */
+const SETTINGS_PATHS = new Set([
+  'settings',
+  'templates-list',
+  'relationships-list',
+  'tags-list',
+]);
+
+/**
+ * The tab routes under a public link. Project Settings are for the project's
+ * members, so a reader who follows a settings URL gets the project home.
+ */
+export const publicProjectTabRoutes: Routes = projectTabRoutes.map(route =>
+  SETTINGS_PATHS.has(route.path ?? '')
+    ? { path: route.path, redirectTo: '', pathMatch: 'full' }
+    : route
+);

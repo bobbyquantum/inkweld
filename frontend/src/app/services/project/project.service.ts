@@ -453,7 +453,16 @@ export class ProjectService {
   async updateProject(
     username: string,
     slug: string,
-    Project: Partial<Pick<Project, 'title' | 'description' | 'isPublic'>>,
+    Project: Partial<
+      Pick<
+        Project,
+        | 'title'
+        | 'description'
+        | 'isPublic'
+        | 'publicComments'
+        | 'publicActivity'
+      >
+    >,
     options: { queueIfOffline?: boolean } = {}
   ): Promise<Project> {
     const queueIfOffline = options.queueIfOffline ?? true;
@@ -465,6 +474,8 @@ export class ProjectService {
         title: Project.title,
         description: Project.description || undefined,
         isPublic: Project.isPublic,
+        publicComments: Project.publicComments,
+        publicActivity: Project.publicActivity,
       };
       try {
         const project = await firstValueFrom(

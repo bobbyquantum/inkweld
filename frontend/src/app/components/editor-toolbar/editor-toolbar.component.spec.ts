@@ -560,9 +560,30 @@ describe('EditorToolbarComponent', () => {
   });
 
   describe('Comments toggle', () => {
-    it('should have a commentTooltip string', () => {
-      expect(typeof component.commentTooltip).toBe('string');
-      expect(component.commentTooltip.length).toBeGreaterThan(0);
+    it('names the add-comment shortcut to a writer', () => {
+      expect(component.commentTooltipKey).toBe(
+        'editor.toolbar.commentsTooltip'
+      );
+    });
+
+    it('names the Mac shortcut on a Mac', () => {
+      const userAgent = vi
+        .spyOn(navigator, 'userAgent', 'get')
+        .mockReturnValue('Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0)');
+      try {
+        const mac = TestBed.createComponent(
+          EditorToolbarComponent
+        ).componentInstance;
+        expect(mac.commentTooltipKey).toBe('editor.toolbar.commentsTooltipMac');
+      } finally {
+        userAgent.mockRestore();
+      }
+    });
+
+    it("doesn't offer a reader a shortcut they can't use", () => {
+      fixture.componentRef.setInput('disabled', true);
+      fixture.detectChanges();
+      expect(component.commentTooltipKey).toBe('editor.comments.panelTitle');
     });
   });
 

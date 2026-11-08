@@ -40,6 +40,7 @@ import {
   CollaboratorCollaboratorType,
   CollaboratorRole,
   InvitationStatus,
+  type UpdateProjectRequest,
 } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
@@ -72,6 +73,9 @@ import { TimeSystemsSettingsComponent } from './time-systems-settings/time-syste
  * - Media sync status (moved from user settings)
  * - Future: Collaboration settings
  */
+/** A public link's optional extras: the project's comments and activity. */
+type PublicSharingOption = 'publicComments' | 'publicActivity';
+
 @Component({
   selector: 'app-settings-tab',
   templateUrl: './settings-tab.component.html',
@@ -262,6 +266,23 @@ export class SettingsTabComponent implements OnDestroy {
     return `${project.username}/${project.slug}`;
   });
   protected readonly isUpdatingPublicSharing = signal(false);
+  /** What a public link shows besides the project itself, off by default. */
+  protected readonly publicSharingOptions: readonly {
+    key: PublicSharingOption;
+    label: string;
+    hint: string;
+  }[] = [
+    {
+      key: 'publicComments',
+      label: 'project.publicSharing.showComments',
+      hint: 'project.publicSharing.showCommentsHint',
+    },
+    {
+      key: 'publicActivity',
+      label: 'project.publicSharing.showActivity',
+      hint: 'project.publicSharing.showActivityHint',
+    },
+  ];
   protected readonly publicShareUrl = computed(() => {
     const project = this.projectState.project();
     if (!project?.isPublic) return null;
@@ -425,8 +446,33 @@ export class SettingsTabComponent implements OnDestroy {
     }
   }
 
-  /** Only the owner may change visibility; ignore responses after a project switch. */
+  /** Turn the project's public link on or off. */
   async togglePublicSharing(): Promise<void> {
+    const project = this.projectState.project();
+    if (project) {
+      await this.updatePublicSharing({ isPublic: !project.isPublic });
+    }
+  }
+
+  /** Show or hide comments or activity to a public link's readers. */
+  async onPublicSharingOptionToggle(
+    option: PublicSharingOption,
+    event: MatSlideToggleChange
+  ): Promise<void> {
+    const project = this.projectState.project();
+    if (project) {
+      await this.updatePublicSharing({ [option]: !project[option] });
+    }
+    event.source.checked = !!this.projectState.project()?.[option];
+  }
+
+  /**
+   * Save a change to what the public link shows. Only the owner may change
+   * it; a response that lands after a project switch is ignored.
+   */
+  private async updatePublicSharing(
+    change: Pick<UpdateProjectRequest, 'isPublic' | PublicSharingOption>
+  ): Promise<void> {
     const project = this.projectState.project();
     if (
       !project ||
@@ -442,7 +488,7 @@ export class SettingsTabComponent implements OnDestroy {
       const updated = await this.projectService.updateProject(
         project.username,
         project.slug,
-        { isPublic: !project.isPublic },
+        change,
         // Visibility must never look saved before the server has it: a queued
         // "turn off" would leave the project public while showing it private.
         { queueIfOffline: false }

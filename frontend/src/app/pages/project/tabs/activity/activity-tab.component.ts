@@ -113,8 +113,10 @@ export class ActivityTabComponent {
     const project = this.projectState.project();
     if (!project?.username || !project.slug) return;
     // The feed lives on the server. The tab is hidden for Browser and Cloud
-    // Sync profiles, but a saved tab or URL can still open it.
+    // Sync profiles, and for a public link that doesn't share it, but a saved
+    // tab or URL can still open it.
     if (this.storageContext.isLocalMode()) return;
+    if (!this.projectState.showActivity()) return;
 
     this.loading.set(true);
     this.error.set(null);

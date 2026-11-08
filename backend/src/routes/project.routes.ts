@@ -83,6 +83,8 @@ projectRoutes.openapi(listProjectsRoute, async (c) => {
       coverImage: p.coverImage ?? null,
       minClientVersion: p.minClientVersion ?? null,
       isPublic: p.isPublic,
+      publicComments: p.publicComments,
+      publicActivity: p.publicActivity,
       createdDate: new Date(p.createdDate).toISOString(),
       updatedDate: new Date(p.updatedDate).toISOString(),
     })),
@@ -178,6 +180,8 @@ projectRoutes.openapi(getProjectRoute, async (c) => {
       coverImage: project.coverImage ?? null,
       minClientVersion: project.minClientVersion ?? null,
       isPublic: project.isPublic,
+      publicComments: project.publicComments,
+      publicActivity: project.publicActivity,
       createdDate: new Date(project.createdDate).toISOString(),
       updatedDate: new Date(project.updatedDate).toISOString(),
       access: {
@@ -290,6 +294,8 @@ projectRoutes.openapi(createProjectRoute, async (c) => {
       coverImage: project.coverImage ?? null,
       minClientVersion: project.minClientVersion ?? null,
       isPublic: project.isPublic,
+      publicComments: project.publicComments,
+      publicActivity: project.publicActivity,
       createdDate: new Date(project.createdDate).toISOString(),
       updatedDate: new Date(project.updatedDate).toISOString(),
       // Creator is always the owner with full access
@@ -359,7 +365,11 @@ projectRoutes.openapi(updateProjectRoute, async (c) => {
   if (!access.canAdmin) {
     throw new ForbiddenError('Access denied');
   }
-  if (updates.isPublic !== undefined && !access.isOwner) {
+  const changesPublicSharing =
+    updates.isPublic !== undefined ||
+    updates.publicComments !== undefined ||
+    updates.publicActivity !== undefined;
+  if (changesPublicSharing && !access.isOwner) {
     throw new ForbiddenError('Only the project owner can change public sharing');
   }
 
@@ -413,6 +423,8 @@ projectRoutes.openapi(updateProjectRoute, async (c) => {
       coverImage: updated.coverImage ?? null,
       minClientVersion: updated.minClientVersion ?? null,
       isPublic: updated.isPublic,
+      publicComments: updated.publicComments,
+      publicActivity: updated.publicActivity,
       createdDate: new Date(updated.createdDate).toISOString(),
       updatedDate: new Date(updated.updatedDate).toISOString(),
       access: {

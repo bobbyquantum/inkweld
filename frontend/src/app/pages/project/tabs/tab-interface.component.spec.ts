@@ -1008,6 +1008,66 @@ describe('TabInterfaceComponent', () => {
       );
     });
 
+    it("keeps a tab's query string when its URL is already open", () => {
+      const settings: AppTab = {
+        id: 'system-settings',
+        name: 'Settings',
+        type: 'system',
+        systemType: 'settings',
+      };
+      const project = projectStateService.project!()!;
+      const navigateToTab = (tab: AppTab) =>
+        (
+          component as unknown as {
+            navigateToTab: (tab: AppTab, project: Project) => void;
+          }
+        ).navigateToTab(tab, project);
+      vi.mocked(router.navigate!).mockClear();
+
+      // A timeline's link to its Settings section
+      (router as any).url =
+        '/testuser/test-project/settings?section=time-systems';
+      navigateToTab(settings);
+      expect(router.navigate).not.toHaveBeenCalled();
+
+      (router as any).url = '/testuser/test-project';
+      navigateToTab(settings);
+      expect(router.navigate).toHaveBeenCalledWith([
+        '/',
+        'testuser',
+        'test-project',
+        'settings',
+      ]);
+    });
+
+    it('opens the system tab a public link names, not Home', () => {
+      (router as any).url = '/public/testuser/test-project/activity';
+
+      component.updateSelectedTabFromUrl();
+
+      expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
+        'activity'
+      );
+    });
+
+    it('reads a public publish-plan URL', () => {
+      const planId = 'plan-public-1';
+      (router as any).url =
+        `/public/testuser/test-project/publish-plan/${planId}`;
+      (projectStateService as any).getPublishPlan = vi.fn(() => ({
+        id: planId,
+        name: 'Public plan',
+      }));
+      (projectStateService as any).openPublishPlan = vi.fn();
+
+      component.updateSelectedTabFromUrl();
+
+      expect((projectStateService as any).getPublishPlan).toHaveBeenCalledWith(
+        planId
+      );
+      expect((projectStateService as any).openPublishPlan).toHaveBeenCalled();
+    });
+
     it('should find existing system tab by systemType', () => {
       // Set up an already-open media tab
       const mediaTabs: AppTab[] = [

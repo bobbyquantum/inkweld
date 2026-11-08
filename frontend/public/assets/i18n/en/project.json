@@ -10,7 +10,11 @@
     "openLink": "Open public view in a new tab",
     "linkCopied": "Public project link copied",
     "copyFailed": "Could not copy the link. Copy it from the address above.",
-    "updateFailed": "Could not update public access."
+    "updateFailed": "Could not update public access.",
+    "showComments": "Show comments",
+    "showCommentsHint": "Readers can see the comments on each document.",
+    "showActivity": "Show activity",
+    "showActivityHint": "Readers can see the project's activity feed."
   },
   "publicView": {
     "loading": "Loading story…",

@@ -26,9 +26,11 @@
     <div class="comment-panel__empty" data-testid="comment-panel-empty">
       <mat-icon>chat_bubble_outline</mat-icon>
       <p>{{ 'editor.comments.noComments' | transloco }}</p>
-      <p class="comment-panel__hint">
-        {{ 'editor.comments.hint' | transloco }}
-      </p>
+      @if (canWrite()) {
+        <p class="comment-panel__hint" data-testid="comment-panel-hint">
+          {{ 'editor.comments.hint' | transloco }}
+        </p>
+      }
     </div>
   } @else {
     <div class="comment-panel__gutter" (wheel)="onWheel($event)">
