@@ -1,9 +1,9 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { forEachSequential } from '@inkweld/async';
+import { mediaTypeFromFilename } from '@utils/media-reference';
 import { firstValueFrom } from 'rxjs';
 
-import { mediaTypeFromFilename } from '../../utils/media-reference';
 import { PublicProjectContextService } from '../core/public-project-context.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { type StorageConfig, StorageService } from './storage.service';
@@ -201,22 +201,45 @@ export class LocalStorageService {
   }
 
   /**
-   * The listed file a public `getMedia` call names (by media id or file
-   * name). A recent listing is used when it has the file; otherwise the
-   * project is listed again, for a file added since.
+   * Download the file a public `getMedia` call names (by media id or file
+   * name), or null when the project doesn't list it. A recent listing is
+   * used when it has the file; otherwise, or when that file has gone since
+   * (a 404), the project is listed again.
    */
-  private async findPublicMedia(
+  private async getPublicMedia(
     projectKey: string,
     mediaId: string
-  ): Promise<MediaInfo | undefined> {
+  ): Promise<Blob | null> {
     const matches = (item: MediaInfo) =>
       item.mediaId === mediaId || item.filename === mediaId;
     const recent = this.publicListings.get(this.publicMediaUrl(projectKey));
     if (recent && Date.now() - recent.at < PUBLIC_LISTING_REUSE_MS) {
       const found = (await recent.items.catch(() => [])).find(matches);
-      if (found) return found;
+      if (found) {
+        try {
+          return await this.downloadPublicFile(projectKey, found);
+        } catch (error) {
+          // Replaced or deleted since that listing: look again
+          if (!(error instanceof HttpErrorResponse && error.status === 404))
+            throw error;
+        }
+      }
     }
-    return (await this.fetchPublicListing(projectKey)).find(matches);
+    const item = (await this.fetchPublicListing(projectKey)).find(matches);
+    return item ? this.downloadPublicFile(projectKey, item) : null;
+  }
+
+  /** Download one listed file of a public project from its server. */
+  private downloadPublicFile(
+    projectKey: string,
+    item: MediaInfo
+  ): Promise<Blob> {
+    return firstValueFrom(
+      this.http.get(
+        `${this.publicMediaUrl(projectKey)}/${encodeURIComponent(item.filename ?? item.mediaId)}`,
+        { responseType: 'blob' }
+      )
+    );
   }
 
   /**
@@ -280,14 +303,7 @@ export class LocalStorageService {
    */
   async getMedia(projectKey: string, mediaId: string): Promise<Blob | null> {
     if (this.publicContext.active()) {
-      const item = await this.findPublicMedia(projectKey, mediaId);
-      if (!item?.filename) return null;
-      return firstValueFrom(
-        this.http.get(
-          `${this.publicMediaUrl(projectKey)}/${encodeURIComponent(item.filename)}`,
-          { responseType: 'blob' }
-        )
-      );
+      return this.getPublicMedia(projectKey, mediaId);
     }
     const db = await this.ensureDb();
     const key = this.makeKey(projectKey, mediaId);

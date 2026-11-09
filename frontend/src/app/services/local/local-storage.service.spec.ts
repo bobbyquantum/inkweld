@@ -640,6 +640,44 @@ describe('LocalStorageService', () => {
       http.expectNone(MEDIA_URL);
     });
 
+    it('lists again and retries when a file of a recent listing has gone', async () => {
+      const listed = service.listMedia('alice/my novel');
+      answerList();
+      await listed;
+
+      // The owner replaced cover.jpg with cover.webp since that listing
+      const cover = service.getMedia('alice/my novel', 'cover');
+      await vi.waitFor(() =>
+        http
+          .expectOne(`${MEDIA_URL}/cover.jpg`)
+          .flush(new Blob(['gone']), { status: 404, statusText: 'Not Found' })
+      );
+      await vi.waitFor(() =>
+        http
+          .expectOne(MEDIA_URL)
+          .flush({ items: [{ filename: 'cover.webp', size: 4 }] })
+      );
+      await answerWhenAsked(`${MEDIA_URL}/cover.webp`, new Blob(['webp']));
+
+      expect(await cover).toBeInstanceOf(Blob);
+    });
+
+    it('does not list again when a download fails for another reason', async () => {
+      const listed = service.listMedia('alice/my novel');
+      answerList();
+      await listed;
+
+      const image = service.getMedia('alice/my novel', 'img-1');
+      await vi.waitFor(() =>
+        http
+          .expectOne(`${MEDIA_URL}/img-1.png`)
+          .flush(new Blob(['down']), { status: 503, statusText: 'Unavailable' })
+      );
+
+      await expect(image).rejects.toMatchObject({ status: 503 });
+      http.expectNone(MEDIA_URL);
+    });
+
     it('lists again for a file a recent listing lacks', async () => {
       const listed = service.listMedia('alice/my novel');
       answerList();

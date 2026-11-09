@@ -186,8 +186,8 @@ Read `e2e/BEST_PRACTICES.md` before writing one.
 - **Markdown input rules** are opt-in (`components/editor-input-rules/AGENTS.md`).
 - **Read-only documents stay clickable.** ngx-editor's
   `NgxEditor__Content--Disabled` turns pointer events off, but that element
-  is the editor's scroll container, so the document editor's stylesheet turns
-  them back on: viewers and public links scroll, select, open comments and
+  is the editor's scroll container, so `document-element-editor-read-only.scss`
+  turns them back on: viewers and public links scroll, select, open comments and
   follow references. So anything in the editor that a click or a selection
   opens and that edits the document (menus, popovers, node views) must check
   `view.editable` or `projectState.canWrite()`, as the floating menu, the
@@ -218,16 +218,16 @@ mapped to keys in `services/core/error-translation.service.ts`; add new codes
 there and the key to the right JSON file. Unmapped errors fall back to
 `errors.unknown`. Sign-in callback codes are mapped separately (below).
 
-| Error class | Code | Translation key / behaviour |
-|---|---|---|
-| `PasskeyError` | `CANCELLED` | Silent |
-| `PasskeyError` | `PENDING_APPROVAL` | Redirect to `/approval-pending` |
-| `PasskeyError` | `VERIFICATION_FAILED` | `login.errors.verificationFailed` |
-| `PasskeyError` | `NETWORK_ERROR` | `login.errors.networkError` |
-| `PasskeyError` | `UNSUPPORTED` | `login.errors.unsupported` |
-| `PasskeyError` | `ACCOUNT_DISABLED` | `login.errors.accountDisabled` |
-| `UserServiceError` | `LOGIN_FAILED` | `login.errors.loginFailed` |
-| `UserServiceError` | `ACCOUNT_PENDING` | Redirect to `/approval-pending` |
+| Error class        | Code                  | Translation key / behaviour       |
+| ------------------ | --------------------- | --------------------------------- |
+| `PasskeyError`     | `CANCELLED`           | Silent                            |
+| `PasskeyError`     | `PENDING_APPROVAL`    | Redirect to `/approval-pending`   |
+| `PasskeyError`     | `VERIFICATION_FAILED` | `login.errors.verificationFailed` |
+| `PasskeyError`     | `NETWORK_ERROR`       | `login.errors.networkError`       |
+| `PasskeyError`     | `UNSUPPORTED`         | `login.errors.unsupported`        |
+| `PasskeyError`     | `ACCOUNT_DISABLED`    | `login.errors.accountDisabled`    |
+| `UserServiceError` | `LOGIN_FAILED`        | `login.errors.loginFailed`        |
+| `UserServiceError` | `ACCOUNT_PENDING`     | Redirect to `/approval-pending`   |
 
 **Sign-in callback codes**: OIDC sign-in failures and GitHub's `email_in_use`
 arrive on `/oauth/callback` as `?error=<code>` (GitHub's other failures still
@@ -245,16 +245,16 @@ Settings appears once there is more than one language.
 
 ## Feature notes next to the code
 
-| Area | Notes |
-|---|---|
-| Profile-scoped storage, server profile ids, profile upgrades, project rename, APP_MODE, backgrounds, update dialog | `src/app/services/core/AGENTS.md` |
-| Starting offline, bulk sync planner | `src/app/services/sync/AGENTS.md` |
-| Canvas Yjs model | `src/app/services/canvas/AGENTS.md` |
-| Where the session token is sent, passkeys, policy acceptance | `src/app/services/auth/AGENTS.md` |
-| WebMCP tools | `src/app/services/webmcp/AGENTS.md` |
-| EPUB output, share links | `src/app/services/publish/AGENTS.md` |
-| Per-element schema copies, identity images | `src/app/services/worldbuilding/AGENTS.md` |
-| Template (schema) editor | `src/app/components/worldbuilding/AGENTS.md` |
-| Editor schema and tables | `src/app/components/element-ref/AGENTS.md` |
-| Markdown input rules | `src/app/components/editor-input-rules/AGENTS.md` |
-| Conversations | `src/app/components/conversation/AGENTS.md` |
+| Area                                                                                                               | Notes                                             |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
+| Profile-scoped storage, server profile ids, profile upgrades, project rename, APP_MODE, backgrounds, update dialog | `src/app/services/core/AGENTS.md`                 |
+| Starting offline, bulk sync planner                                                                                | `src/app/services/sync/AGENTS.md`                 |
+| Canvas Yjs model                                                                                                   | `src/app/services/canvas/AGENTS.md`               |
+| Where the session token is sent, passkeys, policy acceptance                                                       | `src/app/services/auth/AGENTS.md`                 |
+| WebMCP tools                                                                                                       | `src/app/services/webmcp/AGENTS.md`               |
+| EPUB output, share links                                                                                           | `src/app/services/publish/AGENTS.md`              |
+| Per-element schema copies, identity images                                                                         | `src/app/services/worldbuilding/AGENTS.md`        |
+| Template (schema) editor                                                                                           | `src/app/components/worldbuilding/AGENTS.md`      |
+| Editor schema and tables                                                                                           | `src/app/components/element-ref/AGENTS.md`        |
+| Markdown input rules                                                                                               | `src/app/components/editor-input-rules/AGENTS.md` |
+| Conversations                                                                                                      | `src/app/components/conversation/AGENTS.md`       |

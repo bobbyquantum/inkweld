@@ -1,0 +1,19 @@
+// Read-only documents (viewers, public links).
+//
+// Split out of `document-element-editor.component.scss`, which sits at the
+// 15 kB `anyComponentStyle` budget. Loaded as another entry in the
+// component's `styleUrls`, so it shares the same view encapsulation.
+//
+// ngx-editor turns pointer events off for content that isn't editable, but
+// that element is the editor's scroll container, so without them the page
+// can't be scrolled, nor text selected and copied, nor comments and
+// references opened.
+
+.editor-container
+  ::ng-deep
+  ngx-editor
+  .NgxEditor
+  .NgxEditor__Content--Disabled {
+  pointer-events: auto;
+  user-select: text;
+}

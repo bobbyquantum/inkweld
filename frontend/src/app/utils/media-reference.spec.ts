@@ -211,6 +211,9 @@ describe('media-reference utils', () => {
     it('has none for a name without a known extension', () => {
       expect(mediaTypeFromFilename('notes.xyz')).toBeNull();
       expect(mediaTypeFromFilename('cover')).toBeNull();
+      // Not a property every object has
+      expect(mediaTypeFromFilename('x.constructor')).toBeNull();
+      expect(mediaTypeFromFilename('x.toString')).toBeNull();
       expect(mediaTypeFromFilename(undefined)).toBeNull();
     });
   });

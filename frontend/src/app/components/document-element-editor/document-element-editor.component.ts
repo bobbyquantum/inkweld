@@ -137,6 +137,7 @@ import { createMediaUrl } from '../image-paste';
     './document-element-editor.component.scss',
     './document-element-editor-tables.scss',
     './document-element-editor-conversation.scss',
+    './document-element-editor-read-only.scss',
   ],
 })
 export class DocumentElementEditorComponent
