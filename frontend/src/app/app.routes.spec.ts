@@ -88,6 +88,36 @@ describe('app.routes', () => {
     ]);
   });
 
+  it('sends a public link to the project home instead of its publishing pages', () => {
+    const publicRoute = flatRoutes.find(
+      route => route.path === 'public/:username/:slug'
+    );
+    const projectRoute = flatRoutes.find(
+      route => route.path === ':username/:slug'
+    );
+    const publishing = ['publish-plans', 'publish-plan/:tabId'];
+
+    for (const path of publishing) {
+      expect(publicRoute?.children?.find(route => route.path === path)).toEqual(
+        { path, redirectTo: '', pathMatch: 'full' }
+      );
+      expect(
+        projectRoute?.children?.find(route => route.path === path)
+          ?.loadComponent
+      ).toBeTypeOf('function');
+    }
+    // Every other page is the same for both
+    expect(
+      publicRoute?.children?.filter(
+        route => !publishing.includes(route.path ?? '')
+      )
+    ).toEqual(
+      projectRoute?.children?.filter(
+        route => !publishing.includes(route.path ?? '')
+      )
+    );
+  });
+
   it('keeps no page after leaving it, so each visit starts afresh', () => {
     // A kept page skipped ngOnInit on its next visit: "Connect to sync"
     // reopened setup's Browser form, forgot-password still said "check your

@@ -80,6 +80,9 @@ export class ElementRefContextMenuComponent {
     }
   }
 
+  /** Offer only "Go to element", for someone who can't edit the document */
+  @Input() readOnly = false;
+
   /** Emitted when an action is selected */
   @Output() action = new EventEmitter<ElementRefAction>();
 
@@ -146,6 +149,7 @@ export class ElementRefContextMenuComponent {
 
   /** Start editing the display text */
   startEditing(): void {
+    if (this.readOnly) return;
     this._isEditing.set(true);
     // Focus input after a tick
     setTimeout(() => {
@@ -178,7 +182,7 @@ export class ElementRefContextMenuComponent {
   saveEdit(): void {
     const data = this._data();
     const text = this.editText().trim();
-    if (data && text) {
+    if (data && text && !this.readOnly) {
       this.action.emit({
         type: 'edit-text',
         nodePos: data.nodePos,
@@ -191,7 +195,7 @@ export class ElementRefContextMenuComponent {
   /** Delete the reference */
   deleteReference(): void {
     const data = this._data();
-    if (data) {
+    if (data && !this.readOnly) {
       this.action.emit({
         type: 'delete',
         nodePos: data.nodePos,

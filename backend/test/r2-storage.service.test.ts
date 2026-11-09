@@ -90,6 +90,25 @@ describe('R2StorageService listing', () => {
   });
 });
 
+describe('R2StorageService.listProjectFiles types', () => {
+  it("gives files the type of their name, as R2's listing leaves types out", async () => {
+    const r2 = createObjectBucket();
+    // Stored with a type, which list() still doesn't return
+    r2.seed('alice/novel/img-1.png', 'png', 'image/png');
+    r2.seed('alice/novel/published-a.epub', 'epub');
+    r2.seed('alice/novel/notes', 'text');
+    const service = new R2StorageService(r2.bucket);
+
+    const files = await service.listProjectFiles('alice', 'novel');
+
+    expect(Object.fromEntries(files.map((file) => [file.filename, file.mimeType]))).toEqual({
+      'img-1.png': 'image/png',
+      notes: undefined,
+      'published-a.epub': 'application/epub+zip',
+    });
+  });
+});
+
 describe('R2StorageService.moveProjectDirectory', () => {
   it('moves media, covers and published files with their metadata', async () => {
     const r2 = createObjectBucket();

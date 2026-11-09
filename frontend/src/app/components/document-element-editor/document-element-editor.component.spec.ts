@@ -3,6 +3,7 @@ import {
   NO_ERRORS_SCHEMA,
   provideZonelessChangeDetection,
   signal,
+  type WritableSignal,
 } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { type Editor } from '@bobbyquantum/ngx-editor';
@@ -11,11 +12,13 @@ import { TranslocoService } from '@jsverse/transloco';
 import { type ResolvedTag } from '@models/tag.model';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SettingsService } from '@services/core/settings.service';
+import { AutoReviewApiService } from '@services/lint/auto-review.service';
 import { CommentService } from '@services/project/comment.service';
 import { ConversationService } from '@services/project/conversation.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { ZenModeService } from '@services/project/zen-mode.service';
+import { RelationshipService } from '@services/relationship';
 import { TagService } from '@services/tag/tag.service';
 import { EditorState } from 'prosemirror-state';
 import {
@@ -108,6 +111,89 @@ describe('DocumentElementEditorComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  describe('element reference menu actions', () => {
+    const contextData = {
+      elementId: 'el-1',
+      elementType: 'WORLDBUILDING',
+      displayText: 'Ada',
+      originalName: 'Ada',
+      nodePos: 1,
+      position: { x: 0, y: 0 },
+    } as never;
+
+    function deleteReference(): ReturnType<typeof vi.spyOn> {
+      const remove = vi
+        .spyOn(
+          TestBed.inject(RelationshipService),
+          'removeRelationshipsFromDocument'
+        )
+        .mockImplementation(() => 0);
+      component.contextMenuData.set(contextData);
+      component.onContextMenuAction({
+        type: 'delete',
+        nodePos: 1,
+        elementId: 'el-1',
+      });
+      return remove;
+    }
+
+    it("delete removes the reference's relationship", () => {
+      expect(deleteReference()).toHaveBeenCalledWith('invalid', 'el-1');
+      expect(component.contextMenuData()).toBeNull();
+    });
+
+    it('neither edits nor deletes for someone who cannot write', () => {
+      (projectStateServiceMock.canWrite as WritableSignal<boolean>).set(false);
+      const dispatch = vi.fn();
+      component.editor = {
+        view: {
+          state: EditorState.create({ schema: extendedSchema }),
+          dispatch,
+        },
+        destroy: vi.fn(),
+      } as unknown as Editor;
+
+      expect(deleteReference()).not.toHaveBeenCalled();
+      component.contextMenuData.set(contextData);
+      component.onContextMenuAction({
+        type: 'edit-text',
+        nodePos: 1,
+        newText: 'Countess',
+      });
+
+      expect(dispatch).not.toHaveBeenCalled();
+      expect(component.contextMenuData()).toBeNull();
+    });
+  });
+
+  describe('auto-review suggestion clicks', () => {
+    function clickSuggestion(): AutoReviewApiService {
+      const api = TestBed.inject(AutoReviewApiService);
+      fixture.detectChanges();
+      api.clickEvent.set({
+        attrs: { id: 'r1', message: 'Typo' } as never,
+        coords: { x: 10, y: 20 },
+      });
+      TestBed.tick();
+      return api;
+    }
+
+    it('open the suggestion', () => {
+      const api = clickSuggestion();
+      expect(component.autoReviewPopoverAttrs()).toEqual(
+        expect.objectContaining({ id: 'r1' })
+      );
+      expect(api.clickEvent()).toBeNull();
+    });
+
+    it('open nothing for someone who cannot accept it', () => {
+      (projectStateServiceMock.canWrite as WritableSignal<boolean>).set(false);
+      const api = clickSuggestion();
+      expect(component.autoReviewPopoverAttrs()).toBeNull();
+      expect(api.clickEvent()).toBeNull();
+    });
   });
 
   describe('status bar tag button', () => {

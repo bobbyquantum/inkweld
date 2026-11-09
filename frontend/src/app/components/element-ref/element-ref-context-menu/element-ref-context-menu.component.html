@@ -25,27 +25,29 @@
         }}</span>
       </button>
 
-      <button
-        class="menu-item"
-        (click)="startEditing()"
-        data-testid="context-menu-edit">
-        <mat-icon>edit</mat-icon>
-        <span>{{
-          'editor.elementRef.contextMenu.editDisplayText' | transloco
-        }}</span>
-      </button>
+      @if (!readOnly) {
+        <button
+          class="menu-item"
+          (click)="startEditing()"
+          data-testid="context-menu-edit">
+          <mat-icon>edit</mat-icon>
+          <span>{{
+            'editor.elementRef.contextMenu.editDisplayText' | transloco
+          }}</span>
+        </button>
 
-      <mat-divider></mat-divider>
+        <mat-divider></mat-divider>
 
-      <button
-        class="menu-item danger"
-        (click)="deleteReference()"
-        data-testid="context-menu-delete">
-        <mat-icon>delete</mat-icon>
-        <span>{{
-          'editor.elementRef.contextMenu.deleteReference' | transloco
-        }}</span>
-      </button>
+        <button
+          class="menu-item danger"
+          (click)="deleteReference()"
+          data-testid="context-menu-delete">
+          <mat-icon>delete</mat-icon>
+          <span>{{
+            'editor.elementRef.contextMenu.deleteReference' | transloco
+          }}</span>
+        </button>
+      }
     } @else {
       <!-- Editing mode -->
       <div class="edit-mode">

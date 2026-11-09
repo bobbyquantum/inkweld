@@ -13,7 +13,11 @@
       [alt]="altText()"
       class="thumbnail-blur"
       aria-hidden="true" />
-    <img [src]="imageUrl()" [alt]="altText()" class="thumbnail" />
+    <img
+      [src]="imageUrl()"
+      [alt]="altText()"
+      class="thumbnail"
+      data-testid="media-thumbnail" />
   } @else if (!isImage()) {
     <mat-icon class="file-icon">{{ fileIcon() }}</mat-icon>
   } @else {

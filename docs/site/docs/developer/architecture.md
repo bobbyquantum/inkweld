@@ -88,9 +88,12 @@ neither an account nor an app profile.
 
 Public routes reuse `ProjectComponent`, its child routes and normal renderers:
 formatted documents and conversations, worldbuilding, canvases, timelines,
-relationship charts, media, publishing plans, published downloads and comments.
-Editing, uploads, publishing, administrative actions and user presence are
-disabled. Public content remains live while sharing is enabled.
+relationship charts, media (published files included, to download) and
+comments. The publishing pages are left out: `publicProjectTabRoutes` sends
+`publish-plans` and `publish-plan/:id` to the project's home. Editing, uploads,
+publishing, administrative actions and user presence are disabled. Read-only
+documents still scroll, and their text can be selected and copied. Public
+content remains live while sharing is enabled.
 
 `PublicProjectContextService` selects a transient server context without
 changing the visitor's saved local, cloud or server profile. It never restores

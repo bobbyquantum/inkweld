@@ -13,6 +13,7 @@ import {
   type OnInit,
   signal,
   type SimpleChanges,
+  untracked,
   ViewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -492,9 +493,11 @@ export class DocumentElementEditorComponent
       const event: AutoReviewClickEvent | null =
         this.autoReviewApi.clickEvent();
       if (event) {
+        this.autoReviewApi.clickEvent.set(null);
+        // A suggestion is only for someone who can accept it into the text.
+        if (!untracked(() => this.projectState.canWrite())) return;
         this.autoReviewPopoverAttrs.set(event.attrs);
         this.autoReviewPopoverPosition.set(event.coords);
-        this.autoReviewApi.clickEvent.set(null);
       }
     });
   }
@@ -839,7 +842,7 @@ export class DocumentElementEditorComponent
 
       case 'edit-text': {
         // Update the element reference display text
-        if (this.editor?.view) {
+        if (this.editor?.view && this.projectState.canWrite()) {
           updateElementRefText(
             this.editor.view,
             action.nodePos,
@@ -851,6 +854,10 @@ export class DocumentElementEditorComponent
       }
 
       case 'delete': {
+        if (!this.projectState.canWrite()) {
+          this.contextMenuData.set(null);
+          break;
+        }
         // Delete the element reference from the document
         if (this.editor?.view) {
           deleteElementRef(this.editor.view, action.nodePos);

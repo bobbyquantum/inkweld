@@ -184,6 +184,14 @@ Read `e2e/BEST_PRACTICES.md` before writing one.
   `ARCHIVE_VERSION` (file format) and the backend `PROTOCOL_VERSION` (live Yjs
   sync) are separate. Docs: `docs/site/docs/developer/project-archives.md`.
 - **Markdown input rules** are opt-in (`components/editor-input-rules/AGENTS.md`).
+- **Read-only documents stay clickable.** ngx-editor's
+  `NgxEditor__Content--Disabled` turns pointer events off, but that element
+  is the editor's scroll container, so the document editor's stylesheet turns
+  them back on: viewers and public links scroll, select, open comments and
+  follow references. So anything in the editor that a click or a selection
+  opens and that edits the document (menus, popovers, node views) must check
+  `view.editable` or `projectState.canWrite()`, as the floating menu, the
+  element-reference menu and the auto-review popover do.
 - **CDK drag and drop**: on release the CDK emits `cdkDragEnded` before
   `cdkDropListDropped`, so a drop handler can't read state that the drag-end
   handler clears (see `drop()` in `components/project-tree/`).

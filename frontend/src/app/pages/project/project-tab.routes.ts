@@ -105,3 +105,17 @@ export const projectTabRoutes: Routes = [
     data: { reuseComponent: false },
   },
 ];
+
+/** The publishing pages, which a public link doesn't show. */
+const PUBLISHING_PATHS = new Set(['publish-plan/:tabId', 'publish-plans']);
+
+/**
+ * The pages a public link opens: the same, except that the publishing pages
+ * (plans and their export settings are the writers' own) go to the
+ * project's home.
+ */
+export const publicProjectTabRoutes: Routes = projectTabRoutes.map(route =>
+  PUBLISHING_PATHS.has(route.path ?? '')
+    ? { path: route.path, redirectTo: '', pathMatch: 'full' }
+    : route
+);
