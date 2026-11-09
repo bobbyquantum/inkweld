@@ -573,7 +573,17 @@ describe('LocalStorageService', () => {
             uploadedAt: '2026-01-01T00:00:00.000Z',
           },
           { filename: 'cover.jpg', size: 5 },
+          { filename: 'notes.xyz', size: 7 },
         ],
+      });
+    }
+
+    /** Answer a request for `url` once the service has made it. */
+    async function answerWhenAsked(url: string, body: Blob): Promise<void> {
+      await vi.waitFor(() => {
+        const [request] = http.match(url);
+        if (!request) throw new Error(`${url} not requested yet`);
+        request.flush(body);
       });
     }
 
@@ -592,24 +602,115 @@ describe('LocalStorageService', () => {
       ]);
     });
 
-    it('fills in a missing type and date', async () => {
+    it('fills in a missing type from the file name, and a missing date', async () => {
+      // R2's listings carry no types: images must still read as images
       const listed = service.listMedia('alice/my novel');
       answerList();
 
-      const cover = (await listed).find(item => item.mediaId === 'cover');
-      expect(cover?.mimeType).toBe('application/octet-stream');
+      const items = await listed;
+      const cover = items.find(item => item.mediaId === 'cover');
+      expect(cover?.mimeType).toBe('image/jpeg');
       expect(cover?.createdAt).toBe('');
+      expect(items.find(item => item.mediaId === 'notes')?.mimeType).toBe(
+        'application/octet-stream'
+      );
     });
 
     it('downloads a listed file by its media id', async () => {
       const blob = service.getMedia('alice/my novel', 'img-1');
       answerList();
-      await Promise.resolve();
-      await Promise.resolve();
       const image = new Blob(['png'], { type: 'image/png' });
-      http.expectOne(`${MEDIA_URL}/img-1.png`).flush(image);
+      await answerWhenAsked(`${MEDIA_URL}/img-1.png`, image);
 
       expect(await blob).toBeInstanceOf(Blob);
+    });
+
+    it('downloads the files of a recent listing without listing again', async () => {
+      const listed = service.listMedia('alice/my novel');
+      answerList();
+      await listed;
+
+      const image = service.getMediaUrl('alice/my novel', 'img-1');
+      const cover = service.getMedia('alice/my novel', 'cover');
+      await answerWhenAsked(`${MEDIA_URL}/img-1.png`, new Blob(['png']));
+      await answerWhenAsked(`${MEDIA_URL}/cover.jpg`, new Blob(['jpg']));
+
+      expect(await image).toMatch(/^blob:/);
+      expect(await cover).toBeInstanceOf(Blob);
+      http.expectNone(MEDIA_URL);
+    });
+
+    it('lists again and retries when a file of a recent listing has gone', async () => {
+      const listed = service.listMedia('alice/my novel');
+      answerList();
+      await listed;
+
+      // The owner replaced cover.jpg with cover.webp since that listing
+      const cover = service.getMedia('alice/my novel', 'cover');
+      await vi.waitFor(() =>
+        http
+          .expectOne(`${MEDIA_URL}/cover.jpg`)
+          .flush(new Blob(['gone']), { status: 404, statusText: 'Not Found' })
+      );
+      await vi.waitFor(() =>
+        http
+          .expectOne(MEDIA_URL)
+          .flush({ items: [{ filename: 'cover.webp', size: 4 }] })
+      );
+      await answerWhenAsked(`${MEDIA_URL}/cover.webp`, new Blob(['webp']));
+
+      expect(await cover).toBeInstanceOf(Blob);
+    });
+
+    it('does not list again when a download fails for another reason', async () => {
+      const listed = service.listMedia('alice/my novel');
+      answerList();
+      await listed;
+
+      const image = service.getMedia('alice/my novel', 'img-1');
+      await vi.waitFor(() =>
+        http
+          .expectOne(`${MEDIA_URL}/img-1.png`)
+          .flush(new Blob(['down']), { status: 503, statusText: 'Unavailable' })
+      );
+
+      await expect(image).rejects.toMatchObject({ status: 503 });
+      http.expectNone(MEDIA_URL);
+    });
+
+    it('lists again for a file a recent listing lacks', async () => {
+      const listed = service.listMedia('alice/my novel');
+      answerList();
+      await listed;
+
+      const added = service.getMedia('alice/my novel', 'img-2');
+      await vi.waitFor(() => http.expectOne(MEDIA_URL).flush({ items: [] }));
+
+      expect(await added).toBeNull();
+    });
+
+    it('lists again once the last listing is old or failed', async () => {
+      const now = vi.spyOn(Date, 'now').mockReturnValue(1_000_000);
+      try {
+        const failed = service.listMedia('alice/my novel');
+        http
+          .expectOne(MEDIA_URL)
+          .flush('down', { status: 503, statusText: 'Unavailable' });
+        await expect(failed).rejects.toBeTruthy();
+
+        // The failed listing isn't reused
+        const first = service.getMedia('alice/my novel', 'missing');
+        await vi.waitFor(() => http.expectOne(MEDIA_URL).flush({ items: [] }));
+        expect(await first).toBeNull();
+
+        // Nor is one past its few seconds
+        now.mockReturnValue(1_060_000);
+        const second = service.getMedia('alice/my novel', 'missing');
+        await vi.waitFor(() => http.expectOne(MEDIA_URL).flush({ items: [] }));
+        expect(await second).toBeNull();
+      } finally {
+        now.mockRestore();
+      }
     });
 
     it('has nothing for media the project does not list', async () => {

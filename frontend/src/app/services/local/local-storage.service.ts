@@ -1,6 +1,7 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { forEachSequential } from '@inkweld/async';
+import { mediaTypeFromFilename } from '@utils/media-reference';
 import { firstValueFrom } from 'rxjs';
 
 import { PublicProjectContextService } from '../core/public-project-context.service';
@@ -61,6 +62,21 @@ const MEDIA_DB_BASE_NAME = 'inkweld-media';
 const STORE_NAME = 'media';
 
 /**
+ * How long a public project's media listing is reused to find the file a
+ * `getMedia` call names. The Media tab lists the project and then asks for
+ * every image, which would otherwise list it again for each one.
+ */
+const PUBLIC_LISTING_REUSE_MS = 10_000;
+
+/** One file of a public project's server media listing. */
+interface PublicMediaListItem {
+  filename: string;
+  mimeType?: string;
+  size: number;
+  uploadedAt?: string;
+}
+
+/**
  * Service for storing and retrieving media (images, covers, etc.) in IndexedDB.
  *
  * Key format: "projectKey:mediaId" where:
@@ -100,6 +116,12 @@ export class LocalStorageService {
 
   /** Cache of active blob URLs to prevent memory leaks */
   private readonly activeUrls = new Map<string, string>();
+
+  /** The latest public media listing per project URL, and when it was asked for. */
+  private readonly publicListings = new Map<
+    string,
+    { at: number; items: Promise<MediaInfo[]> }
+  >();
 
   /**
    * Get the database config with the prefixed database name
@@ -157,6 +179,67 @@ export class LocalStorageService {
   /** Fetch anonymous media from its serving project, never a saved profile's database. */
   private publicMediaUrl(projectKey: string): string {
     return `${this.publicContext.serverUrl()}/api/v1/media/${projectKey.split('/').map(encodeURIComponent).join('/')}`;
+  }
+
+  /**
+   * List a public project's media on its server. The listing is kept for a
+   * few seconds so the files it names can be fetched without listing again.
+   */
+  private fetchPublicListing(projectKey: string): Promise<MediaInfo[]> {
+    const url = this.publicMediaUrl(projectKey);
+    const items = firstValueFrom(
+      this.http.get<{ items: PublicMediaListItem[] }>(url)
+    ).then(response => response.items.map(toPublicMediaInfo));
+    const entry = { at: Date.now(), items };
+    this.publicListings.set(url, entry);
+    // A failed listing is not reused.
+    items.catch(() => {
+      if (this.publicListings.get(url) === entry)
+        this.publicListings.delete(url);
+    });
+    return items;
+  }
+
+  /**
+   * Download the file a public `getMedia` call names (by media id or file
+   * name), or null when the project doesn't list it. A recent listing is
+   * used when it has the file; otherwise, or when that file has gone since
+   * (a 404), the project is listed again.
+   */
+  private async getPublicMedia(
+    projectKey: string,
+    mediaId: string
+  ): Promise<Blob | null> {
+    const matches = (item: MediaInfo) =>
+      item.mediaId === mediaId || item.filename === mediaId;
+    const recent = this.publicListings.get(this.publicMediaUrl(projectKey));
+    if (recent && Date.now() - recent.at < PUBLIC_LISTING_REUSE_MS) {
+      const found = (await recent.items.catch(() => [])).find(matches);
+      if (found) {
+        try {
+          return await this.downloadPublicFile(projectKey, found);
+        } catch (error) {
+          // Replaced or deleted since that listing: look again
+          if (!(error instanceof HttpErrorResponse && error.status === 404))
+            throw error;
+        }
+      }
+    }
+    const item = (await this.fetchPublicListing(projectKey)).find(matches);
+    return item ? this.downloadPublicFile(projectKey, item) : null;
+  }
+
+  /** Download one listed file of a public project from its server. */
+  private downloadPublicFile(
+    projectKey: string,
+    item: MediaInfo
+  ): Promise<Blob> {
+    return firstValueFrom(
+      this.http.get(
+        `${this.publicMediaUrl(projectKey)}/${encodeURIComponent(item.filename ?? item.mediaId)}`,
+        { responseType: 'blob' }
+      )
+    );
   }
 
   /**
@@ -220,17 +303,7 @@ export class LocalStorageService {
    */
   async getMedia(projectKey: string, mediaId: string): Promise<Blob | null> {
     if (this.publicContext.active()) {
-      const items = await this.listMedia(projectKey);
-      const item = items.find(
-        item => item.mediaId === mediaId || item.filename === mediaId
-      );
-      if (!item?.filename) return null;
-      return firstValueFrom(
-        this.http.get(
-          `${this.publicMediaUrl(projectKey)}/${encodeURIComponent(item.filename)}`,
-          { responseType: 'blob' }
-        )
-      );
+      return this.getPublicMedia(projectKey, mediaId);
     }
     const db = await this.ensureDb();
     const key = this.makeKey(projectKey, mediaId);
@@ -281,25 +354,8 @@ export class LocalStorageService {
    */
   async listMedia(projectKey: string, prefix?: string): Promise<MediaInfo[]> {
     if (this.publicContext.active()) {
-      const response = await firstValueFrom(
-        this.http.get<{
-          items: {
-            filename: string;
-            mimeType?: string;
-            size: number;
-            uploadedAt?: string;
-          }[];
-        }>(this.publicMediaUrl(projectKey))
-      );
-      return response.items
-        .map(item => ({
-          mediaId: item.filename.replace(/\.[^.]+$/, ''),
-          filename: item.filename,
-          mimeType: item.mimeType ?? 'application/octet-stream',
-          size: item.size,
-          createdAt: item.uploadedAt ?? '',
-        }))
-        .filter(item => !prefix || item.mediaId.startsWith(prefix));
+      const items = await this.fetchPublicListing(projectKey);
+      return items.filter(item => !prefix || item.mediaId.startsWith(prefix));
     }
     const db = await this.ensureDb();
     const keyPrefix = `${projectKey}:${prefix ?? ''}`;
@@ -609,4 +665,22 @@ export class LocalStorageService {
   getUserAvatarUrl(username: string): Promise<string | null> {
     return this.getMediaUrl(`${username}/_user`, 'avatar');
   }
+}
+
+/**
+ * A public listing's file as media info. A server whose listing gives no
+ * type (R2 leaves it out of listings) gets one from the file name, so
+ * images are still shown as images.
+ */
+function toPublicMediaInfo(item: PublicMediaListItem): MediaInfo {
+  return {
+    mediaId: item.filename.replace(/\.[^.]+$/, ''),
+    filename: item.filename,
+    mimeType:
+      item.mimeType ??
+      mediaTypeFromFilename(item.filename) ??
+      'application/octet-stream',
+    size: item.size,
+    createdAt: item.uploadedAt ?? '',
+  };
 }

@@ -100,18 +100,21 @@
                 'project.nav.mediaLibrary' | transloco
               }}</span>
             </button>
-            <button
-              type="button"
-              class="mobile-nav-item"
-              [class.selected-item]="isSystemTabSelected('publish-plans')"
-              data-testid="mobile-publishing-button"
-              (click)="onShowPublishPlans(); toggleSidebar()"
-              [attr.aria-label]="'project.nav.publishing' | transloco">
-              <mat-icon>auto_stories</mat-icon>
-              <span class="nav-title">{{
-                'project.nav.publishing' | transloco
-              }}</span>
-            </button>
+            <!-- Publishing is for the project's own writers, not public links. -->
+            @if (!publicContext.active()) {
+              <button
+                type="button"
+                class="mobile-nav-item"
+                [class.selected-item]="isSystemTabSelected('publish-plans')"
+                data-testid="mobile-publishing-button"
+                (click)="onShowPublishPlans(); toggleSidebar()"
+                [attr.aria-label]="'project.nav.publishing' | transloco">
+                <mat-icon>auto_stories</mat-icon>
+                <span class="nav-title">{{
+                  'project.nav.publishing' | transloco
+                }}</span>
+              </button>
+            }
             @if (!isLocalMode() && projectState.showActivity()) {
               <button
                 type="button"
@@ -290,16 +293,19 @@
                     [attr.aria-label]="'project.nav.mediaLibrary' | transloco">
                     <mat-icon>perm_media</mat-icon>
                   </button>
-                  <button
-                    mat-icon-button
-                    appTooltipAriaLabel
-                    (click)="onShowPublishPlans()"
-                    [class.active]="isSystemTabSelected('publish-plans')"
-                    [matTooltip]="'project.nav.publishing' | transloco"
-                    data-testid="collapsed-publishing-button"
-                    [attr.aria-label]="'project.nav.publishing' | transloco">
-                    <mat-icon>auto_stories</mat-icon>
-                  </button>
+                  <!-- Publishing is for the project's own writers, not public links. -->
+                  @if (!publicContext.active()) {
+                    <button
+                      mat-icon-button
+                      appTooltipAriaLabel
+                      (click)="onShowPublishPlans()"
+                      [class.active]="isSystemTabSelected('publish-plans')"
+                      [matTooltip]="'project.nav.publishing' | transloco"
+                      data-testid="collapsed-publishing-button"
+                      [attr.aria-label]="'project.nav.publishing' | transloco">
+                      <mat-icon>auto_stories</mat-icon>
+                    </button>
+                  }
                   @if (!isLocalMode() && projectState.showActivity()) {
                     <button
                       mat-icon-button
@@ -382,18 +388,23 @@
                       'project.nav.mediaLibrary' | transloco
                     }}</span>
                   </button>
-                  <button
-                    type="button"
-                    class="sidebar-nav-item"
-                    [class.selected-item]="isSystemTabSelected('publish-plans')"
-                    data-testid="sidebar-publishing-button"
-                    (click)="onShowPublishPlans()"
-                    [attr.aria-label]="'project.nav.publishing' | transloco">
-                    <mat-icon>auto_stories</mat-icon>
-                    <span class="nav-title">{{
-                      'project.nav.publishing' | transloco
-                    }}</span>
-                  </button>
+                  <!-- Publishing is for the project's own writers, not public links. -->
+                  @if (!publicContext.active()) {
+                    <button
+                      type="button"
+                      class="sidebar-nav-item"
+                      [class.selected-item]="
+                        isSystemTabSelected('publish-plans')
+                      "
+                      data-testid="sidebar-publishing-button"
+                      (click)="onShowPublishPlans()"
+                      [attr.aria-label]="'project.nav.publishing' | transloco">
+                      <mat-icon>auto_stories</mat-icon>
+                      <span class="nav-title">{{
+                        'project.nav.publishing' | transloco
+                      }}</span>
+                    </button>
+                  }
                   @if (!isLocalMode() && projectState.showActivity()) {
                     <button
                       type="button"

@@ -1,18 +1,8 @@
 import { type ArchiveMediaFile } from '@models/project-archive';
 import { detectImageType } from '@services/publish/epub-utils';
+import { mediaTypeFromFilename } from '@utils/media-reference';
 
 const OCTET_STREAM = 'application/octet-stream';
-
-/** Media types for the extensions export gives archive files. */
-const EXTENSION_TYPES: Record<string, string> = {
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  png: 'image/png',
-  gif: 'image/gif',
-  webp: 'image/webp',
-  svg: 'image/svg+xml',
-  pdf: 'application/pdf',
-};
 
 /**
  * The media type to store an archive file under. JSZip returns untyped
@@ -32,8 +22,8 @@ export async function resolveMediaType(
   if (sniffed) return sniffed;
 
   return (
-    typeFromExtension(media.archivePath) ??
-    typeFromExtension(media.filename) ??
+    mediaTypeFromFilename(media.archivePath) ??
+    mediaTypeFromFilename(media.filename) ??
     OCTET_STREAM
   );
 }
@@ -63,9 +53,4 @@ async function sniffPdf(blob: Blob): Promise<string | null> {
   } catch {
     return null;
   }
-}
-
-function typeFromExtension(name: string | undefined): string | null {
-  const ext = /\.([a-z0-9]+)$/i.exec(name ?? '')?.[1].toLowerCase();
-  return ext ? (EXTENSION_TYPES[ext] ?? null) : null;
 }

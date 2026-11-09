@@ -661,4 +661,42 @@ describe('ElementRefContextMenuComponent', () => {
       expect(component.data()).toEqual(mockContextData);
     });
   });
+
+  describe('Read Only', () => {
+    beforeEach(() => {
+      component.readOnly = true;
+      component.contextData = mockContextData;
+      fixture.detectChanges();
+    });
+
+    it('offers only going to the element', () => {
+      const menu: HTMLElement = fixture.nativeElement;
+      expect(
+        menu.querySelector('[data-testid="context-menu-navigate"]')
+      ).not.toBeNull();
+      expect(
+        menu.querySelector('[data-testid="context-menu-edit"]')
+      ).toBeNull();
+      expect(
+        menu.querySelector('[data-testid="context-menu-delete"]')
+      ).toBeNull();
+    });
+
+    it('neither edits nor deletes the reference', () => {
+      const actionSpy = vi.spyOn(component.action, 'emit');
+
+      component.startEditing();
+      expect(component.isEditing()).toBe(false);
+      component.saveEdit();
+      component.contextData = mockContextData;
+      component.deleteReference();
+
+      expect(actionSpy).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'edit-text' })
+      );
+      expect(actionSpy).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'delete' })
+      );
+    });
+  });
 });

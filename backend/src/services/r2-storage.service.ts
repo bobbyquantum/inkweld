@@ -1,4 +1,5 @@
 import type { R2Bucket } from '@cloudflare/workers-types';
+import { lookup } from 'mime-types';
 import type { SlotNamespace } from './storage.service';
 import { BadRequestError } from '../errors';
 import { isStorageSegment } from '../utils/storage-segment';
@@ -367,12 +368,18 @@ export class R2StorageService {
         const filename = obj.key.replace(basePrefix, '');
         return !filename.startsWith('.') && !filename.endsWith('.level');
       })
-      .map((obj) => ({
-        filename: obj.key.replace(basePrefix, ''),
-        size: obj.size,
-        mimeType: obj.httpMetadata?.contentType,
-        uploadedAt: obj.uploaded,
-      }));
+      .map((obj) => {
+        const filename = obj.key.replace(basePrefix, '');
+        return {
+          filename,
+          size: obj.size,
+          // R2's list() leaves out httpMetadata unless asked for it, so take
+          // the type from the name, as the disk adapter and the media
+          // download route do. Without it the app can't tell images apart.
+          mimeType: obj.httpMetadata?.contentType ?? (lookup(filename) || undefined),
+          uploadedAt: obj.uploaded,
+        };
+      });
   }
 }
 

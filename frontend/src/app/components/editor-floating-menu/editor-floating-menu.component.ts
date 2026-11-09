@@ -152,8 +152,9 @@ export class EditorFloatingMenuComponent implements OnDestroy {
     const { selection } = state;
     const { from, to, empty } = selection;
 
-    // Don't show if no selection or still dragging
-    if (empty || this.isDragging) {
+    // Don't show if no selection or still dragging. Read-only content can
+    // be selected (to copy it), but nothing in the menu applies to it.
+    if (empty || this.isDragging || !view.editable) {
       this.hide();
       return;
     }

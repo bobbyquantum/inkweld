@@ -88,13 +88,14 @@ neither an account nor an app profile.
 
 Public routes reuse `ProjectComponent`, its child routes and normal renderers:
 formatted documents and conversations, worldbuilding, canvases, timelines,
-relationship charts, media, publishing plans and published downloads.
+relationship charts and media (published files included, to download).
 Editing, uploads, publishing, administrative actions and user presence are
-disabled, and Project Settings are not offered (`publicProjectTabRoutes`
-sends a settings URL to the project home). Like `:username/:slug`, the
-`public/:username/:slug` route is reused while the project stays the same
-(`CustomRouteReuseStrategy`), so opening a tab doesn't reload the project.
-Public content remains live while sharing is enabled.
+disabled, and neither Project Settings nor the publishing pages are offered
+(`publicProjectTabRoutes` sends their URLs to the project home). Read-only
+documents still scroll, and their text can be selected and copied. Like
+`:username/:slug`, the `public/:username/:slug` route is reused while the
+project stays the same (`CustomRouteReuseStrategy`), so opening a tab doesn't
+reload the project. Public content remains live while sharing is enabled.
 
 Two more owner-only switches under the public link, **Show comments**
 (`publicComments`) and **Show activity** (`publicActivity`), are off by

@@ -201,6 +201,7 @@
   <!-- Element Reference Context Menu (right-click / long-press) -->
   <app-element-ref-context-menu
     [contextData]="contextMenuData()"
+    [readOnly]="!projectState.canWrite()"
     (action)="onContextMenuAction($event)">
   </app-element-ref-context-menu>
 

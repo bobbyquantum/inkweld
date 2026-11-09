@@ -106,20 +106,26 @@ export const projectTabRoutes: Routes = [
   },
 ];
 
-/** Paths that open Project Settings, directly or through an old redirect. */
-const SETTINGS_PATHS = new Set([
+/**
+ * Paths for the project's members only: Project Settings (directly or through
+ * an old redirect) and the publishing pages, whose plans and export settings
+ * are the writers' own.
+ */
+const MEMBER_ONLY_PATHS = new Set([
   'settings',
   'templates-list',
   'relationships-list',
   'tags-list',
+  'publish-plans',
+  'publish-plan/:tabId',
 ]);
 
 /**
- * The tab routes under a public link. Project Settings are for the project's
- * members, so a reader who follows a settings URL gets the project home.
+ * The tab routes under a public link. A reader who follows a URL for members
+ * only gets the project home.
  */
 export const publicProjectTabRoutes: Routes = projectTabRoutes.map(route =>
-  SETTINGS_PATHS.has(route.path ?? '')
+  MEMBER_ONLY_PATHS.has(route.path ?? '')
     ? { path: route.path, redirectTo: '', pathMatch: 'full' }
     : route
 );

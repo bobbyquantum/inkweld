@@ -6,6 +6,7 @@ import {
   mediaFilePath,
   mediaIdFromReference,
   mediaReferenceFilename,
+  mediaTypeFromFilename,
   projectMediaPath,
   safeMediaReferenceFilename,
 } from './media-reference';
@@ -193,6 +194,27 @@ describe('media-reference utils', () => {
       const ref = buildMediaReference({ mediaId: 'thing' });
       expect(mediaIdFromReference(ref)).toBe('thing');
       expect(mediaReferenceFilename(ref)).toBe('thing.png');
+    });
+  });
+
+  describe('mediaTypeFromFilename', () => {
+    it("gives the type of a file name's extension, in any letter case", () => {
+      expect(mediaTypeFromFilename('img-1.png')).toBe('image/png');
+      expect(mediaTypeFromFilename('cover-1700000000000.JPG')).toBe(
+        'image/jpeg'
+      );
+      expect(mediaTypeFromFilename('published-abc.epub')).toBe(
+        'application/epub+zip'
+      );
+    });
+
+    it('has none for a name without a known extension', () => {
+      expect(mediaTypeFromFilename('notes.xyz')).toBeNull();
+      expect(mediaTypeFromFilename('cover')).toBeNull();
+      // Not a property every object has
+      expect(mediaTypeFromFilename('x.constructor')).toBeNull();
+      expect(mediaTypeFromFilename('x.toString')).toBeNull();
+      expect(mediaTypeFromFilename(undefined)).toBeNull();
     });
   });
 });

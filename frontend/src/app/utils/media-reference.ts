@@ -117,3 +117,36 @@ function extensionFromMime(mimeType: string | undefined): string {
   };
   return extensions[mimeType] ?? '';
 }
+
+/**
+ * Media types for the file extensions project media is stored under. A Map,
+ * so an extension such as `constructor` can't find an Object property.
+ */
+const EXTENSION_MEDIA_TYPES = new Map<string, string>([
+  ['jpg', 'image/jpeg'],
+  ['jpeg', 'image/jpeg'],
+  ['png', 'image/png'],
+  ['gif', 'image/gif'],
+  ['webp', 'image/webp'],
+  ['svg', 'image/svg+xml'],
+  ['avif', 'image/avif'],
+  ['pdf', 'application/pdf'],
+  ['epub', 'application/epub+zip'],
+  ['zip', 'application/zip'],
+  ['html', 'text/html'],
+  ['md', 'text/markdown'],
+  ['mp3', 'audio/mpeg'],
+  ['wav', 'audio/wav'],
+  ['ogg', 'audio/ogg'],
+  ['mp4', 'video/mp4'],
+  ['webm', 'video/webm'],
+]);
+
+/**
+ * The media type a file name's extension stands for, or null when the name
+ * has no extension or one this table doesn't know.
+ */
+export function mediaTypeFromFilename(name: string | undefined): string | null {
+  const ext = /\.([a-z0-9]+)$/i.exec(name ?? '')?.[1].toLowerCase();
+  return ext ? (EXTENSION_MEDIA_TYPES.get(ext) ?? null) : null;
+}

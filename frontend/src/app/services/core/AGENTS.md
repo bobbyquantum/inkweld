@@ -42,7 +42,12 @@ per project once a navigation to the link succeeds, for in-app navigation
 afresh without `?server=` uses the default server again. Public navigation
 stays under `/public`; leaving uses a full reload to restore the saved
 profile. Never replay pending profile writes or run automatic content
-migrations in this context.
+migrations in this context. The public route's children are
+`publicProjectTabRoutes` (`pages/project/project-tab.routes.ts`): the same
+pages without Project Settings or publishing, whose paths go to the project's
+home. Public media
+listings can come without types (R2 leaves them out), so `LocalStorageService`
+takes them from the file name (`mediaTypeFromFilename`).
 
 ## Server profile ids
 

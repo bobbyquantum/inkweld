@@ -40,6 +40,7 @@ describe('EditorFloatingMenuComponent', () => {
     focus: Mock;
     coordsAtPos: Mock;
     hasFocus: Mock;
+    editable: boolean;
   };
   let updateSubject: Subject<void>;
 
@@ -87,6 +88,7 @@ describe('EditorFloatingMenuComponent', () => {
         .fn()
         .mockReturnValue({ top: 100, bottom: 120, left: 200, right: 250 }),
       hasFocus: vi.fn().mockReturnValue(true),
+      editable: true,
     };
 
     await TestBed.configureTestingModule({
@@ -206,6 +208,20 @@ describe('EditorFloatingMenuComponent', () => {
 
       // State should be updated based on rangeHasMark returning true
       expect(component.isBold()).toBe(true);
+    });
+
+    it('shows for a selection, but not in read-only text', () => {
+      const visible = () =>
+        (
+          component as unknown as { positionState: () => { visible: boolean } }
+        ).positionState().visible;
+      updateSubject.next();
+      expect(visible()).toBe(true);
+
+      // Read-only text can be selected to copy it; nothing here applies
+      mockEditorView.editable = false;
+      updateSubject.next();
+      expect(visible()).toBe(false);
     });
 
     it('should prefer below-selection placement on coarse pointers', () => {

@@ -6,7 +6,14 @@ describe('project tab routes', () => {
   const route = (routes: typeof projectTabRoutes, path: string) =>
     routes.find(r => r.path === path);
 
-  it.each(['settings', 'templates-list', 'relationships-list', 'tags-list'])(
+  it.each([
+    'settings',
+    'templates-list',
+    'relationships-list',
+    'tags-list',
+    'publish-plans',
+    'publish-plan/:tabId',
+  ])(
     'sends a reader who opens %s under a public link to the project home',
     path => {
       expect(route(publicProjectTabRoutes, path)).toEqual({
@@ -26,7 +33,9 @@ describe('project tab routes', () => {
     expect(publicProjectTabRoutes).toHaveLength(projectTabRoutes.length);
   });
 
-  it('still opens Project Settings for members', () => {
-    expect(route(projectTabRoutes, 'settings')?.loadComponent).toBeDefined();
+  it('still opens Project Settings and publishing for members', () => {
+    for (const path of ['settings', 'publish-plans', 'publish-plan/:tabId']) {
+      expect(route(projectTabRoutes, path)?.loadComponent).toBeDefined();
+    }
   });
 });
