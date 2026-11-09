@@ -130,10 +130,18 @@ export class EditorToolbarComponent implements AfterViewInit, OnDestroy {
   /** Reference to the toolbar host element */
   @ViewChild('toolbarEl', { static: true }) toolbarEl!: ElementRef<HTMLElement>;
 
-  /** Platform-aware tooltip for the comments button */
-  commentTooltip = /Mac|iPhone|iPad/.test(navigator.userAgent)
-    ? 'Comments (\u2318+\u2325+M to add)'
-    : 'Comments (Ctrl+Alt+M to add)';
+  private readonly isMac = /Mac|iPhone|iPad/.test(navigator.userAgent);
+
+  /**
+   * Translation key for the comments button's tooltip. It names the
+   * platform's add-comment shortcut, except to a reader, who can't add one.
+   */
+  get commentTooltipKey(): string {
+    if (this.disabled) return 'editor.comments.panelTitle';
+    return this.isMac
+      ? 'editor.toolbar.commentsTooltipMac'
+      : 'editor.toolbar.commentsTooltip';
+  }
 
   /** Signal for tracking the current selection state */
   private readonly selectionState = signal({

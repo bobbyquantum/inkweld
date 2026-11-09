@@ -88,12 +88,25 @@ neither an account nor an app profile.
 
 Public routes reuse `ProjectComponent`, its child routes and normal renderers:
 formatted documents and conversations, worldbuilding, canvases, timelines,
-relationship charts, media (published files included, to download) and
-comments. The publishing pages are left out: `publicProjectTabRoutes` sends
-`publish-plans` and `publish-plan/:id` to the project's home. Editing, uploads,
-publishing, administrative actions and user presence are disabled. Read-only
-documents still scroll, and their text can be selected and copied. Public
-content remains live while sharing is enabled.
+relationship charts and media (published files included, to download).
+Editing, uploads, publishing, administrative actions and user presence are
+disabled, and neither Project Settings nor the publishing pages are offered
+(`publicProjectTabRoutes` sends their URLs to the project home). Read-only
+documents still scroll, and their text can be selected and copied. Like
+`:username/:slug`, the `public/:username/:slug` route is reused while the
+project stays the same (`CustomRouteReuseStrategy`), so opening a tab doesn't
+reload the project. Public content remains live while sharing is enabled.
+
+Two more owner-only switches under the public link, **Show comments**
+(`publicComments`) and **Show activity** (`publicActivity`), are off by
+default. While one is off, `requireProjectReadAuth` answers public reads of
+`/comments/…` or `/activity/projects/…` with 404, and the reader's view drops
+the comments toolbar, panel, highlights and popover or the Activity tab
+(`ProjectStateService.showComments` / `showActivity`). A shared activity feed
+leaves out comment events unless comments are shown too, because they carry a
+preview of the comment. Comment marks inside the documents still hold their
+author's name and a preview, so hiding comments hides them from the page, not
+from the document data a reader downloads.
 
 `PublicProjectContextService` selects a transient server context without
 changing the visitor's saved local, cloud or server profile. It never restores

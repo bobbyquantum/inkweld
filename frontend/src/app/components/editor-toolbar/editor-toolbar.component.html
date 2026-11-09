@@ -599,7 +599,7 @@
       ngToolbarWidget
       value="comments"
       [attr.aria-pressed]="commentPanelOpen"
-      [matTooltip]="commentTooltip"
+      [matTooltip]="commentTooltipKey | transloco"
       (click)="toggleComments.emit()"
       data-testid="toolbar-comments">
       <mat-icon>comment</mat-icon>

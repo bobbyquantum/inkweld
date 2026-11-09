@@ -48,6 +48,8 @@ class ProjectService {
         title: projects.title,
         description: projects.description,
         isPublic: projects.isPublic,
+        publicComments: projects.publicComments,
+        publicActivity: projects.publicActivity,
         userId: projects.userId,
         coverImage: projects.coverImage,
         minClientVersion: projects.minClientVersion,
@@ -82,6 +84,8 @@ class ProjectService {
         title: projects.title,
         description: projects.description,
         isPublic: projects.isPublic,
+        publicComments: projects.publicComments,
+        publicActivity: projects.publicActivity,
         userId: projects.userId,
         coverImage: projects.coverImage,
         minClientVersion: projects.minClientVersion,
@@ -174,6 +178,8 @@ class ProjectService {
       slug?: string;
       coverImage?: string | null;
       isPublic?: boolean;
+      publicComments?: boolean;
+      publicActivity?: boolean;
     }
   ): Promise<void> {
     try {

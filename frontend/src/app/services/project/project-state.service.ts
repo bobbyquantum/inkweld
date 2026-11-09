@@ -234,6 +234,22 @@ export class ProjectStateService implements OnDestroy {
   });
 
   /**
+   * Whether the project's comments are shown: always to its members, and to
+   * a public link's readers only when the owner shares them.
+   */
+  readonly showComments = computed(
+    () => !this.publicContext.active() || !!this.project()?.publicComments
+  );
+
+  /**
+   * Whether the project's activity feed is shown: always to its members, and
+   * to a public link's readers only when the owner shares it.
+   */
+  readonly showActivity = computed(
+    () => !this.publicContext.active() || !!this.project()?.publicActivity
+  );
+
+  /**
    * Whether the current user is the project owner.
    */
   readonly isOwner = computed(() => {

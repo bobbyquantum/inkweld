@@ -1,4 +1,4 @@
-import { eq, desc, sql, and, gte } from 'drizzle-orm';
+import { eq, desc, sql, and, gte, lt, notInArray } from 'drizzle-orm';
 import type { DatabaseInstance } from '../types/context';
 import {
   activityEvents,
@@ -198,17 +198,21 @@ class ActivityService {
     db: DatabaseInstance,
     projectId: string,
     limit = 50,
-    beforeTs?: number
+    beforeTs?: number,
+    excludeTypes: readonly ActivityEventType[] = []
   ): Promise<ActivityEvent[]> {
-    const baseQuery = db
+    const conditions = [eq(activityEvents.projectId, projectId)];
+    if (beforeTs !== undefined) conditions.push(lt(activityEvents.createdAt, beforeTs));
+    // Left out in the query, so a page is still `limit` events long
+    if (excludeTypes.length > 0) {
+      conditions.push(notInArray(activityEvents.eventType, [...excludeTypes]));
+    }
+    return db
       .select()
       .from(activityEvents)
-      .where(
-        beforeTs === undefined
-          ? eq(activityEvents.projectId, projectId)
-          : sql`${activityEvents.projectId} = ${projectId} AND ${activityEvents.createdAt} < ${beforeTs}`
-      );
-    return baseQuery.orderBy(desc(activityEvents.createdAt)).limit(limit);
+      .where(and(...conditions))
+      .orderBy(desc(activityEvents.createdAt))
+      .limit(limit);
   }
 
   /** Recent events across an arbitrary set of project IDs (for the home dashboard). */

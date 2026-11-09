@@ -1,6 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { GREGORIAN_SYSTEM, RELATIVE_YEARS_SYSTEM } from '@models/time-system';
+import {
+  GREGORIAN_SYSTEM,
+  RELATIVE_YEARS_SYSTEM,
+  type TimeSystem,
+} from '@models/time-system';
 import type { TimelineTrack } from '@models/timeline.model';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -378,5 +382,104 @@ describe('TimelineEventDialogComponent', () => {
         }),
       })
     );
+  });
+
+  // ─── Irregular month lengths ───────────────────────────────────────────────
+
+  describe('with months of their own length', () => {
+    /** 12 months of 36 days, but month 2 has 30 and month 10 has 40. */
+    const longMonth: TimeSystem = {
+      id: 'long-month',
+      name: 'Long Month',
+      isBuiltIn: false,
+      unitLabels: ['Year', 'Month', 'Day'],
+      subdivisions: [12, 36],
+      format: '{u0}-{u1}-{u2}',
+      parseSeparator: '-',
+      unitInputMode: ['numeric', 'numeric', 'dropdown'],
+      unitSubdivisionOverrides: [undefined, { '10': 40, '2': 30 }, undefined],
+    };
+    const data = { ...baseData, system: longMonth };
+
+    async function fill(units: string[]) {
+      const created = await createComponent(data);
+      created.component.form.title().value.set('Festival');
+      created.component.form.trackId().value.set('track-1');
+      units.forEach((u, i) => setStartUnit(created.component, i, u));
+      created.fixture.detectChanges();
+      await created.fixture.whenStable();
+      return created;
+    }
+
+    it('offers the days of the selected month', async () => {
+      const { component } = await createComponent(data);
+      const optionsFor = (
+        component as unknown as {
+          optionsFor: (i: number, units?: readonly string[]) => unknown[];
+        }
+      ).optionsFor.bind(component);
+      expect(optionsFor(2, ['1', '10', '1'])).toHaveLength(40);
+      expect(optionsFor(2, ['1', '2', '1'])).toHaveLength(30);
+    });
+
+    it('saves day 40 of the 40-day month', async () => {
+      const { component, closeSpy, fixture } = await fill(['5', '10', '40']);
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="timeline-event-start-unit-range"]'
+        )
+      ).toBeNull();
+      (component as unknown as { onSave: () => void }).onSave();
+      expect(closeSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kind: 'save',
+          event: expect.objectContaining({
+            start: { systemId: 'long-month', units: ['5', '10', '40'] },
+          }),
+        })
+      );
+    });
+
+    it('says how long the month is when the day is past its end', async () => {
+      const { component, closeSpy, fixture } = await fill(['5', '2', '31']);
+      const hint = fixture.nativeElement.querySelector(
+        '[data-testid="timeline-event-start-unit-range"]'
+      ) as HTMLElement | null;
+      expect(hint?.textContent?.trim()).toBe(
+        'In Month 2, Day runs from 1 to 30.'
+      );
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="timeline-event-invalid-error"]'
+        )
+      ).toBeNull();
+      expect(component.form().invalid()).toBe(true);
+      (component as unknown as { onSave: () => void }).onSave();
+      expect(closeSpy).not.toHaveBeenCalled();
+    });
+
+    it('checks the end date of a ranged event too', async () => {
+      const { component, fixture } = await fill(['5', '1', '1']);
+      component.form.ranged().value.set(true);
+      ['5', '10', '41'].forEach((u, i) => setEndUnit(component, i, u));
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const hint = fixture.nativeElement.querySelector(
+        '[data-testid="timeline-event-end-unit-range"]'
+      ) as HTMLElement | null;
+      expect(hint?.textContent?.trim()).toBe(
+        'In Month 10, Day runs from 1 to 40.'
+      );
+    });
+
+    it('shows the general message when no unit range explains it', async () => {
+      const { component, fixture } = await fill(['0', '1', '1']);
+      expect(component.form().invalid()).toBe(true);
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="timeline-event-invalid-error"]'
+        )
+      ).not.toBeNull();
+    });
   });
 });

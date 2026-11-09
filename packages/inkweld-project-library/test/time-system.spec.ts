@@ -19,9 +19,11 @@ import {
   type TimeSystem,
   unitDropdownOptions,
   unitInputModeFor,
+  unitLengthInTicks,
   unitMaxValue,
   unitMaxValueFor,
   unitMinValue,
+  unitStartTick,
 } from '../src/time-system';
 
 describe('time-system', () => {
@@ -577,11 +579,204 @@ describe('time-system', () => {
       expect(unitMaxValueFor(systemWithOverrides, 2, '2')).toBe(min + 28 - 1);
     });
 
-    it('falls back to uniform max when no override applies', () => {
-      // Standard month subdivision
-      expect(unitMaxValueFor(systemWithOverrides, 2, '1')).toBe(
-        unitMaxValue(systemWithOverrides, 2)
-      );
+    it('falls back to the regular max when no override applies', () => {
+      expect(unitMaxValueFor(systemWithOverrides, 2, '1')).toBe(30);
+    });
+  });
+
+  describe('irregular lengths', () => {
+    // 12 months of 36 days, but month 2 has 30 and month 10 has 40.
+    const longMonth: TimeSystem = {
+      id: 'long-month',
+      name: 'Long Month',
+      isBuiltIn: false,
+      unitLabels: ['Year', 'Month', 'Day'],
+      subdivisions: [12, 36],
+      format: '{u0}-{u1}-{u2}',
+      parseSeparator: '-',
+      unitSubdivisionOverrides: [undefined, { '10': 40, '2': 30 }, undefined],
+    };
+    const at = (units: string[]): TimePoint => ({ systemId: longMonth.id, units });
+    const tick = (units: string[]) => timePointToAbsolute(at(units), longMonth);
+
+    // Year 3 has a 13th month; days 0-based; day 5 has 30 hours; the regular day 24.
+    const irregular: TimeSystem = {
+      id: 'irregular',
+      name: 'Irregular',
+      isBuiltIn: false,
+      unitLabels: ['Year', 'Month', 'Day', 'Hour'],
+      subdivisions: [3, 6, 4],
+      format: '{u0}/{u1}/{u2} {u3}',
+      parseSeparator: '/',
+      unitAllowZero: [true, false, true, false],
+      unitSubdivisionOverrides: [{ '3': 4, '-2': 1 }, { '2': 8, '4': 2 }, { '5': 7, '0': 1 }, undefined],
+    };
+
+    /** Every valid point of `system` from `fromYear` to `toYear`, in date order. */
+    function enumerate(system: TimeSystem, fromYear: number, toYear: number): string[][] {
+      const out: string[][] = [];
+      const walk = (prefix: string[]) => {
+        const i = prefix.length;
+        if (i === system.unitLabels.length) {
+          out.push(prefix);
+          return;
+        }
+        const min = unitMinValue(system, i);
+        const max = i === 0 ? toYear : unitMaxValueFor(system, i, prefix[i - 1])!;
+        for (let v = i === 0 ? fromYear : min; v <= max; v++) walk([...prefix, String(v)]);
+      };
+      walk([]);
+      return out;
+    }
+
+    it('accepts days up to a longer override and rejects days past a shorter one', () => {
+      expect(isValidTimePointFor(at(['1', '10', '40']), longMonth)).toBe(true);
+      expect(isValidTimePointFor(at(['1', '10', '41']), longMonth)).toBe(false);
+      expect(isValidTimePointFor(at(['1', '2', '30']), longMonth)).toBe(true);
+      expect(isValidTimePointFor(at(['1', '2', '31']), longMonth)).toBe(false);
+      expect(isValidTimePointFor(at(['1', '3', '37']), longMonth)).toBe(false);
+    });
+
+    it('matches override keys by number', () => {
+      expect(isValidTimePointFor(at(['1', '02', '31']), longMonth)).toBe(false);
+      expect(effectiveSubdivision(longMonth, 2, '010')).toBe(40);
+      const padded: TimeSystem = { ...longMonth, unitSubdivisionOverrides: [undefined, { '010': 40 }, undefined] };
+      expect(unitMaxValueFor(padded, 2, '10')).toBe(40);
+      expect(checkTimeSystem(padded)).toEqual([]);
+    });
+
+    it('ignores override counts that are not positive integers in an unchecked system', () => {
+      const unchecked: TimeSystem = {
+        ...longMonth,
+        unitSubdivisionOverrides: [undefined, { '10': 0, '3': 2.5 }, undefined],
+      };
+      expect(effectiveSubdivision(unchecked, 2, '10')).toBe(36);
+      expect(unitMaxValue(unchecked, 2)).toBe(36);
+      expect(unitLengthInTicks(unchecked, 0)).toBe(12n * 36n);
+      expect(effectiveSubdivision(longMonth, 2, 'ten')).toBe(36);
+      expect(unitMaxValue(longMonth, 5)).toBeNull();
+      expect(unitMaxValueFor({ ...longMonth, subdivisions: [12, 0] }, 2, '1')).toBeNull();
+    });
+
+    it('lays out overrides in value order whatever order the keys are in', () => {
+      const system: TimeSystem = {
+        ...longMonth,
+        unitSubdivisionOverrides: [undefined, { '7': 30, '3': 40, '11': 20, '5': 36 }, undefined],
+      };
+      const points = enumerate(system, 1, 2);
+      const ticks = points.map(units => timePointToAbsolute({ systemId: system.id, units }, system));
+      for (let k = 1; k < ticks.length; k++) expect(ticks[k] - ticks[k - 1]).toBe(1n);
+      expect(unitLengthInTicks(system, 0)).toBe(12n * 36n + 4n - 6n - 16n);
+    });
+
+    it('reports the largest value under any parent as unitMaxValue', () => {
+      expect(unitMaxValue(longMonth, 2)).toBe(40);
+      expect(unitMaxValue({ ...longMonth, unitSubdivisionOverrides: [undefined, { '2': 28 }, undefined] }, 2)).toBe(36);
+      // Every season is overridden, so the regular 90 never occurs.
+      const seasons: TimeSystem = {
+        ...longMonth,
+        subdivisions: [4, 90],
+        unitSubdivisionOverrides: [undefined, { '1': 80, '2': 85, '3': 85, '4': 80 }, undefined],
+      };
+      expect(unitMaxValue(seasons, 2)).toBe(85);
+      expect(unitMaxValue(irregular, 1)).toBe(4);
+      expect(unitMaxValue(irregular, 2)).toBe(7);
+      expect(unitMaxValue(irregular, 3)).toBe(7);
+    });
+
+    it('lists dropdown options for the parent value when it is given', () => {
+      expect(unitDropdownOptions(longMonth, 2, '10')).toHaveLength(40);
+      expect(unitDropdownOptions(longMonth, 2, '2')).toHaveLength(30);
+      expect(unitDropdownOptions(longMonth, 2, '1')).toHaveLength(36);
+      expect(unitDropdownOptions(longMonth, 2)).toHaveLength(40);
+      expect(unitDropdownOptions(longMonth, 0, '1')).toEqual([]);
+    });
+
+    it('formats and parses dates in a longer month', () => {
+      expect(formatTimePoint(at(['5', '10', '40']), longMonth)).toBe('5-10-40');
+      const parsed = parseTimePoint('5-10-40', longMonth);
+      expect(parsed && isValidTimePointFor(parsed, longMonth)).toBe(true);
+      expect(() => formatTimePoint(at(['5', '2', '31']), longMonth)).toThrow(/does not match/);
+    });
+
+    it('orders dates by the real month lengths', () => {
+      expect(tick(['1', '10', '40']) - tick(['1', '10', '36'])).toBe(4n);
+      expect(tick(['1', '11', '1']) - tick(['1', '10', '40'])).toBe(1n);
+      expect(tick(['1', '3', '1']) - tick(['1', '2', '30'])).toBe(1n);
+      // 12 × 36, less 6 days in month 2, plus 4 in month 10.
+      expect(tick(['2', '1', '1']) - tick(['1', '1', '1'])).toBe(430n);
+      expect(compareTimePoints(at(['1', '10', '40']), at(['1', '11', '1']), longMonth)).toBe(-1);
+    });
+
+    it('gives consecutive ticks to consecutive dates, at every level', () => {
+      for (const system of [longMonth, irregular]) {
+        const points = enumerate(system, unitMinValue(system, 0), unitMinValue(system, 0) + 4);
+        const ticks = points.map(units => timePointToAbsolute({ systemId: system.id, units }, system));
+        for (let k = 1; k < ticks.length; k++) expect(ticks[k] - ticks[k - 1]).toBe(1n);
+        for (const [k, units] of points.entries()) {
+          expect(absoluteToTimePoint(ticks[k], system).units).toEqual(units);
+        }
+      }
+    });
+
+    it('converts ticks back to valid dates', () => {
+      expect(absoluteToTimePoint(tick(['1', '10', '40']) + 1n, longMonth).units).toEqual(['1', '11', '1']);
+      expect(absoluteToTimePoint(tick(['1', '2', '30']) + 1n, longMonth).units).toEqual(['1', '3', '1']);
+      expect(absoluteToTimePoint(tick(['1', '1', '1']) - 1n, longMonth).units).toEqual(['0', '12', '36']);
+    });
+
+    it('rolls overflowed dates over by the real lengths', () => {
+      expect(normalizeTimePoint(at(['1', '10', '41']), longMonth)?.units).toEqual(['1', '11', '1']);
+      expect(normalizeTimePoint(at(['1', '2', '31']), longMonth)?.units).toEqual(['1', '3', '1']);
+      expect(normalizeTimePoint(at(['1', '13', '1']), longMonth)?.units).toEqual(['2', '1', '1']);
+      expect(normalizeTimePoint(at(['1', '10', '40']), longMonth)?.units).toEqual(['1', '10', '40']);
+    });
+
+    it('counts top-level overrides at any magnitude', () => {
+      const bigYear = '1000000000000000000';
+      const system: TimeSystem = {
+        ...longMonth,
+        unitSubdivisionOverrides: [{ [bigYear]: 13 }, undefined, undefined],
+      };
+      const start = (y: string) => timePointToAbsolute({ systemId: system.id, units: [y, '1', '1'] }, system);
+      const next = (BigInt(bigYear) + 1n).toString();
+      expect(start(next) - start(bigYear)).toBe(13n * 36n);
+      expect(isValidTimePointFor({ systemId: system.id, units: [bigYear, '13', '36'] }, system)).toBe(true);
+      expect(isValidTimePointFor({ systemId: system.id, units: [next, '13', '1'] }, system)).toBe(false);
+    });
+
+    it('reports unit lengths and start ticks', () => {
+      expect(unitLengthInTicks(longMonth, 0)).toBe(430n);
+      expect(unitLengthInTicks(longMonth, 1)).toBe(36n);
+      expect(unitLengthInTicks(longMonth, 1, '10')).toBe(40n);
+      expect(unitLengthInTicks(longMonth, 2)).toBe(1n);
+      // Month 2 holds days 0 to 7: day 0 has 1 hour, day 5 has 7, the other six 4.
+      expect(unitLengthInTicks(irregular, 1, '2')).toBe(1n + 7n + 6n * 4n);
+      expect(unitStartTick(longMonth, ['1', '11'])).toBe(tick(['1', '11', '1']));
+      expect(unitStartTick(longMonth, ['2'])).toBe(tick(['2', '1', '1']));
+      expect(unitStartTick(longMonth, ['1', '13'])).toBe(tick(['2', '1', '1']));
+      expect(() => unitStartTick(longMonth, ['x'])).toThrow(/integers/);
+      expect(() => unitStartTick(longMonth, ['1', '1', '1', '1'])).toThrow(/longer/);
+      expect(() => unitLengthInTicks(longMonth, 3)).toThrow(/no unit 3/);
+    });
+
+    it('converts every template exactly as Σ units × uniform weights', () => {
+      for (const system of TIME_SYSTEM_TEMPLATES) {
+        const weights = system.unitLabels.map((_, i) =>
+          system.subdivisions.slice(i).reduce((w, s) => w * BigInt(s), 1n)
+        );
+        for (let t = -500n; t < 20000n; t += 13n) {
+          const point = absoluteToTimePoint(t, system);
+          const plain = point.units.reduce((sum, u, i) => sum + BigInt(u) * weights[i], 0n);
+          expect(plain).toBe(t);
+          if (isValidTimePointFor(point, system)) {
+            expect(timePointToAbsolute(point, system)).toBe(t);
+          }
+        }
+        for (let i = 0; i < system.unitLabels.length; i++) {
+          expect(unitLengthInTicks(system, i)).toBe(weights[i]);
+        }
+      }
     });
   });
 });
@@ -663,19 +858,41 @@ describe('checkTimeSystem', () => {
     ).toEqual(['override-value-out-of-range']);
   });
 
-  it('warns that an override longer than the regular length makes invalid dates', () => {
+  it('has nothing to say about overrides longer or shorter than the regular length', () => {
     const system: TimeSystem = {
       ...months,
-      unitSubdivisionOverrides: [undefined, { '10': 40 }, undefined],
+      unitSubdivisionOverrides: [undefined, { '10': 40, '2': 28 }, undefined],
     };
-    const [warning] = checkTimeSystem(system);
-    expect(warning).toMatchObject({ code: 'override-longer-than-default', unit: 1 });
-    expect(warning.message).toContain('dates stop at Day 30');
-    // The reason for the warning: the date editor offers day 40, which is invalid.
-    expect(unitMaxValueFor(system, 2, '10')).toBe(40);
+    expect(checkTimeSystem(system)).toEqual([]);
     expect(isValidTimePointFor({ systemId: 'months', units: ['1', '10', '40'] }, system)).toBe(
-      false
+      true
     );
+  });
+
+  it('counts the values a longer parent override makes possible', () => {
+    // Year 5 has a 13th month, so a length for month 13 applies.
+    expect(
+      codes({
+        ...months,
+        unitSubdivisionOverrides: [{ '5': 13 }, { '13': 20 }, undefined],
+      })
+    ).toEqual([]);
+    // Day 31 only exists because month 1 has 31 days.
+    const hours: TimeSystem = {
+      ...months,
+      unitLabels: ['Year', 'Month', 'Day', 'Hour'],
+      subdivisions: [12, 30, 24],
+      format: '{u0}-{u1}-{u2} {u3}h',
+    };
+    expect(
+      codes({ ...hours, unitSubdivisionOverrides: [undefined, { '1': 31 }, { '31': 20 }, undefined] })
+    ).toEqual([]);
+    const [warning] = checkTimeSystem({
+      ...hours,
+      unitSubdivisionOverrides: [undefined, undefined, { '31': 20 }, undefined],
+    });
+    expect(warning).toMatchObject({ code: 'override-value-out-of-range', unit: 2 });
+    expect(warning.message).toContain('Day values run from 1 to 30');
   });
 
   it('warns that overrides on the smallest unit are ignored', () => {

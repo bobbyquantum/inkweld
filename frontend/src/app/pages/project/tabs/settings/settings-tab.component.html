@@ -639,6 +639,32 @@
               (change)="onPublicSharingToggle($event)"
               data-testid="toggle-public-sharing"></mat-slide-toggle>
           </div>
+          @if (projectState.project()?.isPublic) {
+            @for (option of publicSharingOptions; track option.key) {
+              <div
+                class="public-sharing-toggle-row public-sharing-option-row"
+                [attr.data-testid]="'public-sharing-option-' + option.key">
+                <div class="public-sharing-toggle-label">
+                  <span class="public-sharing-toggle-title">
+                    {{ option.label | transloco }}
+                  </span>
+                  <span class="public-sharing-toggle-state">
+                    {{ option.hint | transloco }}
+                  </span>
+                </div>
+                <mat-slide-toggle
+                  [checked]="!!projectState.project()?.[option.key]"
+                  [disabled]="
+                    isUpdatingPublicSharing() || !projectState.isOwner()
+                  "
+                  [attr.aria-label]="option.label | transloco"
+                  (change)="onPublicSharingOptionToggle(option.key, $event)"
+                  [attr.data-testid]="
+                    'toggle-' + option.key
+                  "></mat-slide-toggle>
+              </div>
+            }
+          }
           @if (publicShareUrl(); as url) {
             <div
               class="public-share-url-display"

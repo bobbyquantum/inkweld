@@ -39,6 +39,9 @@ import type { TimelineEvent, TimelineTrack } from '@models/timeline.model';
 import {
   INT_RE,
   timePointToAbsoluteValue,
+  unitOptionsFor,
+  type UnitRangeProblem,
+  unitRangeProblem,
   unitsToTimePoint,
 } from '../timeline-units';
 
@@ -98,12 +101,26 @@ export class TimelineEventDialogComponent {
     return unitInputModeFor(this.data.system, i);
   }
 
-  /** Dropdown options for unit `i` (used only when input mode is dropdown). */
+  /**
+   * Dropdown options for unit `i` (used only when input mode is dropdown),
+   * limited to what the parent value in `units` holds when it is given.
+   */
   protected optionsFor(
-    i: number
+    i: number,
+    units?: readonly string[]
   ): readonly { readonly value: string; readonly label: string }[] {
-    return unitDropdownOptions(this.data.system, i);
+    return unitOptionsFor(this.data.system, i, units);
   }
+
+  /** The start's first unit past its parent's length, for the hint under it. */
+  protected readonly startRangeProblem = computed<UnitRangeProblem | null>(() =>
+    unitRangeProblem(this.model().startUnits, this.data.system)
+  );
+
+  /** The end's first unit past its parent's length, for the hint under it. */
+  protected readonly endRangeProblem = computed<UnitRangeProblem | null>(() =>
+    unitRangeProblem(this.model().endUnits, this.data.system)
+  );
 
   private readonly startDateSignal = signal('');
   private readonly endDateSignal = signal('');
@@ -148,24 +165,27 @@ export class TimelineEventDialogComponent {
       });
     });
 
-    // Cross-field validator: end >= start when ranged.
+    // Cross-field validator: the dates fit the system, and end >= start when ranged.
     validateTree(schemaPath, ctx => {
-      if (!ctx.valueOf(schemaPath.ranged)) return null;
+      const ranged = ctx.valueOf(schemaPath.ranged);
       const start = unitsToTimePoint(
         ctx.valueOf(schemaPath.startUnits),
         this.data.system
       );
-      const end = unitsToTimePoint(
-        ctx.valueOf(schemaPath.endUnits),
-        this.data.system
-      );
-      if (!start || !end) return null;
+      const end = ranged
+        ? unitsToTimePoint(ctx.valueOf(schemaPath.endUnits), this.data.system)
+        : null;
+      if (!start || (ranged && !end)) return null;
       if (
         !isValidTimePointFor(start, this.data.system) ||
-        !isValidTimePointFor(end, this.data.system)
+        (end && !isValidTimePointFor(end, this.data.system))
       ) {
-        return null;
+        return {
+          kind: 'invalidPoint',
+          message: 'A date does not fit this time system',
+        };
       }
+      if (!end) return null;
       const sAbs = timePointToAbsoluteValue(start, this.data.system);
       const eAbs = timePointToAbsoluteValue(end, this.data.system);
       return eAbs < sAbs

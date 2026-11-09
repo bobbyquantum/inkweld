@@ -44,6 +44,8 @@ describe('DocumentElementEditorComponent', () => {
   let dialogGatewayMock: Partial<DialogGatewayService>;
   let wordCountSignal: ReturnType<typeof signal<number>>;
   let syncStatusSignal: ReturnType<typeof signal<DocumentSyncState>>;
+  let canWriteSignal: ReturnType<typeof signal<boolean>>;
+  let showCommentsSignal: ReturnType<typeof signal<boolean>>;
 
   const mockProject: Project = {
     id: '1',
@@ -61,7 +63,8 @@ describe('DocumentElementEditorComponent', () => {
     const isLoadingSignal = signal(false);
     const projectSignal = signal<Project | undefined>(mockProject);
     const elementsSignal = signal<Element[]>([]);
-    const canWriteSignal = signal(true);
+    canWriteSignal = signal(true);
+    showCommentsSignal = signal(true);
 
     documentServiceMock = {
       setupCollaboration: vi.fn().mockResolvedValue(undefined),
@@ -75,6 +78,7 @@ describe('DocumentElementEditorComponent', () => {
       project: projectSignal,
       elements: elementsSignal,
       canWrite: canWriteSignal,
+      showComments: showCommentsSignal,
     };
 
     settingsServiceMock = {
@@ -760,6 +764,67 @@ describe('DocumentElementEditorComponent', () => {
           })
         );
       });
+    });
+  });
+
+  describe('comments for a reader', () => {
+    const clicked: CommentMarkAttrs = {
+      commentId: 'c1',
+      authorName: 'Alice',
+      preview: 'Hi',
+      messageCount: 1,
+      resolved: false,
+      createdAt: 1,
+      localOnly: false,
+      messages: null,
+    };
+
+    const render = async () => {
+      canWriteSignal.set(false);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const commentService = TestBed.inject(CommentService);
+      commentService.commentClickEvent.set({
+        attrs: clicked,
+        coords: { x: 1, y: 2 },
+      });
+      fixture.detectChanges();
+      await fixture.whenStable();
+      return commentService;
+    };
+    const root = () => fixture.nativeElement as HTMLElement;
+
+    it('keeps the comments a project shows its readers', async () => {
+      await render();
+
+      expect(root().querySelector('app-editor-toolbar')).toBeTruthy();
+      expect(
+        root().querySelector('.editor-container')?.classList
+      ).not.toContain('comments-hidden');
+      expect(component.commentPopoverAttrs()).toEqual(clicked);
+    });
+
+    it('hides comments a public link does not share', async () => {
+      showCommentsSignal.set(false);
+      const commentService = await render();
+
+      // The toolbar would hold only the comments button
+      expect(root().querySelector('app-editor-toolbar')).toBeNull();
+      expect(root().querySelector('.editor-container')?.classList).toContain(
+        'comments-hidden'
+      );
+      expect(component.commentPopoverAttrs()).toBeNull();
+      expect(commentService.commentClickEvent()).toBeNull();
+    });
+
+    it('keeps the toolbar for a writer', () => {
+      showCommentsSignal.set(false);
+      canWriteSignal.set(true);
+      // Checked straight away: a writer's toolbar schedules a selection
+      // update that would read this spec's stubbed editor state
+      fixture.detectChanges();
+
+      expect(root().querySelector('app-editor-toolbar')).toBeTruthy();
     });
   });
 

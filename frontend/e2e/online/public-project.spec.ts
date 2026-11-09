@@ -74,7 +74,9 @@ function proseDoc(lines: string[], { bold = false } = {}): Y.Doc {
 
 /**
  * Answer the app's public-link HTTP requests and sockets for `reader/story`
- * from `elements`, `prose` and `media`, recording what was asked for.
+ * from `elements`, `prose` and `media`, recording what was asked for. The
+ * project carries `sharing` as it is at each request, so a test can change
+ * what the owner shares and reload.
  */
 async function servePublicProject(
   page: Page,
@@ -82,7 +84,13 @@ async function servePublicProject(
     elements,
     prose,
     media = [],
-  }: { elements: Y.Doc; prose: Y.Doc; media?: ServedMedia[] }
+    sharing = {},
+  }: {
+    elements: Y.Doc;
+    prose: Y.Doc;
+    media?: ServedMedia[];
+    sharing?: Record<string, boolean>;
+  }
 ): Promise<{
   requests: ServedRequest[];
   sockets: Set<WebSocketRoute>;
@@ -119,6 +127,7 @@ async function servePublicProject(
         title: 'Public story',
         description: 'A complete shared project',
         isPublic: true,
+        ...sharing,
         createdDate: new Date(0).toISOString(),
         updatedDate: new Date(0).toISOString(),
         access: {
@@ -214,9 +223,12 @@ for (const { savedProfile, server } of [
 
     const elements = elementsDoc();
     const prose = proseDoc(['Formatted public story'], { bold: true });
+    // What the owner shares besides the project itself, off by default
+    const sharing = { publicComments: false, publicActivity: false };
     const { requests, sockets, socketUrls } = await servePublicProject(page, {
       elements,
       prose,
+      sharing,
     });
 
     const query = server ? `?server=${encodeURIComponent(server)}` : '';
@@ -241,6 +253,31 @@ for (const { savedProfile, server } of [
       )
     ).toBe('false');
 
+    // Comments and activity stay hidden until the owner shares them: the
+    // reader's toolbar would hold only the comments button
+    await expect(page.getByTestId('editor-toolbar')).toHaveCount(0);
+    await expect(page.getByTestId('sidebar-activity-button')).toHaveCount(0);
+    expect(
+      requests.some(
+        request =>
+          request.url.includes('/comments/') ||
+          request.url.includes('/activity/')
+      )
+    ).toBe(false);
+    sharing.publicComments = true;
+    sharing.publicActivity = true;
+    await page.reload();
+    await expect(editor).toContainText('Formatted public story');
+    await expect(page.getByTestId('sidebar-activity-button')).toBeVisible();
+
+    // A reader can't comment, so selecting text offers no formatting or
+    // comment menu and the comment panel doesn't explain how to add one
+    await editor.getByText('Formatted public story').selectText();
+    await expect(page.getByTestId('editor-floating-menu')).toHaveCount(0);
+    await page.getByTestId('toolbar-comments').click();
+    await expect(page.getByTestId('comment-panel-empty')).toBeVisible();
+    await expect(page.getByTestId('comment-panel-hint')).toHaveCount(0);
+
     await page.getByTestId('toolbar-home-button').click();
     await expect(page).toHaveURL(/\/public\/reader\/story$/);
     await page.getByTestId('sidebar-media-button').click();
@@ -252,6 +289,34 @@ for (const { savedProfile, server } of [
     await expect(page).toHaveURL(/\/public\/reader\/story\/media$/);
     await page.reload();
     await expect(page.getByTestId('media-container')).toBeVisible();
+
+    // Opening a page of the project opens its tab and keeps the project
+    // open: rebuilding it would reconnect the project's documents and close
+    // the tabs already open
+    const elementSockets = () =>
+      socketUrls.filter(url =>
+        new URL(url).searchParams.get('documentId')?.endsWith(':elements')
+      ).length;
+    await expect(page.getByTestId('tab-Media')).toBeVisible();
+    const socketsBeforeActivity = elementSockets();
+    await page.getByTestId('sidebar-activity-button').click();
+    await expect(page).toHaveURL(/\/public\/reader\/story\/activity$/);
+    await expect(page.getByTestId('activity-empty-state')).toBeVisible();
+    await expect(page.getByTestId('tab-Activity')).toBeVisible();
+    await expect(page.getByTestId('tab-Media')).toBeVisible();
+    expect(elementSockets()).toBe(socketsBeforeActivity);
+    // Writing stats need an account, so a reader's page doesn't ask for them
+    expect(requests.some(request => request.url.includes('/stats/'))).toBe(
+      false
+    );
+
+    // Project settings are for members: a reader gets the project home
+    await expect(page.getByTestId('sidebar-settings-button')).toHaveCount(0);
+    await page.goto(`/public/reader/story/settings${query}`);
+    await expect(page.getByTestId('home-tab-content')).toContainText(
+      'Public story'
+    );
+    await expect(page).toHaveURL(/\/public\/reader\/story(\?server=[^/]*)?$/);
 
     expect(
       await page.evaluate(() => localStorage.getItem('inkweld-app-config'))

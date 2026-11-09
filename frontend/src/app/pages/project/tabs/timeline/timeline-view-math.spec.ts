@@ -1,7 +1,9 @@
 import {
+  absoluteToTimePoint,
   GREGORIAN_SYSTEM,
   type TimePoint,
   type TimeSystem,
+  unitStartTick,
 } from '@models/time-system';
 import type { TimelineEra, TimelineEvent } from '@models/timeline.model';
 import { describe, expect, it } from 'vitest';
@@ -335,6 +337,67 @@ describe('timeline-view-math', () => {
       expect(
         marks.some(mark => mark.kind === 'minor' && mark.level === 1)
       ).toBe(true);
+    });
+
+    describe('with months of their own length', () => {
+      // 12 months of 36 days, but month 2 has 30 and month 10 has 40.
+      const longMonth: TimeSystem = {
+        ...MOONVEIL_SYSTEM,
+        id: 'long-month',
+        unitLabels: ['Year', 'Month', 'Day'],
+        subdivisions: [12, 36],
+        unitSubdivisionOverrides: [undefined, { '10': 40, '2': 30 }, undefined],
+      };
+      const startOf = (...units: string[]) => unitStartTick(longMonth, units);
+      const dateAt = (tick: bigint) =>
+        absoluteToTimePoint(tick, longMonth).units.join('-');
+
+      it('puts a mark at the start of every month, however long', () => {
+        const marks = computeTimeSystemTickMarks(
+          { minTick: startOf('100') - 5n, maxTick: startOf('102') - 1n },
+          1200,
+          longMonth
+        );
+        const dates = marks.map(mark => dateAt(mark.tick));
+        expect(dates).toHaveLength(24);
+        expect(dates.every(date => date.endsWith('-1'))).toBe(true);
+        expect(dates).toContain('100-11-1');
+        expect(dates).toContain('101-11-1');
+        expect(marks.filter(mark => mark.kind === 'major')).toHaveLength(2);
+      });
+
+      it('keeps year marks on year starts far from the epoch', () => {
+        const marks = computeTimeSystemTickMarks(
+          { minTick: startOf('5000'), maxTick: startOf('5100') },
+          1200,
+          longMonth
+        ).filter(mark => mark.kind === 'major');
+        expect(marks.length).toBeGreaterThan(2);
+        for (const mark of marks) {
+          expect(dateAt(mark.tick)).toMatch(/^\d+-1-1$/);
+          expect(mark.label).toBe(dateAt(mark.tick).split('-')[0]);
+        }
+      });
+
+      it('follows a year with an extra month', () => {
+        const thirteenth: TimeSystem = {
+          ...longMonth,
+          unitSubdivisionOverrides: [{ '100': 13 }, undefined, undefined],
+        };
+        const marks = computeTimeSystemTickMarks(
+          {
+            minTick: unitStartTick(thirteenth, ['100']),
+            maxTick: unitStartTick(thirteenth, ['101']),
+          },
+          1200,
+          thirteenth
+        );
+        const dates = marks.map(mark =>
+          absoluteToTimePoint(mark.tick, thirteenth).units.join('-')
+        );
+        expect(dates).toContain('100-13-1');
+        expect(dates.at(-1)).toBe('101-1-1');
+      });
     });
   });
 

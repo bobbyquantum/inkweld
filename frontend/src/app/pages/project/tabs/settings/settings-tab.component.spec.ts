@@ -554,6 +554,73 @@ describe('SettingsTabComponent', () => {
       expect(query('copy-public-share-link-button')).not.toBeNull();
     });
 
+    it('offers comments and activity switches once public, both off', () => {
+      fixture.detectChanges();
+      expect(query('toggle-publicComments')).toBeNull();
+      expect(query('toggle-publicActivity')).toBeNull();
+
+      projectSignal.set(publicProject);
+      fixture.detectChanges();
+
+      for (const key of ['publicComments', 'publicActivity']) {
+        expect(
+          query(`toggle-${key}`)
+            ?.querySelector('button')
+            ?.getAttribute('aria-checked')
+        ).toBe('false');
+      }
+    });
+
+    it.each(['publicComments', 'publicActivity'] as const)(
+      'lets the owner show %s to readers',
+      async option => {
+        projectSignal.set(publicProject);
+        const shared = { ...publicProject, [option]: true };
+        Object.assign(projectService, {
+          updateProject: vi.fn().mockResolvedValue(shared),
+        });
+        updateProjectState.mockImplementation((p: unknown) =>
+          projectSignal.set(p)
+        );
+        const source = { checked: true };
+
+        await component.onPublicSharingOptionToggle(option, {
+          source,
+          checked: true,
+        } as unknown as MatSlideToggleChange);
+
+        expect(projectService.updateProject).toHaveBeenCalledWith(
+          'testuser',
+          'test-project',
+          { [option]: true },
+          { queueIfOffline: false }
+        );
+        expect(source.checked).toBe(true);
+      }
+    );
+
+    it('snaps an option back when saving fails', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      projectSignal.set({ ...publicProject, publicActivity: true });
+      Object.assign(projectService, {
+        updateProject: vi.fn().mockRejectedValue(new Error('offline')),
+      });
+      const source = { checked: false };
+
+      await component.onPublicSharingOptionToggle('publicActivity', {
+        source,
+        checked: false,
+      } as unknown as MatSlideToggleChange);
+
+      expect(projectService.updateProject).toHaveBeenCalledWith(
+        'testuser',
+        'test-project',
+        { publicActivity: false },
+        { queueIfOffline: false }
+      );
+      expect(source.checked).toBe(true);
+    });
+
     it('disables the switch for a collaborator who is not the owner', () => {
       (projectStateService.isOwner as ReturnType<typeof signal<boolean>>).set(
         false

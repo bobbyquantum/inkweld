@@ -106,16 +106,26 @@ export const projectTabRoutes: Routes = [
   },
 ];
 
-/** The publishing pages, which a public link doesn't show. */
-const PUBLISHING_PATHS = new Set(['publish-plan/:tabId', 'publish-plans']);
+/**
+ * Paths for the project's members only: Project Settings (directly or through
+ * an old redirect) and the publishing pages, whose plans and export settings
+ * are the writers' own.
+ */
+const MEMBER_ONLY_PATHS = new Set([
+  'settings',
+  'templates-list',
+  'relationships-list',
+  'tags-list',
+  'publish-plans',
+  'publish-plan/:tabId',
+]);
 
 /**
- * The pages a public link opens: the same, except that the publishing pages
- * (plans and their export settings are the writers' own) go to the
- * project's home.
+ * The tab routes under a public link. A reader who follows a URL for members
+ * only gets the project home.
  */
 export const publicProjectTabRoutes: Routes = projectTabRoutes.map(route =>
-  PUBLISHING_PATHS.has(route.path ?? '')
+  MEMBER_ONLY_PATHS.has(route.path ?? '')
     ? { path: route.path, redirectTo: '', pathMatch: 'full' }
     : route
 );

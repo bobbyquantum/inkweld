@@ -29,4 +29,12 @@ export interface UpdateProjectRequest {
    * Allow anyone with the public project URL to view the entire project
    */
   isPublic?: boolean;
+  /**
+   * Show the project\'s comments to people viewing it through its public link
+   */
+  publicComments?: boolean;
+  /**
+   * Show the project\'s activity feed to people viewing it through its public link
+   */
+  publicActivity?: boolean;
 }

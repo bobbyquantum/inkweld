@@ -28,8 +28,10 @@ export {
   type TimeSystem,
   unitDropdownOptions,
   unitInputModeFor,
+  unitLengthInTicks,
   unitMaxValue,
   unitMaxValueFor,
   unitMinValue,
+  unitStartTick,
   zeroTimePoint,
 } from '@inkweld/project-library';
