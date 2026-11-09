@@ -10,28 +10,28 @@ titles.
 
 ### Features
 
-* **collab:** choose whether a public link shows comments and activity ([7a62bb5](https://github.com/bobbyquantum/inkweld/commit/7a62bb59f126a9786696fc7656a3fd7c620e8bbf))
-* **collab:** tidy Collaboration settings, with a switch for public links ([#1742](https://github.com/bobbyquantum/inkweld/issues/1742)) ([e484934](https://github.com/bobbyquantum/inkweld/commit/e484934250b8750ed506739d35c61d5844006ef5))
-* **mcp:** agents can read, edit and roll time systems and random generators ([#1743](https://github.com/bobbyquantum/inkweld/issues/1743)) ([c2a2218](https://github.com/bobbyquantum/inkweld/commit/c2a2218026433252da0ced0907282c461bb884c2))
+* 👥 **collab:** choose whether a public link shows comments and activity ([7a62bb5](https://github.com/bobbyquantum/inkweld/commit/7a62bb59f126a9786696fc7656a3fd7c620e8bbf))
+* 👥 **collab:** tidy Collaboration settings, with a switch for public links ([#1742](https://github.com/bobbyquantum/inkweld/issues/1742)) ([e484934](https://github.com/bobbyquantum/inkweld/commit/e484934250b8750ed506739d35c61d5844006ef5))
+* 🤖 **mcp:** agents can read, edit and roll time systems and random generators ([#1743](https://github.com/bobbyquantum/inkweld/issues/1743)) ([c2a2218](https://github.com/bobbyquantum/inkweld/commit/c2a2218026433252da0ced0907282c461bb884c2))
 
 
 ### Bug Fixes
 
-* **account:** messages and user profiles show fresh data each time you open them ([#1746](https://github.com/bobbyquantum/inkweld/issues/1746)) ([3e42b23](https://github.com/bobbyquantum/inkweld/commit/3e42b23eee4746433e8de95acfc5f7c4b55c7fe2))
-* **admin:** admin pages show the current settings each time you open them, not what they showed last time ([#1746](https://github.com/bobbyquantum/inkweld/issues/1746)) ([3e42b23](https://github.com/bobbyquantum/inkweld/commit/3e42b23eee4746433e8de95acfc5f7c4b55c7fe2))
-* **auth:** the approval page names the account you just signed up with, not an earlier one ([#1746](https://github.com/bobbyquantum/inkweld/issues/1746)) ([3e42b23](https://github.com/bobbyquantum/inkweld/commit/3e42b23eee4746433e8de95acfc5f7c4b55c7fe2))
-* **auth:** the forgot-password and lost-passkey pages show their form again on a second visit, not "check your email" ([#1746](https://github.com/bobbyquantum/inkweld/issues/1746)) ([3e42b23](https://github.com/bobbyquantum/inkweld/commit/3e42b23eee4746433e8de95acfc5f7c4b55c7fe2))
-* **collab:** opening Activity or another page through a public link no longer reloads the project or shows the wrong tab ([7a62bb5](https://github.com/bobbyquantum/inkweld/commit/7a62bb59f126a9786696fc7656a3fd7c620e8bbf))
-* **collab:** public links work when the app is served from a different address than the server ([#1736](https://github.com/bobbyquantum/inkweld/issues/1736)) ([b41fb98](https://github.com/bobbyquantum/inkweld/commit/b41fb98e188415730a639715ed875007f46d0864))
-* **collab:** read-only viewers can scroll documents, and public links show media thumbnails and no publishing page ([#1751](https://github.com/bobbyquantum/inkweld/issues/1751)) ([aaf19ee](https://github.com/bobbyquantum/inkweld/commit/aaf19eec7a7e4a0d87cec6906bf65b08f0983a63))
-* **editor:** read-only documents no longer offer to add comments ([7a62bb5](https://github.com/bobbyquantum/inkweld/commit/7a62bb59f126a9786696fc7656a3fd7c620e8bbf))
-* **ingress:** don't register the service worker behind Home Assistant ingress ([#1739](https://github.com/bobbyquantum/inkweld/issues/1739)) ([1676356](https://github.com/bobbyquantum/inkweld/commit/167635624d3788d58fc7a2f7da086be459c1daca))
-* **mcp:** agents are warned about calendars and dice buttons that won't work ([#1748](https://github.com/bobbyquantum/inkweld/issues/1748)) ([d25a5d3](https://github.com/bobbyquantum/inkweld/commit/d25a5d3d069cc4e581218e60f313293e256155d6))
-* **mcp:** stop the handler tests leaking throwaway tools into other test files ([#1740](https://github.com/bobbyquantum/inkweld/issues/1740)) ([e805db4](https://github.com/bobbyquantum/inkweld/commit/e805db40b65993c0e213c0aaaef00800a391c11c))
-* **profiles:** "Connect to sync" moves your Browser profile to sync instead of making another Browser profile ([#1746](https://github.com/bobbyquantum/inkweld/issues/1746)) ([3e42b23](https://github.com/bobbyquantum/inkweld/commit/3e42b23eee4746433e8de95acfc5f7c4b55c7fe2))
-* **profiles:** moving a Browser profile other than your first to a server brings its own projects, documents and images ([#1746](https://github.com/bobbyquantum/inkweld/issues/1746)) ([3e42b23](https://github.com/bobbyquantum/inkweld/commit/3e42b23eee4746433e8de95acfc5f7c4b55c7fe2))
-* **setup:** adding a profile after leaving "Connect to sync" part-way makes a new profile instead of resuming the old upgrade ([#1746](https://github.com/bobbyquantum/inkweld/issues/1746)) ([3e42b23](https://github.com/bobbyquantum/inkweld/commit/3e42b23eee4746433e8de95acfc5f7c4b55c7fe2))
-* **timeline:** a month can hold more days than the others, not only fewer ([#1749](https://github.com/bobbyquantum/inkweld/issues/1749)) ([0f3e642](https://github.com/bobbyquantum/inkweld/commit/0f3e6420f1f8ab2187f7ff6384690f1b093a3480))
+* 👤 **account:** messages and user profiles show fresh data each time you open them ([#1746](https://github.com/bobbyquantum/inkweld/issues/1746)) ([3e42b23](https://github.com/bobbyquantum/inkweld/commit/3e42b23eee4746433e8de95acfc5f7c4b55c7fe2))
+* 🎛️ **admin:** admin pages show the current settings each time you open them, not what they showed last time ([#1746](https://github.com/bobbyquantum/inkweld/issues/1746)) ([3e42b23](https://github.com/bobbyquantum/inkweld/commit/3e42b23eee4746433e8de95acfc5f7c4b55c7fe2))
+* 🔐 **auth:** the approval page names the account you just signed up with, not an earlier one ([#1746](https://github.com/bobbyquantum/inkweld/issues/1746)) ([3e42b23](https://github.com/bobbyquantum/inkweld/commit/3e42b23eee4746433e8de95acfc5f7c4b55c7fe2))
+* 🔐 **auth:** the forgot-password and lost-passkey pages show their form again on a second visit, not "check your email" ([#1746](https://github.com/bobbyquantum/inkweld/issues/1746)) ([3e42b23](https://github.com/bobbyquantum/inkweld/commit/3e42b23eee4746433e8de95acfc5f7c4b55c7fe2))
+* 👥 **collab:** opening Activity or another page through a public link no longer reloads the project or shows the wrong tab ([7a62bb5](https://github.com/bobbyquantum/inkweld/commit/7a62bb59f126a9786696fc7656a3fd7c620e8bbf))
+* 👥 **collab:** public links work when the app is served from a different address than the server ([#1736](https://github.com/bobbyquantum/inkweld/issues/1736)) ([b41fb98](https://github.com/bobbyquantum/inkweld/commit/b41fb98e188415730a639715ed875007f46d0864))
+* 👥 **collab:** read-only viewers can scroll documents, and public links show media thumbnails and no publishing page ([#1751](https://github.com/bobbyquantum/inkweld/issues/1751)) ([aaf19ee](https://github.com/bobbyquantum/inkweld/commit/aaf19eec7a7e4a0d87cec6906bf65b08f0983a63))
+* 📝 **editor:** read-only documents no longer offer to add comments ([7a62bb5](https://github.com/bobbyquantum/inkweld/commit/7a62bb59f126a9786696fc7656a3fd7c620e8bbf))
+* 🏡 **ingress:** don't register the service worker behind Home Assistant ingress ([#1739](https://github.com/bobbyquantum/inkweld/issues/1739)) ([1676356](https://github.com/bobbyquantum/inkweld/commit/167635624d3788d58fc7a2f7da086be459c1daca))
+* 🤖 **mcp:** agents are warned about calendars and dice buttons that won't work ([#1748](https://github.com/bobbyquantum/inkweld/issues/1748)) ([d25a5d3](https://github.com/bobbyquantum/inkweld/commit/d25a5d3d069cc4e581218e60f313293e256155d6))
+* 🤖 **mcp:** stop the handler tests leaking throwaway tools into other test files ([#1740](https://github.com/bobbyquantum/inkweld/issues/1740)) ([e805db4](https://github.com/bobbyquantum/inkweld/commit/e805db40b65993c0e213c0aaaef00800a391c11c))
+* 🔀 **profiles:** "Connect to sync" moves your Browser profile to sync instead of making another Browser profile ([#1746](https://github.com/bobbyquantum/inkweld/issues/1746)) ([3e42b23](https://github.com/bobbyquantum/inkweld/commit/3e42b23eee4746433e8de95acfc5f7c4b55c7fe2))
+* 🔀 **profiles:** moving a Browser profile other than your first to a server brings its own projects, documents and images ([#1746](https://github.com/bobbyquantum/inkweld/issues/1746)) ([3e42b23](https://github.com/bobbyquantum/inkweld/commit/3e42b23eee4746433e8de95acfc5f7c4b55c7fe2))
+* 🚀 **setup:** adding a profile after leaving "Connect to sync" part-way makes a new profile instead of resuming the old upgrade ([#1746](https://github.com/bobbyquantum/inkweld/issues/1746)) ([3e42b23](https://github.com/bobbyquantum/inkweld/commit/3e42b23eee4746433e8de95acfc5f7c4b55c7fe2))
+* 📅 **timeline:** a month can hold more days than the others, not only fewer ([#1749](https://github.com/bobbyquantum/inkweld/issues/1749)) ([0f3e642](https://github.com/bobbyquantum/inkweld/commit/0f3e6420f1f8ab2187f7ff6384690f1b093a3480))
 
 ## [1.0.0-beta.6](https://github.com/bobbyquantum/inkweld/compare/v1.0.0-beta.5...v1.0.0-beta.6) (2026-11-06)
 
