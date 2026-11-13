@@ -146,7 +146,7 @@
     "typescript": "^6.0.0",
     "typescript-eslint": "^8.51.0",
     "vitest": "^5.0.0",
-    "vitest-mock-extended": "6.0.0",
+    "vitest-mock-extended": "6.0.1",
     "wrangler": "^4.124.0"
   },
   "resolutions": {
