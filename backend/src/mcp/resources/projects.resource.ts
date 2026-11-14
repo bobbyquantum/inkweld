@@ -201,7 +201,9 @@ export async function loadProjectSchemas(
     note:
       'Every worldbuilding element also has the identity fields above, which are not part of any schema. ' +
       'With update_worldbuilding, a bare key a schema defines writes that schema field (even "description"); ' +
-      'use "identity.<key>" to write an identity field and "worldbuilding.<key>" to force a schema field.',
+      'use "identity.<key>" to write an identity field and "worldbuilding.<key>" to force a schema field. ' +
+      'A relationship field takes the id (or array of ids, when multiple) of the elements it links; each link is a ' +
+      "relationship of the field's relationshipTypeId from the element to the target, so it shows as a backlink there.",
   };
 }
 

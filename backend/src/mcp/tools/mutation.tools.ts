@@ -36,17 +36,25 @@ import {
   updateDocumentContent as runtimeUpdateDocumentContent,
   getDocumentContent as runtimeGetDocumentContent,
   getRelationships as runtimeGetRelationships,
-  replaceAllRelationships as runtimeReplaceAllRelationships,
   addRelationship as runtimeAddRelationship,
+  applyRelationshipChanges as runtimeApplyRelationshipChanges,
+  deleteWorldbuildingPaths as runtimeDeleteWorldbuildingPaths,
   removeTagsOfElements as runtimeRemoveTagsOfElements,
   getSchemas as runtimeGetSchemas,
   getElementSchema as runtimeGetElementSchema,
   type Relationship,
 } from './yjs-runtime';
 import {
-  IDENTITY_FIELD_KEYS,
+  parseRelationshipFieldValue,
+  planRelationshipFieldLinks,
+  type RelationshipFieldDefinition,
+  relationshipFieldLinkErrors,
+  relationshipFieldsOfSchema,
+} from '@inkweld/project-library';
+import {
   routeWorldbuildingFields,
   schemaFieldKeys,
+  splitRelationshipUpdates,
   worldbuildingDefaults,
 } from './worldbuilding-fields';
 
@@ -1349,27 +1357,132 @@ This properly handles positional hierarchy - subtrees move with their parents.`,
 // ============================================
 
 /**
- * Field keys of the element's template, used to tell a template field named
- * `description`/`image` from the identity field. Only read when the update has
- * such a bare key. Best-effort: an unreadable schema falls back to the identity
- * routing.
+ * The element's template, used to tell a template field named
+ * `description`/`image` from the identity field and to find its relationship
+ * fields. Best-effort: an unreadable schema falls back to the identity routing
+ * and plain map writes.
  */
-async function readSchemaFieldKeys(
+async function readElementSchema(
   ctx: McpContext,
   username: string,
   slug: string,
-  elementId: string,
-  fields: Record<string, unknown>
-): Promise<Set<string>> {
-  if (!Object.keys(fields).some((key) => IDENTITY_FIELD_KEYS.has(key))) return new Set();
+  elementId: string
+): Promise<unknown> {
   try {
-    return schemaFieldKeys(await runtimeGetElementSchema(ctx, username, slug, elementId));
+    return await runtimeGetElementSchema(ctx, username, slug, elementId);
   } catch (err) {
     mcpMutLog.warn(`Could not read the schema of ${elementId}; using identity routing`, {
       error: err instanceof Error ? err.message : String(err),
     });
-    return new Set();
+    return null;
   }
+}
+
+/** What `update_worldbuilding` changes for one relationship field. */
+interface RelationshipFieldChange {
+  field: RelationshipFieldDefinition;
+  /** The ids the field links after the update. */
+  value: string[];
+  add: string[];
+  remove: Relationship[];
+}
+
+/**
+ * Check the values given for relationship fields and plan their
+ * relationships, as the app's relationship field does
+ * (`planRelationshipFieldLinks`). Returns every problem found, so nothing is
+ * written unless all of them pass.
+ */
+async function planRelationshipFieldChanges(
+  ctx: McpContext,
+  username: string,
+  slug: string,
+  elementId: string,
+  values: Map<RelationshipFieldDefinition, unknown>
+): Promise<{ changes: RelationshipFieldChange[] } | { errors: string[] }> {
+  const [elements, relationships, schemas] = await Promise.all([
+    runtimeGetElements(ctx, username, slug),
+    runtimeGetRelationships(ctx, username, slug),
+    runtimeGetSchemas(ctx, username, slug).catch(() => []),
+  ]);
+  const byId = new Map(elements.map((e) => [e.id, e]));
+  if (!byId.has(elementId)) return { errors: [`Element "${elementId}" not found.`] };
+  const schemaName = (id: string) => schemas.find((schema) => schema.id === id)?.name;
+
+  const errors: string[] = [];
+  const changes: RelationshipFieldChange[] = [];
+  for (const [field, raw] of values) {
+    const parsed = parseRelationshipFieldValue(field, raw);
+    if ('error' in parsed) {
+      errors.push(parsed.error);
+      continue;
+    }
+    const fieldErrors = relationshipFieldLinkErrors(
+      field,
+      elementId,
+      parsed.ids,
+      (id) => byId.get(id),
+      schemaName
+    );
+    if (fieldErrors.length > 0) {
+      errors.push(...fieldErrors);
+      continue;
+    }
+    const plan = planRelationshipFieldLinks({
+      sourceElementId: elementId,
+      relationshipTypeId: field.relationshipTypeId as string,
+      desiredIds: parsed.ids,
+      relationships,
+      elementExists: (id) => byId.has(id),
+    });
+    changes.push({ field, value: parsed.ids, ...plan });
+  }
+  return errors.length > 0 ? { errors } : { changes };
+}
+
+/**
+ * Write planned relationship field changes: the relationships in one
+ * transaction, then drop any copy of the fields' values an older MCP write
+ * left in the worldbuilding map (the value is the relationships).
+ */
+async function applyRelationshipFieldChanges(
+  ctx: McpContext,
+  username: string,
+  slug: string,
+  elementId: string,
+  changes: RelationshipFieldChange[]
+): Promise<void> {
+  const now = new Date().toISOString();
+  const add: Relationship[] = changes.flatMap(({ field, add: targets }) =>
+    targets.map((targetElementId) => ({
+      id: nanoid(),
+      sourceElementId: elementId,
+      targetElementId,
+      relationshipTypeId: field.relationshipTypeId as string,
+      createdAt: now,
+      updatedAt: now,
+    }))
+  );
+  await runtimeApplyRelationshipChanges(ctx, username, slug, {
+    removeIds: changes.flatMap((change) => change.remove.map((r) => r.id)),
+    add,
+  });
+  await runtimeDeleteWorldbuildingPaths(
+    ctx,
+    username,
+    slug,
+    elementId,
+    changes.map((change) => change.field.key)
+  );
+}
+
+function describeRelationshipChange(change: RelationshipFieldChange): string {
+  const parts: string[] = [];
+  if (change.add.length > 0) parts.push(`linked ${change.add.join(', ')}`);
+  if (change.remove.length > 0) {
+    parts.push(`unlinked ${change.remove.map((r) => r.targetElementId).join(', ')}`);
+  }
+  return `${change.field.key}: ${parts.length > 0 ? parts.join('; ') : 'unchanged'}`;
 }
 
 registerTool({
@@ -1383,7 +1496,11 @@ registerTool({
       'shown in the Identity panel) and the fields its template defines (keys from get_project_schemas). ' +
       'A bare key that the element\'s template defines always writes the template field, even "description". ' +
       'Prefix a key with "identity." or "worldbuilding." to choose explicitly. ' +
-      'Nested template fields use their dotted key ("description.terrain"); an object value merges into the nested fields.',
+      'Nested template fields use their dotted key ("description.terrain"); an object value merges into the nested fields. ' +
+      'A relationship field takes the element id, or an array of ids when the field is multiple, of the elements it links ' +
+      '(null or [] clears it): the field then links exactly those, as in the app. Each link is a relationship of the ' +
+      "field's relationshipTypeId from this element to the target, so it shows as a relationship and as a backlink on " +
+      "the target; ids left out are unlinked. Targets must exist and use the field's targetSchemaId when it has one.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -1397,7 +1514,8 @@ registerTool({
           description:
             'Key-value pairs of fields to update, keyed by template field key (e.g. "age", "occupation"). ' +
             'A bare "description" or "image" writes the identity field unless the element\'s template defines a field with that key. ' +
-            '"identity.description" / "identity.image" always write the identity field; "worldbuilding.<key>" always writes the template field.',
+            '"identity.description" / "identity.image" always write the identity field; "worldbuilding.<key>" always writes the template field. ' +
+            'Relationship fields take an element id or an array of element ids.',
           additionalProperties: true,
         },
       },
@@ -1432,11 +1550,35 @@ registerTool({
     }
 
     try {
-      const { identity: identityUpdates, worldbuilding: worldbuildingUpdates } =
-        routeWorldbuildingFields(
-          fields,
-          await readSchemaFieldKeys(ctx, username, slug, elementId, fields)
+      const schema = await readElementSchema(ctx, username, slug, elementId);
+      const routed = routeWorldbuildingFields(fields, schemaFieldKeys(schema));
+      const identityUpdates = routed.identity;
+      const { relationship: relationshipValues, rest: worldbuildingUpdates } =
+        splitRelationshipUpdates(routed.worldbuilding, relationshipFieldsOfSchema(schema));
+
+      // Check every relationship field before writing anything
+      let relationshipChanges: RelationshipFieldChange[] = [];
+      if (relationshipValues.size > 0) {
+        const planned = await planRelationshipFieldChanges(
+          ctx,
+          username,
+          slug,
+          elementId,
+          relationshipValues
         );
+        if ('errors' in planned) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error: nothing was changed. ${planned.errors.join(' ')}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+        relationshipChanges = planned.changes;
+      }
 
       // Apply updates using runtime-aware function
       if (Object.keys(identityUpdates).length > 0) {
@@ -1454,7 +1596,22 @@ registerTool({
         'worldbuilding'
       );
 
+      if (relationshipChanges.length > 0) {
+        await applyRelationshipFieldChanges(ctx, username, slug, elementId, relationshipChanges);
+      }
+
       const updatedFields = Object.keys(fields);
+      const relationshipFields = Object.fromEntries(
+        relationshipChanges.map((change) => [
+          change.field.key,
+          {
+            relationshipTypeId: change.field.relationshipTypeId,
+            value: change.value,
+            linked: change.add,
+            unlinked: change.remove.map((r) => r.targetElementId),
+          },
+        ])
+      );
 
       await activityService.record(db, {
         projectId: result.project.projectId,
@@ -1465,14 +1622,19 @@ registerTool({
         metadata: {
           action: 'update_worldbuilding',
           updatedFields,
+          ...(relationshipChanges.length > 0 ? { relationshipFields } : {}),
         },
       });
 
+      const relationshipSummary =
+        relationshipChanges.length > 0
+          ? ` (${relationshipChanges.map(describeRelationshipChange).join('; ')})`
+          : '';
       return {
         content: [
           {
             type: 'text',
-            text: `Updated ${updatedFields.length} fields for element "${elementId}": ${updatedFields.join(', ')}`,
+            text: `Updated ${updatedFields.length} fields for element "${elementId}": ${updatedFields.join(', ')}${relationshipSummary}`,
           },
         ],
         structuredContent: {
@@ -1481,6 +1643,7 @@ registerTool({
           updatedFields,
           identityFields: Object.keys(identityUpdates),
           worldbuildingFields: Object.keys(worldbuildingUpdates),
+          relationshipFields,
         },
       };
     } catch (err) {
@@ -1783,6 +1946,36 @@ registerTool({
 // delete_relationship tool
 // ============================================
 
+/**
+ * Older `update_worldbuilding` calls stored a relationship field's ids in the
+ * source element's worldbuilding map as well. Reads now derive the value from
+ * the relationships, but once one of the field's relationships is deleted,
+ * drop that copy so nothing (an export, a search) sees the old link.
+ * Best effort: the relationship is already gone, so a failure is only logged.
+ */
+async function dropLegacyRelationshipFieldValue(
+  ctx: McpContext,
+  username: string,
+  slug: string,
+  relationship: Relationship
+): Promise<void> {
+  // Field-managed relationship types all carry this prefix
+  // (RelationshipFieldService.stampRelationshipTypeId, schema-editing.ts).
+  if (!relationship.relationshipTypeId?.startsWith('fieldrel-')) return;
+  try {
+    const schema = await runtimeGetElementSchema(ctx, username, slug, relationship.sourceElementId);
+    const keys = relationshipFieldsOfSchema(schema)
+      .filter((field) => field.relationshipTypeId === relationship.relationshipTypeId)
+      .map((field) => field.key);
+    await runtimeDeleteWorldbuildingPaths(ctx, username, slug, relationship.sourceElementId, keys);
+  } catch (err) {
+    mcpMutLog.warn('Could not clear the relationship field value of a deleted relationship', {
+      relationshipId: relationship.id,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
 registerTool({
   tool: {
     name: 'delete_relationship',
@@ -1833,12 +2026,10 @@ registerTool({
 
       const removed = relationships[index];
 
-      // Remove the relationship from the array
-      const updatedRelationships = [
-        ...relationships.slice(0, index),
-        ...relationships.slice(index + 1),
-      ];
-      await runtimeReplaceAllRelationships(ctx, username, slug, updatedRelationships);
+      await runtimeApplyRelationshipChanges(ctx, username, slug, { removeIds: [relationshipId] });
+      // A relationship field's value is its relationships, so the field no
+      // longer lists the target; drop a stale copy an older write left too.
+      await dropLegacyRelationshipFieldValue(ctx, username, slug, removed);
 
       await activityService.record(db, {
         projectId: result.project.projectId,

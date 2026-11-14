@@ -251,6 +251,8 @@ Every worldbuilding element also has two **identity fields** outside its schema,
 
 Schema fields with a dotted key (`description.terrain`) are nested: `"description.terrain": "…"` writes that one field, and an object value (`"worldbuilding.description": { "terrain": "…" }`) merges into the nested fields instead of replacing them. `create_element` gives a new worldbuilding element the schema's empty field skeleton, as the app does, and a write creates any missing parent, so elements created before that still accept nested writes. A write is refused if a parent key holds plain text (an older template's `description` field). Every write updates the element's `lastModified`.
 
+A **relationship field** (`type: "relationship"`) takes the id of the element it links, or an array of ids when the field is `multiple`; `null` or `[]` clears it. As in the app, the field's value is its relationships, never a key in the element's data: `update_worldbuilding` makes the field link exactly the ids given, creating a relationship of the field's `relationshipTypeId` (source = the element, target = the linked element) for each new id and deleting the ones left out, so each link also shows as a backlink on its target. The ids are checked first, and nothing is written if any fails: each must be an existing worldbuilding element other than the element itself, of the field's `targetSchemaId` when it has one, and a field that isn't `multiple` takes at most one. `get_element_full` and `search_worldbuilding` read the field's value from the relationships, and `delete_relationship` (or removing the link in the app) takes the id out of the field.
+
 ### Available Resources
 
 Resources list the projects the user has authorized access to:

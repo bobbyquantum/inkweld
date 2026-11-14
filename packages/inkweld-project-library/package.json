@@ -1,7 +1,7 @@
 {
   "name": "@inkweld/project-library",
   "version": "0.1.0",
-  "description": "Time systems (calendars) and random generators shared by the Inkweld frontend and backend: their data model, validation and the generator roll engine.",
+  "description": "Time systems (calendars), random generators and relationship fields shared by the Inkweld frontend and backend: their data model, validation, the generator roll engine and the relationship-field link planner.",
   "private": true,
   "type": "module",
   "license": "MIT",

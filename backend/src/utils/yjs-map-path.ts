@@ -76,6 +76,51 @@ export function setYMapPath(root: Y.Map<unknown>, parts: string[], value: unknow
 }
 
 /**
+ * Delete the value at `parts` below `root`. A parent stored as a plain object
+ * (an older MCP write) is rewritten without the key. Returns whether anything
+ * was deleted; a path that isn't there is left alone.
+ */
+export function deleteYMapPath(root: Y.Map<unknown>, parts: string[]): boolean {
+  if (parts.length === 0) return false;
+  const YMap = yMapClass(root);
+  let container: Y.Map<unknown> = root;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const existing = container.get(parts[i]);
+    if (existing instanceof YMap) {
+      container = existing;
+      continue;
+    }
+    if (!isPlainObject(existing)) return false;
+    const rest = parts.slice(i + 1);
+    const copy = withoutPlainPath(existing, rest);
+    if (copy === null) return false;
+    container.set(parts[i], copy);
+    return true;
+  }
+  const key = parts.at(-1) as string;
+  if (!container.has(key)) return false;
+  container.delete(key);
+  return true;
+}
+
+/** A copy of `value` without the entry at `parts`, or null when it has none. */
+function withoutPlainPath(
+  value: Record<string, unknown>,
+  parts: string[]
+): Record<string, unknown> | null {
+  const [head, ...rest] = parts;
+  if (!(head in value)) return null;
+  if (rest.length === 0) {
+    const { [head]: _removed, ...kept } = value;
+    return kept;
+  }
+  const child = value[head];
+  if (!isPlainObject(child)) return null;
+  const childCopy = withoutPlainPath(child, rest);
+  return childCopy === null ? null : { ...value, [head]: childCopy };
+}
+
+/**
  * Expand worldbuilding-map updates into dotted paths, the way the frontend
  * saves them: a dotted key addresses a nested field, and a plain-object value
  * merges into the nested map one level deep instead of replacing it.

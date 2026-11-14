@@ -3,6 +3,7 @@ import { ElementType } from '@inkweld/index';
 import { type ElementTypeSchema, FieldType } from '@models/schema-types';
 import { ElementTreeService } from '@services/project/element-tree.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { RelationshipService } from '@services/relationship/relationship.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -41,6 +42,14 @@ const CHARACTER: ElementTypeSchema = {
           label: 'Mother',
           type: FieldType.RELATIONSHIP,
           relationshipTypeId: 'rel-mother',
+          targetSchemaId: 'character',
+        },
+        {
+          key: 'allies',
+          label: 'Allies',
+          type: FieldType.RELATIONSHIP,
+          relationshipTypeId: 'rel-allies',
+          multiple: true,
         },
         {
           key: 'origin',
@@ -66,6 +75,18 @@ describe('worldbuilding tools', () => {
     saveWorldbuildingData: ReturnType<typeof vi.fn>;
     saveIdentityData: ReturnType<typeof vi.fn>;
   };
+  type Rel = {
+    id: string;
+    sourceElementId: string;
+    targetElementId: string;
+    relationshipTypeId: string;
+  };
+  let relationships: Rel[];
+  let rels: {
+    getAllRelationships: () => Rel[];
+    addRelationship: ReturnType<typeof vi.fn>;
+    removeRelationships: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     state = createProjectStateFake([
@@ -73,7 +94,32 @@ describe('worldbuilding tools', () => {
         schemaId: 'character',
       }),
       element('ch1', 'Chapter One', ElementType.Item),
+      element('ma', 'Ma Voss', ElementType.Worldbuilding, 0, {
+        schemaId: 'character',
+      }),
+      element('dock', 'The Dock', ElementType.Worldbuilding, 0, {
+        schemaId: 'location',
+      }),
     ]);
+    relationships = [];
+    let nextId = 0;
+    rels = {
+      getAllRelationships: () => relationships,
+      addRelationship: vi.fn((source: string, target: string, type: string) => {
+        const rel = {
+          id: `r${++nextId}`,
+          sourceElementId: source,
+          targetElementId: target,
+          relationshipTypeId: type,
+        };
+        relationships = [...relationships, rel];
+        return rel;
+      }),
+      removeRelationships: vi.fn((ids: readonly string[]) => {
+        relationships = relationships.filter(r => !ids.includes(r.id));
+        return ids.length;
+      }),
+    };
     wb = {
       getSchemaById: vi.fn((id: string) =>
         id === 'character' ? CHARACTER : null
@@ -94,6 +140,7 @@ describe('worldbuilding tools', () => {
         { provide: ProjectStateService, useValue: state },
         { provide: ElementTreeService, useClass: ElementTreeService },
         { provide: WorldbuildingService, useValue: wb },
+        { provide: RelationshipService, useValue: rels },
       ],
     });
     tools = worldbuildingTools(injector, new ProjectToolContext(injector));
@@ -107,7 +154,7 @@ describe('worldbuilding tools', () => {
         name: 'Character',
         icon: 'person',
         description: 'People in the story',
-        fieldCount: 6,
+        fieldCount: 7,
       },
     ]);
 
@@ -120,7 +167,7 @@ describe('worldbuilding tools', () => {
       relationshipTypeId: 'rel-mother',
       multiple: false,
     });
-    expect(fields[5].nestedFields[0].key).toBe('town');
+    expect(fields[6].nestedFields[0].key).toBe('town');
 
     const missing = await callTool(tools, 'list_schemas', { schemaId: 'x' });
     expect(missing.error).toContain('No template');
@@ -199,7 +246,7 @@ describe('worldbuilding tools', () => {
     );
   });
 
-  it('rejects unknown fields, wrong types and relationship fields', async () => {
+  it('rejects unknown fields and wrong types', async () => {
     const unknown = await callTool(tools, 'update_worldbuilding', {
       elementId: 'elena',
       fields: { height: 170 },
@@ -212,7 +259,6 @@ describe('worldbuilding tools', () => {
       ['traits', 'brave', 'an array'],
       ['fullName', 5, 'a string'],
       ['origin', 'Harrow', 'an object'],
-      ['mother', 'el-2', 'create_relationship'],
     ] as const) {
       const { error } = await callTool(tools, 'update_worldbuilding', {
         elementId: 'elena',
@@ -220,6 +266,69 @@ describe('worldbuilding tools', () => {
       });
       expect(error).toContain(message);
     }
+    expect(wb.saveWorldbuildingData).not.toHaveBeenCalled();
+  });
+
+  it('links a relationship field through relationships, and unlinks ids left out', async () => {
+    const linked = await callTool(tools, 'update_worldbuilding', {
+      elementId: 'elena',
+      fields: { allies: ['ma', 'dock'], mother: 'ma' },
+    });
+    expect(linked.error).toBeUndefined();
+    expect(linked.data.linked).toEqual({
+      allies: { added: ['ma', 'dock'], removed: [] },
+      mother: { added: ['ma'], removed: [] },
+    });
+    expect(
+      relationships.map(r => [r.targetElementId, r.relationshipTypeId])
+    ).toEqual([
+      ['ma', 'rel-allies'],
+      ['dock', 'rel-allies'],
+      ['ma', 'rel-mother'],
+    ]);
+    expect(relationships.every(r => r.sourceElementId === 'elena')).toBe(true);
+    // Relationship values never go into the element's data map
+    expect(wb.saveWorldbuildingData).not.toHaveBeenCalled();
+
+    const read = await callTool(tools, 'get_worldbuilding', {
+      elementId: 'elena',
+    });
+    const readFields = read.data.tabs[0].fields as {
+      key: string;
+      value: unknown;
+    }[];
+    const values = Object.fromEntries(readFields.map(f => [f.key, f.value]));
+    expect(values['allies']).toEqual(['ma', 'dock']);
+    expect(values['mother']).toEqual(['ma']);
+
+    const unlinked = await callTool(tools, 'update_worldbuilding', {
+      elementId: 'elena',
+      fields: { allies: ['dock'], mother: null },
+    });
+    expect(unlinked.data.linked).toEqual({
+      allies: { added: [], removed: ['ma'] },
+      mother: { added: [], removed: ['ma'] },
+    });
+    expect(relationships.map(r => r.targetElementId)).toEqual(['dock']);
+  });
+
+  it('checks relationship field targets before writing anything', async () => {
+    for (const [fields, message] of [
+      [{ mother: 'dock' }, 'only links elements of template'],
+      [{ mother: ['ma', 'elena'] }, 'links a single element'],
+      [{ allies: ['ghost'] }, 'no element with id "ghost"'],
+      [{ allies: ['ch1'] }, 'links worldbuilding elements'],
+      [{ allies: [5] }, 'give an element id'],
+      [{ allies: ['ma'], age: 'old' }, 'a number'],
+    ] as const) {
+      const { error } = await callTool(tools, 'update_worldbuilding', {
+        elementId: 'elena',
+        fields,
+      });
+      expect(error).toContain(message);
+    }
+    expect(rels.addRelationship).not.toHaveBeenCalled();
+    expect(rels.removeRelationships).not.toHaveBeenCalled();
     expect(wb.saveWorldbuildingData).not.toHaveBeenCalled();
   });
 

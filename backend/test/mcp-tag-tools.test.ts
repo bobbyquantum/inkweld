@@ -322,6 +322,9 @@ describe('tag_element', () => {
       ['el-1', 'tag-draft'],
     ]);
     expect(textOf(json)).toBe('Tags on "Mara": Protagonist, Draft');
+    // Older versions wrote free-text `metadata.tags`, which list_tags can't see
+    const elements = project.doc.getArray('elements').toJSON() as Array<{ metadata?: unknown }>;
+    expect(elements.every((e) => e.metadata === undefined)).toBe(true);
     expect(activity).toHaveLength(1);
     expect(activity[0]).toMatchObject({
       eventType: 'element_tagged',

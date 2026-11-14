@@ -14,6 +14,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { type ElementRefTooltipData } from '@components/element-ref';
 import { ElementRefService } from '@components/element-ref/element-ref.service';
 import { type Element, ElementType } from '@inkweld/index';
+import { planRelationshipFieldLinks } from '@inkweld/project-library';
 import { TranslocoModule } from '@jsverse/transloco';
 import { type FieldSchema } from '@models/schema-types';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
@@ -192,31 +193,31 @@ export class RelationshipFieldComponent {
     this.applyLinks(this.linkedElementIds().filter(id => id !== elementId));
   }
 
-  /** Diff the desired element ids against current relationships and commit. */
+  /**
+   * Diff the desired element ids against current relationships and commit,
+   * through the planner the MCP `update_worldbuilding` tools also use.
+   */
   private applyLinks(desiredIds: string[]): void {
     const field = this.field();
     const typeId = field.relationshipTypeId;
     if (!typeId) return;
 
-    const current = this.linkedRelationships();
-    const currentIds = new Set(
-      current.map(r => r.targetElementId).filter(id => this.elementExists(id))
-    );
-    const desired = new Set(desiredIds.filter(id => this.elementExists(id)));
-
-    for (const rel of current) {
-      if (!desired.has(rel.targetElementId)) {
-        this.relationshipService.removeRelationship(rel.id);
-      }
+    const plan = planRelationshipFieldLinks({
+      sourceElementId: this.sourceElementId(),
+      relationshipTypeId: typeId,
+      desiredIds,
+      relationships: this.linkedRelationships(),
+      elementExists: id => this.elementExists(id),
+    });
+    for (const rel of plan.remove) {
+      this.relationshipService.removeRelationship(rel.id);
     }
-    for (const id of desiredIds) {
-      if (!currentIds.has(id) && this.elementExists(id)) {
-        this.relationshipService.addRelationship(
-          this.sourceElementId(),
-          id,
-          typeId
-        );
-      }
+    for (const id of plan.add) {
+      this.relationshipService.addRelationship(
+        this.sourceElementId(),
+        id,
+        typeId
+      );
     }
 
     this.linksChange.emit(desiredIds);
