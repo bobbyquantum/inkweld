@@ -287,6 +287,16 @@ export function worldbuildingTools(
         }
         const linked: Record<string, { added: string[]; removed: string[] }> =
           {};
+        if (links.size > 0) {
+          // The relationship service writes to whichever project is open, so
+          // make sure it is still this one; nothing below awaits.
+          const current = ctx.project();
+          if (current.username !== username || current.slug !== slug) {
+            throw new ToolError(
+              'The open project changed during this update. No relationships were changed. Run update_worldbuilding again.'
+            );
+          }
+        }
         for (const [field, ids] of links) {
           linked[field.key] = applyLinks(element.id, field, ids);
         }

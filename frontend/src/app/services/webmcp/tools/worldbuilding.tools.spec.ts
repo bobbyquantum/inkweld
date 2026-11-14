@@ -312,6 +312,20 @@ describe('worldbuilding tools', () => {
     expect(relationships.map(r => r.targetElementId)).toEqual(['dock']);
   });
 
+  it('writes no links when the open project changed during the update', async () => {
+    const project = state.project();
+    // Switches the open project while the field data is saved
+    wb.saveWorldbuildingData.mockImplementation(() => {
+      if (project) state.project.set({ ...project, slug: 'other' });
+    });
+    const { error } = await callTool(tools, 'update_worldbuilding', {
+      elementId: 'elena',
+      fields: { age: 40, allies: ['ma'] },
+    });
+    expect(error).toContain('The open project changed');
+    expect(rels.addRelationship).not.toHaveBeenCalled();
+  });
+
   it('checks relationship field targets before writing anything', async () => {
     for (const [fields, message] of [
       [{ mother: 'dock' }, 'only links elements of template'],

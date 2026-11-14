@@ -1359,50 +1359,44 @@ This properly handles positional hierarchy - subtrees move with their parents.`,
 /**
  * The element's template, used to tell a template field named
  * `description`/`image` from the identity field and to find its relationship
- * fields. Best-effort: an unreadable schema falls back to the identity routing
- * and plain map writes.
+ * fields. Null when the element has none; a failed read fails the update, so
+ * relationship ids are never written into the map as plain values.
  */
-async function readElementSchema(
+function readElementSchema(
   ctx: McpContext,
   username: string,
   slug: string,
   elementId: string
 ): Promise<unknown> {
-  try {
-    return await runtimeGetElementSchema(ctx, username, slug, elementId);
-  } catch (err) {
-    mcpMutLog.warn(`Could not read the schema of ${elementId}; using identity routing`, {
-      error: err instanceof Error ? err.message : String(err),
-    });
-    return null;
-  }
+  return runtimeGetElementSchema(ctx, username, slug, elementId);
 }
 
-/** What `update_worldbuilding` changes for one relationship field. */
-interface RelationshipFieldChange {
+/** The ids a relationship field should link, once checked. */
+interface RelationshipFieldTarget {
   field: RelationshipFieldDefinition;
-  /** The ids the field links after the update. */
   value: string[];
+}
+
+/** What `update_worldbuilding` changed for one relationship field. */
+interface RelationshipFieldChange extends RelationshipFieldTarget {
   add: string[];
   remove: Relationship[];
 }
 
 /**
- * Check the values given for relationship fields and plan their
- * relationships, as the app's relationship field does
- * (`planRelationshipFieldLinks`). Returns every problem found, so nothing is
+ * Check the values given for relationship fields, as the element picker does
+ * (`relationshipFieldLinkErrors`). Returns every problem found, so nothing is
  * written unless all of them pass.
  */
-async function planRelationshipFieldChanges(
+async function checkRelationshipFieldValues(
   ctx: McpContext,
   username: string,
   slug: string,
   elementId: string,
   values: Map<RelationshipFieldDefinition, unknown>
-): Promise<{ changes: RelationshipFieldChange[] } | { errors: string[] }> {
-  const [elements, relationships, schemas] = await Promise.all([
+): Promise<{ targets: RelationshipFieldTarget[]; elementIds: Set<string> } | { errors: string[] }> {
+  const [elements, schemas] = await Promise.all([
     runtimeGetElements(ctx, username, slug),
-    runtimeGetRelationships(ctx, username, slug),
     runtimeGetSchemas(ctx, username, slug).catch(() => []),
   ]);
   const byId = new Map(elements.map((e) => [e.id, e]));
@@ -1410,7 +1404,7 @@ async function planRelationshipFieldChanges(
   const schemaName = (id: string) => schemas.find((schema) => schema.id === id)?.name;
 
   const errors: string[] = [];
-  const changes: RelationshipFieldChange[] = [];
+  const targets: RelationshipFieldTarget[] = [];
   for (const [field, raw] of values) {
     const parsed = parseRelationshipFieldValue(field, raw);
     if ('error' in parsed) {
@@ -1424,56 +1418,63 @@ async function planRelationshipFieldChanges(
       (id) => byId.get(id),
       schemaName
     );
-    if (fieldErrors.length > 0) {
-      errors.push(...fieldErrors);
-      continue;
-    }
-    const plan = planRelationshipFieldLinks({
-      sourceElementId: elementId,
-      relationshipTypeId: field.relationshipTypeId as string,
-      desiredIds: parsed.ids,
-      relationships,
-      elementExists: (id) => byId.has(id),
-    });
-    changes.push({ field, value: parsed.ids, ...plan });
+    if (fieldErrors.length > 0) errors.push(...fieldErrors);
+    else targets.push({ field, value: parsed.ids });
   }
-  return errors.length > 0 ? { errors } : { changes };
+  return errors.length > 0 ? { errors } : { targets, elementIds: new Set(byId.keys()) };
 }
 
 /**
- * Write planned relationship field changes: the relationships in one
- * transaction, then drop any copy of the fields' values an older MCP write
- * left in the worldbuilding map (the value is the relationships).
+ * Make each relationship field link exactly its target ids, as the app's
+ * relationship field does (`planRelationshipFieldLinks`). The plan is made
+ * inside the transaction that applies it, against the relationships as they
+ * are then, so two updates of a single-valued field can't both add a link.
+ * Then drop any copy of the fields' values an older MCP write left in the
+ * worldbuilding map (the value is the relationships).
  */
 async function applyRelationshipFieldChanges(
   ctx: McpContext,
   username: string,
   slug: string,
   elementId: string,
-  changes: RelationshipFieldChange[]
-): Promise<void> {
+  targets: RelationshipFieldTarget[],
+  elementExists: (id: string) => boolean
+): Promise<RelationshipFieldChange[]> {
   const now = new Date().toISOString();
-  const add: Relationship[] = changes.flatMap(({ field, add: targets }) =>
-    targets.map((targetElementId) => ({
-      id: nanoid(),
-      sourceElementId: elementId,
-      targetElementId,
-      relationshipTypeId: field.relationshipTypeId as string,
-      createdAt: now,
-      updatedAt: now,
-    }))
-  );
-  await runtimeApplyRelationshipChanges(ctx, username, slug, {
-    removeIds: changes.flatMap((change) => change.remove.map((r) => r.id)),
-    add,
+  let changes: RelationshipFieldChange[] = [];
+  await runtimeApplyRelationshipChanges(ctx, username, slug, (current) => {
+    changes = targets.map((target) => ({
+      ...target,
+      ...planRelationshipFieldLinks({
+        sourceElementId: elementId,
+        relationshipTypeId: target.field.relationshipTypeId as string,
+        desiredIds: target.value,
+        relationships: current,
+        elementExists,
+      }),
+    }));
+    return {
+      removeIds: changes.flatMap((change) => change.remove.map((r) => r.id)),
+      add: changes.flatMap(({ field, add }) =>
+        add.map((targetElementId) => ({
+          id: nanoid(),
+          sourceElementId: elementId,
+          targetElementId,
+          relationshipTypeId: field.relationshipTypeId as string,
+          createdAt: now,
+          updatedAt: now,
+        }))
+      ),
+    };
   });
   await runtimeDeleteWorldbuildingPaths(
     ctx,
     username,
     slug,
     elementId,
-    changes.map((change) => change.field.key)
+    targets.map((target) => target.field.key)
   );
+  return changes;
 }
 
 function describeRelationshipChange(change: RelationshipFieldChange): string {
@@ -1557,27 +1558,28 @@ registerTool({
         splitRelationshipUpdates(routed.worldbuilding, relationshipFieldsOfSchema(schema));
 
       // Check every relationship field before writing anything
-      let relationshipChanges: RelationshipFieldChange[] = [];
+      let relationshipTargets: RelationshipFieldTarget[] = [];
+      let elementIds = new Set<string>();
       if (relationshipValues.size > 0) {
-        const planned = await planRelationshipFieldChanges(
+        const checked = await checkRelationshipFieldValues(
           ctx,
           username,
           slug,
           elementId,
           relationshipValues
         );
-        if ('errors' in planned) {
+        if ('errors' in checked) {
           return {
             content: [
               {
                 type: 'text',
-                text: `Error: nothing was changed. ${planned.errors.join(' ')}`,
+                text: `Error: nothing was changed. ${checked.errors.join(' ')}`,
               },
             ],
             isError: true,
           };
         }
-        relationshipChanges = planned.changes;
+        ({ targets: relationshipTargets, elementIds } = checked);
       }
 
       // Apply updates using runtime-aware function
@@ -1596,9 +1598,17 @@ registerTool({
         'worldbuilding'
       );
 
-      if (relationshipChanges.length > 0) {
-        await applyRelationshipFieldChanges(ctx, username, slug, elementId, relationshipChanges);
-      }
+      const relationshipChanges =
+        relationshipTargets.length > 0
+          ? await applyRelationshipFieldChanges(
+              ctx,
+              username,
+              slug,
+              elementId,
+              relationshipTargets,
+              (id) => elementIds.has(id)
+            )
+          : [];
 
       const updatedFields = Object.keys(fields);
       const relationshipFields = Object.fromEntries(

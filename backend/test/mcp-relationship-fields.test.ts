@@ -15,6 +15,7 @@ import { yjsService } from '../src/services/yjs.service';
 import { activityService } from '../src/services/activity.service';
 import {
   splitRelationshipUpdates,
+  withRelationshipFieldValues,
   worldbuildingDefaults,
 } from '../src/mcp/tools/worldbuilding-fields';
 import { deleteYMapPath } from '../src/utils/yjs-map-path';
@@ -275,6 +276,31 @@ describe('relationship fields over MCP', () => {
     ]);
   });
 
+  it('keeps a single-valued field to one link when two updates race', async () => {
+    const project = seedProject();
+
+    await Promise.all([update({ madeWith: 'buggy' }), update({ madeWith: 'mara' })]);
+
+    expect(
+      project.relationships().filter((r) => r.relationshipTypeId === 'fieldrel-made')
+    ).toHaveLength(1);
+  });
+
+  it('writes nothing when the schema cannot be read', async () => {
+    const project = seedProject({ schemaCopy: false });
+    const getSchemas = spyOn(yjsService, 'getDocument');
+    const serve = getSchemas.getMockImplementation();
+    getSchemas.mockImplementation(((docId: string) =>
+      docId === PROJECT_DOC
+        ? Promise.reject(new Error('storage unavailable'))
+        : serve?.(docId)) as never);
+
+    const result = await update({ partOf: ['buggy'] });
+
+    expect(result.isError).toBe(true);
+    expect(project.worldbuilding('tyre')).toEqual({ schemaId: 'asset' });
+  });
+
   it('rejects missing, non-worldbuilding and self targets, and values that are not ids', async () => {
     seedProject();
 
@@ -360,6 +386,28 @@ describe('relationship field helpers', () => {
       ['group.leader', 'b'],
     ]);
     expect(rest).toEqual({ group: { name: 'G' }, age: 3 });
+  });
+
+  it('withRelationshipFieldValues never follows a field key into a prototype', () => {
+    const schema = {
+      tabs: [
+        {
+          fields: [
+            { key: '__proto__.polluted', type: 'relationship', relationshipTypeId: 't' },
+            { key: 'constructor.polluted', type: 'relationship', relationshipTypeId: 't' },
+          ],
+        },
+      ],
+    };
+    withRelationshipFieldValues({}, schema, 'tyre', [link('r1', 'buggy', 't')]);
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+  });
+
+  it('withRelationshipFieldValues gives a field without a relationship type no links', () => {
+    const schema = { tabs: [{ fields: [{ key: 'partOf', type: 'relationship' }] }] };
+    expect(withRelationshipFieldValues({ partOf: ['truck'] }, schema, 'tyre', [])).toEqual({
+      partOf: [],
+    });
   });
 
   it('worldbuildingDefaults never seeds a relationship field, even from defaultValues', () => {

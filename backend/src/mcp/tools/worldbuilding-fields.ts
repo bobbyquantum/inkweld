@@ -196,12 +196,24 @@ export function splitRelationshipUpdates(
   return { relationship, rest };
 }
 
-/** Set `value` at a dotted `path` of a plain object, unless a parent holds a non-object. */
+/** Path segments that would reach an object's prototype instead of its own data. */
+const UNSAFE_PATH_SEGMENTS: ReadonlySet<string> = new Set([
+  '__proto__',
+  'constructor',
+  'prototype',
+]);
+
+/**
+ * Set `value` at a dotted `path` of a plain object, unless a parent holds a
+ * non-object. Field keys come from project data, so a path through
+ * `__proto__` and the like is skipped and only own properties are followed.
+ */
 function setPlainPath(target: Record<string, unknown>, path: string, value: unknown): void {
   const parts = path.split('.');
+  if (parts.some((part) => UNSAFE_PATH_SEGMENTS.has(part))) return;
   let container = target;
   for (const part of parts.slice(0, -1)) {
-    const existing = container[part];
+    const existing = Object.hasOwn(container, part) ? container[part] : undefined;
     if (existing === undefined || existing === null) {
       const child: Record<string, unknown> = {};
       container[part] = child;
@@ -229,12 +241,11 @@ export function withRelationshipFieldValues(
   elementExists: (id: string) => boolean = () => true
 ): Record<string, unknown> {
   for (const field of relationshipFieldsOfSchema(schema)) {
-    if (!field.relationshipTypeId) continue;
-    setPlainPath(
-      data,
-      field.key,
-      linkedTargetIds(sourceElementId, field.relationshipTypeId, relationships, elementExists)
-    );
+    // A field without a relationship type links nothing yet
+    const value = field.relationshipTypeId
+      ? linkedTargetIds(sourceElementId, field.relationshipTypeId, relationships, elementExists)
+      : [];
+    setPlainPath(data, field.key, value);
   }
   return data;
 }
