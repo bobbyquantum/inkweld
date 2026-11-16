@@ -11,6 +11,7 @@ import { getDatabase } from '../src/db/index';
 import { users, projects } from '../src/db/schema/index';
 import { TEST_PASSWORDS } from './test-credentials';
 import { MAX_MEDIA_UPLOAD_BYTES } from '../src/utils/upload';
+import { getStorageService } from '../src/services/storage.service';
 
 describe('Media Routes', () => {
   let baseUrl: string;
@@ -217,6 +218,25 @@ describe('Media Routes', () => {
     expect(response.status).toBe(400);
     const data = (await json()) as { message: string };
     expect(data.message).toContain('The uploaded file is empty (0 bytes)');
+  });
+
+  it.each(['evil.xml', 'evil.xsl', 'evil.svg', 'evil.html', 'evil.xhtml'])(
+    'serves %s as an attachment, never inline',
+    async (name) => {
+      // Seeded straight into storage: sync and archive import write files
+      // without the upload route's type check, so any name can be stored.
+      await getStorageService().saveProjectFile(username, slug, name, '<x/>');
+
+      const { response } = await client.request(`/api/v1/media/${username}/${slug}/${name}`);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-disposition')).toStartWith('attachment');
+      expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+    }
+  );
+
+  it('serves an image inline', async () => {
+    const { response } = await client.request(`/api/v1/media/${username}/${slug}/test-image.png`);
+    expect(response.headers.get('content-disposition')).toStartWith('inline');
   });
 
   it('should reject unsupported file types', async () => {

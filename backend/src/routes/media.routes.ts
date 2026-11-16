@@ -374,8 +374,17 @@ mediaRoutes.openapi(getMediaRoute, async (c) => {
 
   const uint8Array = new Uint8Array(data);
 
-  // Serve potentially dangerous content types as attachment instead of inline
-  const dangerousTypes = ['image/svg+xml', 'text/html', 'application/xhtml+xml', 'text/xml'];
+  // Serve potentially dangerous content types as attachment instead of inline.
+  // XML can carry XHTML script, and mime-types 3 maps `.xml`/`.xsl` to
+  // `application/xml` (2.x gave `text/xml`), so both spellings are listed.
+  const dangerousTypes = [
+    'image/svg+xml',
+    'text/html',
+    'application/xhtml+xml',
+    'text/xml',
+    'application/xml',
+    'application/xslt+xml',
+  ];
   const disposition = dangerousTypes.includes(contentType) ? 'attachment' : 'inline';
 
   return c.body(uint8Array, 200, {
