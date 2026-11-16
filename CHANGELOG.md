@@ -10,8 +10,8 @@ titles.
 
 ### Bug Fixes
 
-* **mcp:** relationship fields set over MCP now create the relationship and its backlink ([#1763](https://github.com/bobbyquantum/inkweld/issues/1763)) ([a0eeda1](https://github.com/bobbyquantum/inkweld/commit/a0eeda1e9673ae40b0cbc1e2e6973ecbf88d2a2c))
-* **templates:** parents set in a character's Family section now list their Children (thanks [@suminksudhi](https://github.com/suminksudhi) for reporting) ([a66659f](https://github.com/bobbyquantum/inkweld/commit/a66659ff8b840bd923ab3eb83b53f63c384a20cd))
+* 🤖 **mcp:** relationship fields set over MCP now create the relationship and its backlink ([#1763](https://github.com/bobbyquantum/inkweld/issues/1763)) ([a0eeda1](https://github.com/bobbyquantum/inkweld/commit/a0eeda1e9673ae40b0cbc1e2e6973ecbf88d2a2c))
+* 🧩 **templates:** parents set in a character's Family section now list their Children (thanks [@suminksudhi](https://github.com/suminksudhi) for reporting) ([a66659f](https://github.com/bobbyquantum/inkweld/commit/a66659ff8b840bd923ab3eb83b53f63c384a20cd))
 
 ## [1.0.0-beta.7](https://github.com/bobbyquantum/inkweld/compare/v1.0.0-beta.6...v1.0.0-beta.7) (2026-11-09)
 
