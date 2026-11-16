@@ -139,7 +139,7 @@ A **Relationship** field lets an element point at other elements straight from i
 | Setting                     | What it does                                                                                                                                            |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linked element template** | Restricts which elements can be picked. Choose a template (say, Character) to only offer elements of that type, or leave it on **Any element**.         |
-| **Backlink label**          | What the linked element sees in its own Relationships section, such as **Child of**. If left blank, the field's label is used.                          |
+| **Backlink label**          | What the linked element sees in its own Relationships section: a **Mother** field might use **Children**. If left blank, the field's label is used.     |
 | **Allow multiple**          | Off: the field holds a single element, and choosing another replaces the first. On: you can link several elements (a **Children** field, for instance). |
 
 In an element, the field shows the linked elements as small cards with a **Link element** / **Change element** button and a **Remove link** (×) button. A link whose element has been deleted shows as **Deleted element** until you remove it.

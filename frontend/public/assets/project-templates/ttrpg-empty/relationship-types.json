@@ -1269,7 +1269,7 @@
   {
     "id": "fieldrel-character-mother",
     "name": "Mother",
-    "inverseLabel": "Child of",
+    "inverseLabel": "Children",
     "showInverse": true,
     "category": "Familial",
     "icon": "face_3",
@@ -1294,7 +1294,7 @@
   {
     "id": "fieldrel-character-father",
     "name": "Father",
-    "inverseLabel": "Child of",
+    "inverseLabel": "Children",
     "showInverse": true,
     "category": "Familial",
     "icon": "face_3",

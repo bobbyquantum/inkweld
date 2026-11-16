@@ -325,8 +325,8 @@
   },
   {
     "id": "rel-library-myth",
-    "sourceElementId": "lore-library",
-    "targetElementId": "myth-first-accord",
+    "sourceElementId": "myth-first-accord",
+    "targetElementId": "lore-library",
     "relationshipTypeId": "mentioned",
     "note": "The Legend of the First Accord mentions a hidden library.",
     "createdAt": "2025-06-01T00:00:00.000Z",
@@ -550,8 +550,8 @@
   },
   {
     "id": "rel-eldoria-ironhold",
-    "sourceElementId": "country-eldoria",
-    "targetElementId": "settle-ironhold",
+    "sourceElementId": "settle-ironhold",
+    "targetElementId": "country-eldoria",
     "relationshipTypeId": "part-of",
     "note": "Ironhold lies within Eldoria's nominal borders, though the clans claim autonomy.",
     "createdAt": "2025-06-01T00:00:00.000Z",
@@ -577,8 +577,8 @@
   },
   {
     "id": "rel-accord-festival",
-    "sourceElementId": "tradition-festival",
-    "targetElementId": "event-accord",
+    "sourceElementId": "event-accord",
+    "targetElementId": "tradition-festival",
     "relationshipTypeId": "caused",
     "note": "The Festival of the Silver Moon commemorates the Accord's signing.",
     "createdAt": "2025-06-01T00:00:00.000Z",
