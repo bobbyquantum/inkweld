@@ -96,7 +96,7 @@
     "relationshipTargetAny": "Any element",
     "relationshipTargetHint": "Restrict which elements can be linked",
     "relationshipInverseLabel": "Backlink label",
-    "relationshipInversePlaceholder": "e.g. Child of",
+    "relationshipInversePlaceholder": "e.g. Children, for a Mother field",
     "relationshipMultipleLabel": "Allow multiple",
     "saving": "Saving...",
     "saveChanges": "Save Changes",

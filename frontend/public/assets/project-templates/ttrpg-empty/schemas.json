@@ -1232,7 +1232,7 @@
             "label": "Mother",
             "type": "relationship",
             "targetSchemaId": "character-v1",
-            "inverseLabel": "Child of",
+            "inverseLabel": "Children",
             "relationshipTypeId": "fieldrel-character-mother",
             "layout": {
               "span": 12
@@ -1243,7 +1243,7 @@
             "label": "Father",
             "type": "relationship",
             "targetSchemaId": "character-v1",
-            "inverseLabel": "Child of",
+            "inverseLabel": "Children",
             "relationshipTypeId": "fieldrel-character-father",
             "layout": {
               "span": 12
