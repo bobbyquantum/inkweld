@@ -619,6 +619,42 @@ describe('WorldbuildingService', () => {
       expect(schemaId).toBe('character-v1');
     });
 
+    it('never copies a default value for a relationship field into the data map', async () => {
+      const schema: ElementTypeSchema = {
+        ...structuredClone(mockCharacterSchema),
+        id: 'character-rel',
+        defaultValues: { age: 42, mother: ['el-x'] },
+      };
+      schema.tabs[0].fields.push({
+        key: 'mother',
+        label: 'Mother',
+        type: 'relationship',
+        relationshipTypeId: 'fieldrel-mother',
+      });
+      service.saveSchemaToLibrary(schema);
+      const element = {
+        id: 'element-rel-defaults',
+        type: ElementType.Worldbuilding,
+        schemaId: 'character-rel',
+        name: 'Test Character',
+        parentId: null,
+        order: 0,
+        level: 0,
+        expandable: false,
+        version: 1,
+        metadata: {},
+      } as unknown as Element;
+      await service.initializeWorldbuildingElement(element, 'testuser', 'rel');
+
+      const data = await service.getWorldbuildingData(
+        'element-rel-defaults',
+        'testuser',
+        'rel'
+      );
+      expect(data?.['age']).toBe(42);
+      expect(data).not.toHaveProperty('mother');
+    });
+
     it('should retrieve full schema for element from library', async () => {
       const elementId = 'element-full-schema';
       const username = 'testuser';

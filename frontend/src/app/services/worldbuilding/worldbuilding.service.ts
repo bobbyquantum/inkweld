@@ -1,5 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
+import { relationshipFieldsOfSchema } from '@inkweld/project-library';
 import {
   APPEARANCE_DELETE,
   type BackgroundMode,
@@ -810,8 +811,13 @@ export class WorldbuildingService {
         dataMap.set('schemaId', schema.id);
         this.writeSchemaCopy(connection.schemaMap, schema);
         if (schema.defaultValues) {
+          // A relationship field's value is its relationships, never a key in
+          // the data map, so a default for one is not copied.
+          const relationshipKeys = new Set(
+            relationshipFieldsOfSchema(schema).map(field => field.key)
+          );
           Object.entries(schema.defaultValues).forEach(([key, value]) => {
-            dataMap.set(key, value);
+            if (!relationshipKeys.has(key)) dataMap.set(key, value);
           });
         }
 

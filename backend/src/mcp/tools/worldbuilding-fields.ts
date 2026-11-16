@@ -7,6 +7,12 @@
  * field whose key is also an identity key (`description` in older templates),
  * so a bare key is resolved against the element's schema first.
  */
+import {
+  type FieldRelationshipRecord,
+  linkedTargetIds,
+  type RelationshipFieldDefinition,
+  relationshipFieldsOfSchema,
+} from '@inkweld/project-library';
 import { flattenToPaths } from '../../utils/yjs-map-path';
 
 /** Identity keys a bare field name can address when the schema doesn't claim it. */
@@ -118,7 +124,8 @@ function addFieldDefault(
  * mirroring the frontend's `initializeWorldbuildingElement`: schema default
  * values, an empty value for every template field (a nested map for dotted
  * keys, `[]` for arrays), and the schema's default appearance and image.
- * Relationship fields live in the relationships store and are skipped.
+ * Relationship fields live in the relationships store and are skipped, a
+ * default value for one included.
  */
 export function worldbuildingDefaults(schema: unknown): WorldbuildingDefaults {
   const s = (schema ?? {}) as {
@@ -126,8 +133,11 @@ export function worldbuildingDefaults(schema: unknown): WorldbuildingDefaults {
     defaultAppearance?: unknown;
     defaultImage?: unknown;
   };
+  const relationshipKeys = new Set(relationshipFieldsOfSchema(schema).map((field) => field.key));
   const worldbuilding: Record<string, unknown> = isRecord(s.defaultValues)
-    ? { ...s.defaultValues }
+    ? Object.fromEntries(
+        Object.entries(s.defaultValues).filter(([key]) => !relationshipKeys.has(key))
+      )
     : {};
   const nestedParents = new Set<string>();
   for (const { key, type } of schemaFields(schema)) {
@@ -143,4 +153,99 @@ export function worldbuildingDefaults(schema: unknown): WorldbuildingDefaults {
   if (typeof s.defaultImage === 'string' && s.defaultImage) identity.image = s.defaultImage;
 
   return { worldbuilding, identity };
+}
+
+export interface SplitRelationshipUpdates {
+  /** Values given for relationship fields, by field. */
+  relationship: Map<RelationshipFieldDefinition, unknown>;
+  /** Everything else, for the worldbuilding map. */
+  rest: Record<string, unknown>;
+}
+
+/**
+ * Take the values for relationship fields out of `update_worldbuilding`'s
+ * worldbuilding-map updates. A relationship field's value is its
+ * relationships, never a key in the map. A field keyed `group.link` is found
+ * both as a dotted key and inside an object value for `group`.
+ */
+export function splitRelationshipUpdates(
+  updates: Record<string, unknown>,
+  fields: readonly RelationshipFieldDefinition[]
+): SplitRelationshipUpdates {
+  const byKey = new Map(fields.map((field) => [field.key, field]));
+  const relationship = new Map<RelationshipFieldDefinition, unknown>();
+  const rest: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(updates)) {
+    const field = byKey.get(key);
+    if (field) {
+      relationship.set(field, value);
+      continue;
+    }
+    if (!isRecord(value)) {
+      rest[key] = value;
+      continue;
+    }
+    const kept: Record<string, unknown> = {};
+    for (const [childKey, childValue] of Object.entries(value)) {
+      const child = byKey.get(`${key}.${childKey}`);
+      if (child) relationship.set(child, childValue);
+      else kept[childKey] = childValue;
+    }
+    if (Object.keys(kept).length > 0 || Object.keys(value).length === 0) rest[key] = kept;
+  }
+  return { relationship, rest };
+}
+
+/** Path segments that would reach an object's prototype instead of its own data. */
+const UNSAFE_PATH_SEGMENTS: ReadonlySet<string> = new Set([
+  '__proto__',
+  'constructor',
+  'prototype',
+]);
+
+/**
+ * Set `value` at a dotted `path` of a plain object, unless a parent holds a
+ * non-object. Field keys come from project data, so a path through
+ * `__proto__` and the like is skipped and only own properties are followed.
+ */
+function setPlainPath(target: Record<string, unknown>, path: string, value: unknown): void {
+  const parts = path.split('.');
+  if (parts.some((part) => UNSAFE_PATH_SEGMENTS.has(part))) return;
+  let container = target;
+  for (const part of parts.slice(0, -1)) {
+    const existing = Object.hasOwn(container, part) ? container[part] : undefined;
+    if (existing === undefined || existing === null) {
+      const child: Record<string, unknown> = {};
+      container[part] = child;
+      container = child;
+    } else if (isRecord(existing)) {
+      container = existing;
+    } else {
+      return;
+    }
+  }
+  container[parts.at(-1) as string] = value;
+}
+
+/**
+ * Put the value of each of the schema's relationship fields into `data` (an
+ * element's worldbuilding map as plain JSON): the ids of the elements it
+ * links, read from the relationships store. Any copy an older MCP write left
+ * in the map is replaced, so reads always match the relationships.
+ */
+export function withRelationshipFieldValues(
+  data: Record<string, unknown>,
+  schema: unknown,
+  sourceElementId: string,
+  relationships: readonly FieldRelationshipRecord[],
+  elementExists: (id: string) => boolean = () => true
+): Record<string, unknown> {
+  for (const field of relationshipFieldsOfSchema(schema)) {
+    // A field without a relationship type links nothing yet
+    const value = field.relationshipTypeId
+      ? linkedTargetIds(sourceElementId, field.relationshipTypeId, relationships, elementExists)
+      : [];
+    setPlainPath(data, field.key, value);
+  }
+  return data;
 }

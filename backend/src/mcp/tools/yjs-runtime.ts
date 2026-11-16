@@ -15,7 +15,12 @@ import { parseXmlToYjsNodes } from '@inkweld/prosemirror/xml';
 import { xmlContentToText } from '../../utils/xml-utils';
 import { YjsWorkerService, type YjsWorkerContext } from '../../services/yjs-worker.service';
 import { logger } from '../../services/logger.service';
-import { expandWorldbuildingPaths, setYMapPath, yMapPathConflict } from '../../utils/yjs-map-path';
+import {
+  deleteYMapPath,
+  expandWorldbuildingPaths,
+  setYMapPath,
+  yMapPathConflict,
+} from '../../utils/yjs-map-path';
 import { openEditableDocument } from '../../services/yjs-document-access';
 import {
   type ElementTag,
@@ -538,6 +543,82 @@ export async function addRelationship(
       relationshipsArray.push([relationship]);
     });
   }
+}
+
+/** Relationships to remove (by id) and to add. */
+export interface RelationshipChanges {
+  removeIds?: readonly string[];
+  add?: readonly Relationship[];
+}
+
+/**
+ * Remove relationships by id and add new ones in one transaction on the
+ * project elements doc (works on both runtimes). Removing by id, rather than
+ * replacing the whole array, leaves relationships others add meanwhile alone.
+ * `changes` may be a function of the relationships as they are inside the
+ * transaction, so a read-then-write is planned against current state.
+ * Returns the relationships actually removed.
+ */
+export async function applyRelationshipChanges(
+  ctx: McpContext,
+  username: string,
+  slug: string,
+  changes: RelationshipChanges | ((current: readonly Relationship[]) => RelationshipChanges)
+): Promise<Relationship[]> {
+  if (
+    typeof changes !== 'function' &&
+    (changes.removeIds ?? []).length === 0 &&
+    (changes.add ?? []).length === 0
+  ) {
+    return [];
+  }
+
+  const editable = await openEditableDocument(`${username}:${slug}:elements/`, {
+    env: ctx.env,
+    authToken: ctx.authToken,
+  });
+  const relationshipsArray = editable.doc.getArray<Relationship>('relationships');
+  const removed: Relationship[] = [];
+  editable.doc.transact(() => {
+    const planned = typeof changes === 'function' ? changes(relationshipsArray.toArray()) : changes;
+    const removeIds = new Set(planned.removeIds ?? []);
+    // From the end, so earlier indexes stay valid while deleting.
+    for (let index = relationshipsArray.length - 1; index >= 0; index--) {
+      const relationship = relationshipsArray.get(index);
+      if (relationship && removeIds.has(relationship.id)) {
+        relationshipsArray.delete(index, 1);
+        removed.unshift(relationship);
+      }
+    }
+    if (planned.add && planned.add.length > 0) relationshipsArray.push([...planned.add]);
+  });
+  await editable.commit();
+  return removed;
+}
+
+/**
+ * Delete keys (dotted paths address nested fields) from an element's
+ * `worldbuilding` map (works on both runtimes). Paths that aren't there are
+ * skipped. Returns the paths that were deleted.
+ */
+export async function deleteWorldbuildingPaths(
+  ctx: McpContext,
+  username: string,
+  slug: string,
+  elementId: string,
+  paths: readonly string[]
+): Promise<string[]> {
+  if (paths.length === 0) return [];
+  const editable = await openEditableDocument(`${username}:${slug}:${elementId}/`, {
+    env: ctx.env,
+    authToken: ctx.authToken,
+  });
+  const map = editable.doc.getMap('worldbuilding');
+  const deleted = editable.doc.transact(() =>
+    paths.filter((path) => deleteYMapPath(map, path.split('.')))
+  );
+  await editable.commit();
+  return deleted;
 }
 
 /**

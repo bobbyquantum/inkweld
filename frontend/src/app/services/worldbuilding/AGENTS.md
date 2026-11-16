@@ -41,6 +41,17 @@ to shared schema") get the shared schema copied in on first open by
   start with an empty General tab rather than seeding `name`/`description`
   fields that duplicate identity.
 
+- **Relationship fields** keep their value in the relationships store, never
+  in the `worldbuilding` map: each link is a relationship of the field's
+  `relationshipTypeId`, source = the element. The app's
+  `RelationshipFieldComponent`, WebMCP `update_worldbuilding` and the server's
+  MCP `update_worldbuilding` all go through `planRelationshipFieldLinks` and
+  `relationshipFieldLinkErrors` in `@inkweld/project-library`
+  (`relationship-field.ts`); reads derive the value with `linkedTargetIds`.
+  Older MCP writes left copies of the ids in the map: the server drops a copy
+  when it next writes or deletes one of that field's relationships, and every
+  reader ignores it. Don't start persisting the value in the map again.
+
 - **MCP schema tools** (`create_schema` / `update_schema` / `delete_schema`,
   `backend/src/mcp/tools/schema.tools.ts`) edit the shared schemas only, never
   element copies. `schema-editing.ts` there mirrors `SchemaEditService`'s

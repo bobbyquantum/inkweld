@@ -25,7 +25,10 @@ import { buildVisualTree, treeToText } from './tree-helpers';
 import {
   getProjectTags as runtimeGetProjectTags,
   getRelationships as runtimeGetRelationships,
+  getSchemas as runtimeGetSchemas,
+  type Relationship,
 } from './yjs-runtime';
+import { withRelationshipFieldValues } from './worldbuilding-fields';
 import { presentTag, tagsForElement } from './tag-store';
 import {
   describeSection,
@@ -168,6 +171,13 @@ function getElements(ctx: McpContext, username: string, slug: string): Promise<E
   return service.getElements(username, slug);
 }
 
+/** An element doc's worldbuilding and identity maps, and its own schema copy (if any). */
+interface WorldbuildingContent {
+  worldbuilding: Record<string, unknown>;
+  identity: Record<string, unknown>;
+  schemaCopy: unknown;
+}
+
 /**
  * Get worldbuilding data for an element, returning separate worldbuilding and identity objects
  */
@@ -176,7 +186,7 @@ async function getWorldbuildingData(
   username: string,
   slug: string,
   elementId: string
-): Promise<{ worldbuilding: Record<string, unknown>; identity: Record<string, unknown> } | null> {
+): Promise<WorldbuildingContent | null> {
   // Note: The trailing '/' is required because y-websocket appends it to the room URL
   const docId = `${username}:${slug}:${elementId}/`;
 
@@ -197,7 +207,15 @@ async function getWorldbuildingData(
       identity[key] = convertYjsValue(value);
     });
 
-    return { worldbuilding, identity };
+    const snapshot = convertYjsValue(sharedDoc.doc.getMap('schema').get('snapshot'));
+    const schemaCopy =
+      snapshot &&
+      typeof snapshot === 'object' &&
+      Array.isArray((snapshot as { tabs?: unknown }).tabs)
+        ? snapshot
+        : null;
+
+    return { worldbuilding, identity, schemaCopy };
   } catch (err) {
     rethrowDocumentReadError(err);
     return null;
@@ -218,6 +236,21 @@ function convertYjsValue(value: unknown): unknown {
     return result;
   }
   return value;
+}
+
+/**
+ * The template an element renders with: its own copy, else the shared schema
+ * its `schemaId` names (as `getElementSchema` in yjs-runtime resolves it).
+ */
+function schemaOfContent(
+  content: WorldbuildingContent,
+  sharedSchemas: ReadonlyArray<{ id: string }>
+): unknown {
+  if (content.schemaCopy) return content.schemaCopy;
+  const schemaId = content.worldbuilding.schemaId;
+  return typeof schemaId === 'string'
+    ? (sharedSchemas.find((schema) => schema.id === schemaId) ?? null)
+    : null;
 }
 
 /**
@@ -608,10 +641,29 @@ registerTool({
     const wbData = await mapWithConcurrency(wbElements, 8, (elem) =>
       getWorldbuildingData(ctx, username, slug, elem.id)
     );
+    // Relationship fields read their value from the relationships store
+    const [relationships, sharedSchemas] =
+      wbElements.length > 0
+        ? await Promise.all([
+            runtimeGetRelationships(ctx, username, slug),
+            runtimeGetSchemas(ctx, username, slug),
+          ])
+        : [[], []];
+    const elementIds = new Set(elements.map((e) => e.id));
 
     for (const [index, elem] of wbElements.entries()) {
-      const data = wbData[index];
-      if (!data) continue;
+      const content = wbData[index];
+      if (!content) continue;
+      const data = {
+        worldbuilding: withRelationshipFieldValues(
+          content.worldbuilding,
+          schemaOfContent(content, sharedSchemas),
+          elem.id,
+          relationships,
+          (id) => elementIds.has(id)
+        ),
+        identity: content.identity,
+      };
 
       if (includeFullContent) {
         elementDataCache.set(elem.id, data);
@@ -755,7 +807,9 @@ async function fetchWorldbuildingContent(
   username: string,
   slug: string,
   elementId: string,
-  identityData: Record<string, unknown> | null
+  identityData: Record<string, unknown> | null,
+  relationships: readonly Relationship[],
+  elementExists: (id: string) => boolean
 ): Promise<{
   worldbuildingData: Record<string, unknown> | null;
   identityData: Record<string, unknown> | null;
@@ -763,7 +817,19 @@ async function fetchWorldbuildingContent(
   let worldbuildingData: Record<string, unknown> | null = null;
   const data = await getWorldbuildingData(ctx, username, slug, elementId);
   if (data) {
-    worldbuildingData = data.worldbuilding;
+    // Relationship fields read their value from the relationships store; the
+    // shared schemas are only needed when the element has no schema copy.
+    const schema = schemaOfContent(
+      data,
+      data.schemaCopy ? [] : await runtimeGetSchemas(ctx, username, slug)
+    );
+    worldbuildingData = withRelationshipFieldValues(
+      data.worldbuilding,
+      schema,
+      elementId,
+      relationships,
+      elementExists
+    );
     identityData = Object.keys(data.identity).length > 0 ? data.identity : null;
   }
 
@@ -806,7 +872,7 @@ async function fetchElementRelationships(
   username: string,
   slug: string,
   elementId: string
-): Promise<Array<Record<string, unknown>>> {
+): Promise<Relationship[]> {
   try {
     const allRelationships = await runtimeGetRelationships(ctx, username, slug);
     return allRelationships
@@ -896,21 +962,24 @@ registerTool({
       };
     }
 
+    // Get relationships for this element using the runtime-aware helper
+    const relationships = await fetchElementRelationships(ctx, username, slug, elementId);
+
     // Get worldbuilding data if applicable
     let worldbuildingData: Record<string, unknown> | null = null;
     let identityData: Record<string, unknown> | null = null;
     if (element.type === 'WORLDBUILDING') {
+      const elementIds = new Set(elements.map((e) => e.id));
       ({ worldbuildingData, identityData } = await fetchWorldbuildingContent(
         ctx,
         username,
         slug,
         elementId,
-        identityData
+        identityData,
+        relationships,
+        (id) => elementIds.has(id)
       ));
     }
-
-    // Get relationships for this element using the runtime-aware helper
-    const relationships = await fetchElementRelationships(ctx, username, slug, elementId);
 
     // Build parent path
     const path = buildElementPath(elements, element);
