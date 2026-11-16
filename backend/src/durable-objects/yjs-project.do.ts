@@ -118,6 +118,7 @@ import {
 import { ProjectPresenceService, type PresenceSocket } from '../services/presence.service';
 import type { DocumentRevisionEntry } from '../types/document-revision.types';
 import { forEachPage, forEachSequential } from '@inkweld/async';
+import { MAX_BATCH_DOCUMENTS } from '../services/yjs-worker.service';
 
 const projDOLog = logger.child('YjsProjectDO');
 
@@ -557,6 +558,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    * Endpoints:
    * - GET /api/elements?documentId=... - Get elements array
    * - GET /api/document?documentId=... - Get document Y.Map as JSON
+   * - GET /api/documents?documentId=...&elementId=... - Several element docs as JSON
    * - POST /api/document?documentId=... - Apply updates to document
    */
   private async handleHttpApi(request: Request, url: URL): Promise<Response> {
@@ -716,6 +718,8 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         return this.handleMutateElements(request, documentId);
       case 'GET /api/document':
         return this.handleGetDocument(documentId);
+      case 'GET /api/documents':
+        return this.handleGetDocuments(request, documentId);
       case 'GET /api/document-state':
         return this.handleGetDocumentState(documentId);
       case 'POST /api/document':
@@ -1173,11 +1177,58 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    */
   private async handleGetDocument(documentId: string): Promise<Response> {
     const sharedDoc = await this.getOrCreateDocument(documentId);
+    return jsonResponse(this.documentToJson(sharedDoc), 200);
+  }
 
-    // Convert the shared types the MCP runtime reads to JSON. Every name that
-    // `YjsWorkerService.getDocument` callers read must be listed here, or it
-    // silently comes back empty on Workers.
-    // WSSharedDoc extends Y.Doc, so sharedDoc IS the doc
+  /**
+   * GET /api/documents?documentId=<user>:<slug>:elements&elementId=a&elementId=b
+   * - The {@link handleGetDocument} JSON view of several element documents in
+   * one request, keyed by element id. MCP tools that read every element of a
+   * kind (worldbuilding search) made one Durable Object request per element.
+   *
+   * Element ids, not document ids, are taken so a caller can only name
+   * documents of the project this object holds. A GET, so a viewer may use
+   * it like `GET /api/document`. Documents that fail to load are listed in
+   * `failed` rather than failing the batch.
+   */
+  private async handleGetDocuments(request: Request, documentId: string): Promise<Response> {
+    const [username, slug] = documentId.split(':');
+    if (!username || !slug) {
+      return jsonResponse({ error: 'Invalid documentId' }, 400);
+    }
+    const elementIds = [...new Set(new URL(request.url).searchParams.getAll('elementId'))];
+    if (elementIds.length === 0 || elementIds.length > MAX_BATCH_DOCUMENTS) {
+      return jsonResponse(
+        { error: `Pass between 1 and ${MAX_BATCH_DOCUMENTS} elementId parameters` },
+        400
+      );
+    }
+    if (elementIds.some((id) => id.length === 0 || id.includes(':') || id.includes('/'))) {
+      return jsonResponse({ error: 'Invalid elementId' }, 400);
+    }
+
+    const documents: Record<string, Record<string, unknown>> = {};
+    const failed: string[] = [];
+    await Promise.all(
+      elementIds.map(async (elementId) => {
+        try {
+          const sharedDoc = await this.getOrCreateDocument(`${username}:${slug}:${elementId}`);
+          documents[elementId] = this.documentToJson(sharedDoc);
+        } catch (error) {
+          projDOLog.warn(`Failed to load ${elementId} for a batch read`, { error: String(error) });
+          failed.push(elementId);
+        }
+      })
+    );
+    return jsonResponse({ documents, failed }, 200);
+  }
+
+  /**
+   * JSON view of the shared types the MCP runtime reads. Every name that
+   * `YjsWorkerService.getDocument` callers read must be listed here, or it
+   * silently comes back empty on Workers.
+   */
+  private documentToJson(sharedDoc: Y.Doc): Record<string, unknown> {
     const data: Record<string, unknown> = {};
 
     for (const name of HTTP_DOCUMENT_MAPS) {
@@ -1200,10 +1251,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       data.prosemirror = xmlFragment.toString();
     }
 
-    return new Response(JSON.stringify(data), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return data;
   }
 
   /**

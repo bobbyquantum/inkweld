@@ -81,6 +81,9 @@ export class StorageUsageService {
   /** The user the cached `usage` belongs to. */
   private cachedForUserId: string | undefined;
 
+  /** `Date.now()` of the last successful load, for {@link ensureFresh}. */
+  private loadedAt: number | undefined;
+
   /**
    * Bumped by every load and reset, so a response that arrives after a newer
    * load (or after the account changed) is dropped instead of overwriting the
@@ -119,6 +122,7 @@ export class StorageUsageService {
         return undefined;
       }
       this.usage.set(usage);
+      this.loadedAt = Date.now();
       return usage;
     } catch (error) {
       // Already logged in handleError; keep the previous value so the meter
@@ -149,6 +153,28 @@ export class StorageUsageService {
   }
 
   /**
+   * Load usage unless this user's cached value is younger than `maxAgeMs`.
+   * The server measures usage by listing every project's media and asking
+   * each project's Durable Object for its size, so a page that shows the
+   * meter on every visit would otherwise repeat that work on each navigation.
+   */
+  async ensureFresh(
+    userId: string | undefined,
+    maxAgeMs: number
+  ): Promise<void> {
+    const sameUser = userId === undefined || userId === this.cachedForUserId;
+    if (
+      sameUser &&
+      this.usage() !== undefined &&
+      this.loadedAt !== undefined &&
+      Date.now() - this.loadedAt < maxAgeMs
+    ) {
+      return;
+    }
+    await this.load(userId);
+  }
+
+  /**
    * Record a sync-capacity refusal: refresh usage so every meter and warning
    * reflects it. Returns the refusal details, or `undefined` when `error` is
    * not a quota refusal (so callers can fall through to their own handling).
@@ -168,6 +194,7 @@ export class StorageUsageService {
     this.usage.set(undefined);
     this.error.set(undefined);
     this.cachedForUserId = undefined;
+    this.loadedAt = undefined;
   }
 
   private handleError(error: unknown) {

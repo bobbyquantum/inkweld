@@ -3,7 +3,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type StorageUsage, UsersService } from '@inkweld/index';
 import { of, Subject, throwError } from 'rxjs';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LoggerService } from '../core/logger.service';
 import { getQuotaExceeded, StorageUsageService } from './storage-usage.service';
@@ -138,6 +138,51 @@ describe('StorageUsageService', () => {
     it('fetches again for a different user', async () => {
       await service.ensureLoaded('u1');
       await service.ensureLoaded('u2');
+      expect(getMyStorageUsage).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('ensureFresh', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('reuses a value younger than maxAgeMs for the same user', async () => {
+      vi.useFakeTimers();
+      await service.ensureFresh('u1', 60_000);
+      vi.advanceTimersByTime(59_000);
+      await service.ensureFresh('u1', 60_000);
+      expect(getMyStorageUsage).toHaveBeenCalledTimes(1);
+    });
+
+    it('fetches again once the cached value is older than maxAgeMs', async () => {
+      vi.useFakeTimers();
+      await service.ensureFresh('u1', 60_000);
+      vi.advanceTimersByTime(60_000);
+      await service.ensureFresh('u1', 60_000);
+      expect(getMyStorageUsage).toHaveBeenCalledTimes(2);
+    });
+
+    it('fetches again for a different user', async () => {
+      await service.ensureFresh('u1', 60_000);
+      await service.ensureFresh('u2', 60_000);
+      expect(getMyStorageUsage).toHaveBeenCalledTimes(2);
+    });
+
+    it('fetches again after a failed load left no value', async () => {
+      getMyStorageUsage.mockReturnValueOnce(
+        throwError(() => new HttpErrorResponse({ status: 500 }))
+      );
+      await service.ensureFresh('u1', 60_000);
+      await service.ensureFresh('u1', 60_000);
+      expect(getMyStorageUsage).toHaveBeenCalledTimes(2);
+      expect(service.usage()).toEqual(USAGE);
+    });
+
+    it('fetches again after reset', async () => {
+      await service.ensureFresh('u1', 60_000);
+      service.reset();
+      await service.ensureFresh('u1', 60_000);
       expect(getMyStorageUsage).toHaveBeenCalledTimes(2);
     });
   });

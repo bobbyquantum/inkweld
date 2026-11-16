@@ -179,8 +179,59 @@ interface WorldbuildingContent {
 }
 
 /**
- * Get worldbuilding data for an element, returning separate worldbuilding and identity objects
+ * Worldbuilding content for several elements, aligned with
+ * `elementIds` (`null` where a document could not be read on Bun). On Workers
+ * the documents come from the project Durable Object in batched requests
+ * rather than one request per element; a failed read throws there, as
+ * {@link getWorldbuildingData} does.
  */
+async function getWorldbuildingDataForElements(
+  ctx: McpContext,
+  username: string,
+  slug: string,
+  elementIds: string[]
+): Promise<Array<WorldbuildingContent | null>> {
+  const service = getYjsService(ctx);
+  if (service instanceof YjsWorkerService) {
+    const docs = await service.getElementDocuments(username, slug, elementIds);
+    return elementIds.map((id) => {
+      const doc = docs.get(id);
+      return doc
+        ? readWorldbuildingMaps(doc.doc)
+        : { worldbuilding: {}, identity: {}, schemaCopy: null };
+    });
+  }
+  // Bun reads documents from local LevelDB; bounded so a large project does
+  // not open every document at once.
+  return mapWithConcurrency(elementIds, 8, (id) => getWorldbuildingData(ctx, username, slug, id));
+}
+
+/**
+ * Plain-JSON copies of a document's `worldbuilding` and `identity` maps, and
+ * its own schema copy (`schema.snapshot`) when that is a usable schema.
+ */
+function readWorldbuildingMaps(doc: {
+  getMap: (name: string) => {
+    forEach: (fn: (value: unknown, key: string) => void) => void;
+    get: (key: string) => unknown;
+  };
+}): WorldbuildingContent {
+  const worldbuilding: Record<string, unknown> = {};
+  const identity: Record<string, unknown> = {};
+  doc.getMap('worldbuilding').forEach((value: unknown, key: string) => {
+    worldbuilding[key] = convertYjsValue(value);
+  });
+  doc.getMap('identity').forEach((value: unknown, key: string) => {
+    identity[key] = convertYjsValue(value);
+  });
+  const snapshot = convertYjsValue(doc.getMap('schema').get('snapshot'));
+  const schemaCopy =
+    snapshot && typeof snapshot === 'object' && Array.isArray((snapshot as { tabs?: unknown }).tabs)
+      ? snapshot
+      : null;
+  return { worldbuilding, identity, schemaCopy };
+}
+
 async function getWorldbuildingData(
   ctx: McpContext,
   username: string,
@@ -193,29 +244,7 @@ async function getWorldbuildingData(
   try {
     const service = getYjsService(ctx);
     const sharedDoc = await service.getDocument(docId);
-    const dataMap = sharedDoc.doc.getMap('worldbuilding');
-    const identityMap = sharedDoc.doc.getMap('identity');
-
-    const worldbuilding: Record<string, unknown> = {};
-    const identity: Record<string, unknown> = {};
-
-    dataMap.forEach((value: unknown, key: string) => {
-      worldbuilding[key] = convertYjsValue(value);
-    });
-
-    identityMap.forEach((value: unknown, key: string) => {
-      identity[key] = convertYjsValue(value);
-    });
-
-    const snapshot = convertYjsValue(sharedDoc.doc.getMap('schema').get('snapshot'));
-    const schemaCopy =
-      snapshot &&
-      typeof snapshot === 'object' &&
-      Array.isArray((snapshot as { tabs?: unknown }).tabs)
-        ? snapshot
-        : null;
-
-    return { worldbuilding, identity, schemaCopy };
+    return readWorldbuildingMaps(sharedDoc.doc);
   } catch (err) {
     rethrowDocumentReadError(err);
     return null;
@@ -636,10 +665,13 @@ registerTool({
     const results: EnrichedResult[] = [];
     const elementDataCache = new Map<string, Record<string, unknown>>();
 
-    // Load with bounded concurrency, then process in element order (ties in
+    // Load every element's data, then process in element order (ties in
     // score are resolved by first-seen order below).
-    const wbData = await mapWithConcurrency(wbElements, 8, (elem) =>
-      getWorldbuildingData(ctx, username, slug, elem.id)
+    const wbData = await getWorldbuildingDataForElements(
+      ctx,
+      username,
+      slug,
+      wbElements.map((elem) => elem.id)
     );
     // Relationship fields read their value from the relationships store
     const [relationships, sharedSchemas] =

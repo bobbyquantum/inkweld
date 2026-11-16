@@ -7,7 +7,10 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-import { StorageMeterComponent } from './storage-meter.component';
+import {
+  STORAGE_METER_MAX_AGE_MS,
+  StorageMeterComponent,
+} from './storage-meter.component';
 
 function usage(overrides: Partial<StorageUsage> = {}): StorageUsage {
   return {
@@ -45,7 +48,7 @@ describe('StorageMeterComponent', () => {
             usage: usageSignal,
             enforced: () => usageSignal()?.enabled === true,
             isLoading: vi.fn().mockReturnValue(false),
-            load,
+            ensureFresh: load,
           },
         },
       ],
@@ -117,7 +120,7 @@ describe('StorageMeterComponent', () => {
     expect(bar.getAttribute('aria-valuenow')).toBe('100');
   });
 
-  it('refetches on init and passes the user id through', () => {
+  it('asks the service for a fresh value on init, passing the user id through', () => {
     usageSignal = vi
       .fn<() => StorageUsage | undefined>()
       .mockReturnValue(usage());
@@ -132,7 +135,7 @@ describe('StorageMeterComponent', () => {
             usage: usageSignal,
             enforced: () => usageSignal()?.enabled === true,
             isLoading: vi.fn().mockReturnValue(false),
-            load,
+            ensureFresh: load,
           },
         },
       ],
@@ -141,9 +144,9 @@ describe('StorageMeterComponent', () => {
     localFixture.componentRef.setInput('userId', 'user-1');
     localFixture.detectChanges();
 
-    // The service keys its cache by user id, so the meter always delegates;
-    // dedupe/refresh decisions live in the service, not here.
-    expect(load).toHaveBeenCalledWith('user-1');
+    // The service keys its cache by user id and decides whether the cached
+    // value is still fresh; the meter only states how old is too old.
+    expect(load).toHaveBeenCalledWith('user-1', STORAGE_METER_MAX_AGE_MS);
   });
 
   it('shows plain usage, with no bar or warning, when not enforced', () => {

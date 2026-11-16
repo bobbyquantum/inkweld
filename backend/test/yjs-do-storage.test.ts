@@ -10,6 +10,7 @@ import {
   chunkKeysForDelete,
   snapshotKey,
   describeDocStorage,
+  readSqlDatabaseSize,
   COMPACT_THRESHOLD,
   LIST_PAGE_SIZE,
   SNAPSHOT_VALUE_LIMIT,
@@ -1001,5 +1002,47 @@ describe('snapshot + wire-frame round trip (production format contract)', () => 
       // "Unexpected end of array" — the throwing variant of the same loss.
     }
     expect(reader.getArray('elements')).toHaveLength(0);
+  });
+});
+
+describe('YjsDocStorage.getTotalStorageBytes', () => {
+  function entriesOf(): Map<string, number[]> {
+    return new Map([
+      ['doc:a:snapshot', [1, 2, 3]],
+      ['doc:a:update:1', [4, 5]],
+    ]);
+  }
+
+  it('reads databaseSize on a SQLite-backed object without listing rows', async () => {
+    const base = makeStorage(entriesOf());
+    const list = mock(base.list.bind(base));
+    const storage: DoStorage = { ...base, list, sql: { databaseSize: 8192 } };
+
+    expect(await new YjsDocStorage(storage, noopLogger).getTotalStorageBytes()).toBe(8192);
+    expect(list).not.toHaveBeenCalled();
+  });
+
+  it('sums every stored value when the object has no sql API', async () => {
+    const storage = makeStorage(entriesOf());
+    expect(await new YjsDocStorage(storage, noopLogger).getTotalStorageBytes()).toBe(5);
+  });
+
+  it('falls back to summing values when reading sql throws', async () => {
+    const storage = makeStorage(entriesOf());
+    Object.defineProperty(storage, 'sql', {
+      get() {
+        throw new Error('SQL is not enabled for this Durable Object class');
+      },
+    });
+    expect(await new YjsDocStorage(storage, noopLogger).getTotalStorageBytes()).toBe(5);
+  });
+});
+
+describe('readSqlDatabaseSize', () => {
+  it('ignores a size that is not a usable number', () => {
+    const storage = makeStorage();
+    expect(readSqlDatabaseSize({ ...storage, sql: { databaseSize: Number.NaN } })).toBeUndefined();
+    expect(readSqlDatabaseSize({ ...storage, sql: { databaseSize: -1 } })).toBeUndefined();
+    expect(readSqlDatabaseSize(storage)).toBeUndefined();
   });
 });

@@ -9,7 +9,11 @@
 import { describe, it, expect } from 'bun:test';
 import { handleMcpRequest } from '../src/mcp/mcp.handler';
 import { MCP_PERMISSIONS } from '../src/mcp/mcp-permissions';
-import { YjsDocumentReadError, YjsWorkerService } from '../src/services/yjs-worker.service';
+import {
+  MAX_BATCH_DOCUMENTS,
+  YjsDocumentReadError,
+  YjsWorkerService,
+} from '../src/services/yjs-worker.service';
 import type { DurableObjectNamespace } from '../src/types/cloudflare';
 import '../src/mcp/tools/search.tools';
 import '../src/mcp/resources/projects.resource';
@@ -289,5 +293,98 @@ describe('MCP read tools on Workers with project data in the elements doc', () =
   it('reads only documents the frontend writes', () => {
     expect(requested.length).toBeGreaterThan(0);
     expect(requested.every((id) => id === 'alice:novel:elements/')).toBe(true);
+  });
+});
+
+describe('YjsWorkerService.getElementDocuments', () => {
+  const service = (fetch: DoFetch) =>
+    new YjsWorkerService({ env: { YJS_PROJECTS: fakeNamespace(fetch) }, authToken: 'token' });
+
+  it('reads many element documents in batches of MAX_BATCH_DOCUMENTS', async () => {
+    const requests: URL[] = [];
+    const ids = Array.from({ length: MAX_BATCH_DOCUMENTS + 3 }, (_, i) => `e${i}`);
+    const docs = await service((request) => {
+      const url = new URL(request.url);
+      requests.push(url);
+      const documents = Object.fromEntries(
+        url.searchParams.getAll('elementId').map((id) => [id, { worldbuilding: { id } }])
+      );
+      return json({ documents, failed: [] });
+    }).getElementDocuments('alice', 'novel', [...ids, 'e0']);
+
+    expect(requests).toHaveLength(2);
+    expect(requests.every((u) => u.pathname === '/api/documents')).toBe(true);
+    expect(requests[0].searchParams.get('documentId')).toBe('alice:novel:elements');
+    expect(requests[0].searchParams.getAll('elementId')).toHaveLength(MAX_BATCH_DOCUMENTS);
+    expect(docs.size).toBe(ids.length);
+    expect(docs.get('e52')?.doc.getMap('worldbuilding').get('id')).toBe('e52');
+  });
+
+  it('makes no request for an empty list', async () => {
+    let called = false;
+    const docs = await service(() => {
+      called = true;
+      return json({});
+    }).getElementDocuments('alice', 'novel', []);
+    expect(docs.size).toBe(0);
+    expect(called).toBe(false);
+  });
+
+  it('throws a typed error when the object could not load a document', async () => {
+    await expect(
+      service(() => json({ documents: {}, failed: ['e1'] })).getElementDocuments('alice', 'novel', [
+        'e1',
+      ])
+    ).rejects.toBeInstanceOf(YjsDocumentReadError);
+  });
+
+  it('throws a typed error on a non-2xx response or a malformed body', async () => {
+    await expect(
+      service(() => json({ error: 'nope' }, 500)).getElementDocuments('alice', 'novel', ['e1'])
+    ).rejects.toBeInstanceOf(YjsDocumentReadError);
+    await expect(
+      service(() => json({ documents: [] })).getElementDocuments('alice', 'novel', ['e1'])
+    ).rejects.toBeInstanceOf(YjsDocumentReadError);
+  });
+});
+
+describe('search_worldbuilding on Workers', () => {
+  it('reads every worldbuilding element in one batched Durable Object request', async () => {
+    const wbElements = [
+      { id: 'e1', name: 'Hero', type: 'WORLDBUILDING', parentId: null, level: 0 },
+      { id: 'e2', name: 'Villain', type: 'WORLDBUILDING', parentId: null, level: 0 },
+      { id: 'e3', name: 'Castle', type: 'WORLDBUILDING', parentId: null, level: 0 },
+    ];
+    const paths: string[] = [];
+    const singleReads: string[] = [];
+    const outcome = await callTool(
+      'search_worldbuilding',
+      { ...project, query: 'dragon' },
+      (request) => {
+        const url = new URL(request.url);
+        paths.push(url.pathname);
+        if (url.pathname === '/api/elements') return json({ elements: wbElements });
+        return json({
+          documents: {
+            e1: { worldbuilding: { backstory: 'Slew a dragon' } },
+            e2: { identity: { description: 'Rides a dragon' } },
+            e3: { worldbuilding: { backstory: 'Stone walls' } },
+          },
+          failed: [],
+        });
+      }
+    );
+
+    expect(outcome.result?.isError).toBeFalsy();
+    expect(paths.filter((p) => p === '/api/documents')).toHaveLength(1);
+    // Project-level reads (relationships, schemas) hit the elements doc once
+    // each; no element document is read on its own.
+    expect(singleReads.every((id) => id.startsWith('alice:novel:elements'))).toBe(true);
+    // Hero and Villain match "dragon"; Castle does not.
+    expect(outcome.result?.content[0]?.text).toContain('Found 2 worldbuilding entries');
+    const found = JSON.stringify(outcome.result?.structuredContent ?? outcome.result?.content);
+    expect(found).toContain('e1');
+    expect(found).toContain('e2');
+    expect(found).not.toContain('e3');
   });
 });

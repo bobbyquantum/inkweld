@@ -133,6 +133,26 @@ export class FileStorageService {
   }
 
   /**
+   * Size in bytes of a file in a project directory, or `null` when there is
+   * no such file.
+   */
+  async getProjectFileSize(
+    username: string,
+    projectSlug: string,
+    filename: string
+  ): Promise<number | null> {
+    const projectPath = this.getProjectPath(username, projectSlug);
+    const filePath = path.join(projectPath, filename);
+    this.ensureWithinBase(filePath, projectPath);
+    try {
+      const stats = await fs.stat(filePath);
+      return stats.isFile() ? stats.size : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Delete a file from a project directory
    */
   async deleteProjectFile(username: string, projectSlug: string, filename: string): Promise<void> {
