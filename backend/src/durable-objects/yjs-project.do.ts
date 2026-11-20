@@ -2077,6 +2077,12 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       this.scheduleDedupeHeal(documentId, sharedDoc);
     });
 
+    // Subscribe every open socket that was attached to this document before
+    // the object hibernated, whichever event woke it (a WebSocket message or
+    // an HTTP request such as an MCP write). Done before anything can change
+    // the document, so no update — the heal below included — misses them.
+    this.attachDetachedSockets(documentId, sharedDoc);
+
     // Heal any identical duplicate rows left by a prior double-seed BEFORE we
     // hand the doc back, so every reader (REST + the about-to-register WS
     // client's initial sync) sees a clean bundle. Awaited: the resulting delete
@@ -2383,7 +2389,17 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     skipDocLoad = false
   ): Promise<ConnectionInfo | null> {
     const existing = this.connections.get(ws);
-    if (existing) return existing;
+    if (existing) {
+      // A presence frame (or a close/error event) may have woken the object
+      // and recorded this connection without loading its document. A later
+      // document frame must attach it now: before this check, every Yjs
+      // update the socket sent was dropped and nothing was broadcast to it
+      // until the client reconnected.
+      if (!skipDocLoad && this.isDetachedAuthenticated(existing)) {
+        await this.rehydrateAuthenticatedConnection(ws, existing);
+      }
+      return existing;
+    }
 
     const attachment = ws.deserializeAttachment() as WSAttachment | null;
     if (!attachment?.documentId) {
@@ -2450,8 +2466,10 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   ): Promise<void> {
     try {
       const sharedDoc = await this.getOrCreateDocument(connInfo.documentId);
+      // Idempotent: a fresh load has already attached every socket of this
+      // document (see loadDocument); a cached document has not.
       this.registerRehydratedSocket(ws, connInfo, sharedDoc);
-      this.rehydrateAuthenticatedPeers(ws, connInfo.documentId, sharedDoc);
+      this.attachDetachedSockets(connInfo.documentId, sharedDoc);
 
       projDOLog.debug(
         `🔄 Rehydrated authenticated connection for ${connInfo.documentId} after wake`
@@ -2461,60 +2479,45 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     }
   }
 
-  private rehydrateAuthenticatedPeers(
-    wakingWs: WebSocket,
-    documentId: string,
-    sharedDoc: WSSharedDoc
-  ): void {
-    // Cloudflare wakes the DO for a single WS event. Other sockets remain
-    // attached but unregistered as listeners, so restore them before the
-    // waking socket's update broadcasts.
-    //
-    // CRITICAL: skip sockets that are not OPEN. getWebSockets() returns
-    // sockets in CLOSING/CLOSED states too, and re-subscribing a dead
-    // socket to sharedDoc.notify() causes ws.send() to throw, which fires
-    // webSocketError, which rehydrates again, which reloads the full
-    // document history from storage, which broadcasts to dead sockets
-    // again... a self-perpetuating loop that exhausts row-read quota.
-    for (const peerWs of this.state.getWebSockets()) {
-      if (peerWs === wakingWs) continue;
-      if (peerWs.readyState !== WebSocket.OPEN) continue;
-      this.rehydrateAuthenticatedPeer(peerWs, documentId, sharedDoc);
+  /**
+   * Subscribe every open, authenticated socket of `documentId` that is not
+   * yet listening to `sharedDoc`. Cloudflare keeps hibernated sockets open but
+   * forgets their listeners, so after a wake each one must be re-attached
+   * before the document changes, or it neither receives broadcasts nor has
+   * its own updates applied. Idempotent: attached sockets are skipped.
+   *
+   * CRITICAL: skip sockets that are not OPEN. getWebSockets() returns
+   * sockets in CLOSING/CLOSED states too, and re-subscribing a dead
+   * socket to sharedDoc.notify() causes ws.send() to throw, which fires
+   * webSocketError, which rehydrates again, which reloads the full
+   * document history from storage, which broadcasts to dead sockets
+   * again... a self-perpetuating loop that exhausts row-read quota.
+   */
+  private attachDetachedSockets(documentId: string, sharedDoc: WSSharedDoc): void {
+    for (const ws of this.state.getWebSockets()) {
+      if (ws.readyState !== WebSocket.OPEN) continue;
+      const existing = this.connections.get(ws);
+      if (existing) {
+        if (existing.documentId === documentId && this.isDetachedAuthenticated(existing)) {
+          this.registerRehydratedSocket(ws, existing, sharedDoc);
+        }
+        continue;
+      }
+      const attachment = ws.deserializeAttachment() as WSAttachment | null;
+      if (attachment?.documentId !== documentId || !attachment.authenticated) continue;
+      const connInfo = this.connectionInfoFromAttachment(attachment);
+      this.connections.set(ws, connInfo);
+      this.registerRehydratedSocket(ws, connInfo, sharedDoc);
     }
   }
 
-  private rehydrateAuthenticatedPeer(
-    peerWs: WebSocket,
-    documentId: string,
-    sharedDoc: WSSharedDoc
-  ): void {
-    const existing = this.connections.get(peerWs);
-    if (existing) {
-      this.registerPeerIfDetached(peerWs, existing, documentId, sharedDoc);
-      return;
-    }
-
-    // Belt-and-suspenders: even if the caller didn't filter, never
-    // re-subscribe a non-OPEN socket — sends to it will throw and
-    // trigger the wake/error loop.
-    if (peerWs.readyState !== WebSocket.OPEN) return;
-
-    const attachment = peerWs.deserializeAttachment() as WSAttachment | null;
-    if (attachment?.documentId !== documentId || !attachment.authenticated) return;
-
-    const peerInfo = this.connectionInfoFromAttachment(attachment, sharedDoc);
-    this.connections.set(peerWs, peerInfo);
-    this.registerRehydratedSocket(peerWs, peerInfo, sharedDoc);
-  }
-
-  private registerPeerIfDetached(
-    peerWs: WebSocket,
-    peerInfo: ConnectionInfo,
-    documentId: string,
-    sharedDoc: WSSharedDoc
-  ): void {
-    if (peerInfo.documentId !== documentId || peerInfo.sharedDoc) return;
-    this.registerRehydratedSocket(peerWs, peerInfo, sharedDoc);
+  /**
+   * An authenticated connection with no document subscription, other than one
+   * whose auth handshake is still loading the document (that path registers
+   * it itself, then drains its queued frames).
+   */
+  private isDetachedAuthenticated(connInfo: ConnectionInfo): boolean {
+    return connInfo.authenticated && !connInfo.loadingDocument && !connInfo.unsubscribe;
   }
 
   private registerRehydratedSocket(
@@ -2522,6 +2525,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     connInfo: ConnectionInfo,
     sharedDoc: WSSharedDoc
   ): void {
+    if (connInfo.unsubscribe) return;
     connInfo.sharedDoc = sharedDoc;
     // Do NOT resend sync step 1 here: these clients already completed the
     // initial sync before hibernation. Any persisted updates were replayed
@@ -2661,7 +2665,11 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
 
     const sharedDoc = connInfo.sharedDoc;
     if (!sharedDoc) {
-      projDOLog.warn(`No document state for ${connInfo.documentId}`);
+      // Never drop a frame silently: the client believes it was applied and
+      // would keep editing a copy the server never sees. Close with a
+      // transient code so it reconnects and both sides resync.
+      projDOLog.warn(`No document state for ${connInfo.documentId}; closing to force a resync`);
+      safeClose(ws, WS_CLOSE_SERVER_ERROR, 'Document not attached');
       return;
     }
 

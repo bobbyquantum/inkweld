@@ -9,6 +9,17 @@ compacted snapshots. Overview: `docs/site/docs/developer/architecture.md` →
   sync-step-2 reply each connecting client receives. Storing that reply wrote
   a full copy of the document per connection and moved the revision token, so
   no document could ever be skipped by the bulk sync planner.
+- **Re-attach hibernated sockets before the document changes.** After a wake,
+  `this.connections` and the documents are empty but the sockets are still
+  open. `loadDocument` subscribes every open, authenticated socket of that
+  document (`attachDetachedSockets`) whichever event woke the object, an HTTP
+  request (MCP writes) included, and a connection recorded without a document
+  (a presence frame or close event wakes with `skipDocLoad`) is attached on
+  its next document frame. A frame that still finds no document closes the
+  socket with 4500 so the client resyncs. Never drop it: when frames were
+  dropped, the app edited a copy the server never saw while MCP edited the
+  server's, and the two whole-array element rewrites merged into duplicated
+  folders on refresh (`test/yjs-do-wake-reattach.test.ts`).
 - **Revision tokens** (`GET /api/revisions`, used by the sync manifest) are the
   newest `update:*` row key, or, once compaction has removed them all, the
   unique `doc:<id>:revision` marker `compact()` writes with each snapshot
