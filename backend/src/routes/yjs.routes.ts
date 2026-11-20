@@ -5,7 +5,7 @@ import { authService, type SessionData } from '../services/auth.service';
 import { projectService } from '../services/project.service';
 import { collaborationService } from '../services/collaboration.service';
 import { userService } from '../services/user.service';
-import { isSessionRevoked } from '../utils/session-validity';
+import { SESSION_RECHECK_MS, isSessionRevoked } from '../utils/session-validity';
 import { writingSessionService } from '../services/writing-session.service';
 import { activityService } from '../services/activity.service';
 import { countWords, extractTextContent } from '../mcp/tools/mutation.tools';
@@ -228,6 +228,8 @@ app.get(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Yjs WSSharedDoc type is complex
     let doc: any = null;
     let pingInterval: Timer | null = null;
+    // Re-checks the session while the socket is open; see startSessionRecheck.
+    let sessionRecheck: Timer | null = null;
     // Queue binary messages received before auth is complete — bounded, see
     // utils/ws-preauth.ts. A socket that never authenticates is closed by
     // `authDeadline`.
@@ -238,6 +240,12 @@ app.get(
       if (authDeadline) {
         clearTimeout(authDeadline);
         authDeadline = null;
+      }
+    };
+    const clearSessionRecheck = (): void => {
+      if (sessionRecheck) {
+        clearInterval(sessionRecheck);
+        sessionRecheck = null;
       }
     };
 
@@ -428,6 +436,26 @@ app.get(
       return sessionData;
     };
 
+    /**
+     * The session is checked when the socket authenticates. Re-check it
+     * while the socket stays open, so an expired token, or one revoked in a
+     * way that couldn't close this socket directly, can't keep syncing for
+     * the life of the connection. `resolveSocketSession` closes the socket
+     * when the session is no longer valid. Errors never escape the timer.
+     */
+    const startSessionRecheck = (token: string, ws: WsHandle): void => {
+      clearSessionRecheck();
+      sessionRecheck = setInterval(() => {
+        resolveSocketSession(token, ws)
+          .then((session) => {
+            if (session === undefined) clearSessionRecheck();
+          })
+          .catch((error: unknown) => {
+            wsLog.error(`Session re-check failed for ${documentId}`, error);
+          });
+      }, SESSION_RECHECK_MS);
+    };
+
     // Validates token, project access, sets up Yjs connection.
     // Closes over connection state variables for mutation.
     const authenticateWs = async (token: string, ws: WsHandle): Promise<void> => {
@@ -505,6 +533,7 @@ app.get(
         pingInterval = startPingInterval(ws, documentId, () => {
           pingInterval = null;
         });
+        if (sessionData) startSessionRecheck(token, ws);
       } finally {
         authInProgress = false;
       }
@@ -581,6 +610,7 @@ app.get(
         // Each step runs on its own: one that fails never skips the rest.
         runCloseStep(documentId, 'timer cleanup', () => {
           clearAuthDeadline();
+          clearSessionRecheck();
           if (pingInterval) {
             clearInterval(pingInterval);
             pingInterval = null;
@@ -612,6 +642,7 @@ app.get(
       onError(evt, ws) {
         wsLog.error(`Error for ${documentId}`, evt);
         clearAuthDeadline();
+        clearSessionRecheck();
         if (pingInterval) {
           clearInterval(pingInterval);
           pingInterval = null;

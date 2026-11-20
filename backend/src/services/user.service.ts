@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { chunk, firstResultSequential } from '@inkweld/async';
-import { sessionWatermarkNow } from '../utils/session-validity';
+import { notifySessionsRevoked, sessionWatermarkNow } from '../utils/session-validity';
 import { eq, ne, like, or, asc, and, sql, isNull, inArray, type SQL } from 'drizzle-orm';
 import type { DatabaseInstance } from '../types/context';
 import type { D1DatabaseInstance } from '../db/d1';
@@ -459,6 +459,7 @@ class UserService {
       .set({ password: hashedPassword, sessionsValidFrom: sessionWatermarkNow() })
       .where(eq(users.id, userId));
     await mcpOAuthService.revokeUserSessions(db, userId, 'Password changed');
+    notifySessionsRevoked(userId);
   }
 
   /**
@@ -472,6 +473,7 @@ class UserService {
       .set({ sessionsValidFrom: sessionWatermarkNow() })
       .where(eq(users.id, userId));
     await mcpOAuthService.revokeUserSessions(db, userId, 'Sessions invalidated');
+    notifySessionsRevoked(userId);
   }
 
   /**
@@ -493,6 +495,7 @@ class UserService {
       .set({ approved: false, rejectedAt: now, sessionsValidFrom: now })
       .where(eq(users.id, userId));
     await mcpOAuthService.revokeUserSessions(db, userId, 'Account rejected');
+    notifySessionsRevoked(userId);
   }
 
   /**
@@ -504,7 +507,10 @@ class UserService {
       .update(users)
       .set(enabled ? { enabled } : { enabled, sessionsValidFrom: sessionWatermarkNow() })
       .where(eq(users.id, userId));
-    if (!enabled) await mcpOAuthService.revokeUserSessions(db, userId, 'Account disabled');
+    if (!enabled) {
+      await mcpOAuthService.revokeUserSessions(db, userId, 'Account disabled');
+      notifySessionsRevoked(userId);
+    }
   }
 
   /**

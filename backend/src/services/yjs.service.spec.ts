@@ -402,6 +402,41 @@ describe('YjsService.revokeUserAccess', () => {
   });
 });
 
+describe('YjsService.closeUserSockets', () => {
+  function socket() {
+    const closes: Array<[number?, string?]> = [];
+    return {
+      closes,
+      ws: {
+        send: () => {},
+        close: (code?: number, reason?: string) => closes.push([code, reason]),
+      },
+    };
+  }
+
+  it("closes the user's sockets on every project and leaves other users alone", async () => {
+    const service = new YjsService();
+    const here = `${USERNAME}:${SLUG}:elements/`;
+    const elsewhere = `someone:else:doc-1`;
+    const bobHere = socket();
+    const bobElsewhere = socket();
+    const alice = socket();
+    await service.handleConnection(bobHere.ws, here);
+    await service.handleConnection(bobElsewhere.ws, elsewhere);
+    await service.handleConnection(alice.ws, here);
+    service.registerUserConnection(bobHere.ws, here, 'bob');
+    service.registerUserConnection(bobElsewhere.ws, elsewhere, 'bob');
+    service.registerUserConnection(alice.ws, here, 'alice');
+
+    expect(service.closeUserSockets('bob')).toBe(2);
+    // Transient code: the client reconnects, and that auth check refuses it.
+    expect(bobHere.closes).toEqual([[WS_CLOSE_ACCESS_CHANGED, 'Access changed']]);
+    expect(bobElsewhere.closes).toEqual([[WS_CLOSE_ACCESS_CHANGED, 'Access changed']]);
+    expect(alice.closes).toEqual([]);
+    await service.cleanup();
+  });
+});
+
 describe('YjsService persist failure tracking', () => {
   const settle = (ms: number) => new Promise((r) => setTimeout(r, ms));
 

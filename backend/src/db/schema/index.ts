@@ -26,3 +26,4 @@ export * from './passkey-recovery-tokens';
 export * from './writing-sessions';
 export * from './activity-events';
 export * from './auto-review-rejections';
+export * from './rate-limit-buckets';

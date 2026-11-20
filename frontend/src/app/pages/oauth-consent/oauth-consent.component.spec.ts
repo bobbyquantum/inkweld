@@ -333,6 +333,46 @@ describe('OAuthConsentComponent', () => {
       }
     });
 
+    it('refuses to navigate to a script redirect URI', async () => {
+      oauthService.submitConsent = vi
+        .fn()
+        .mockReturnValue(
+          of({ redirectUri: 'javascript:alert(1)//?code=abc123' })
+        );
+      const hrefSetter = vi.fn();
+      const originalDescriptor = Object.getOwnPropertyDescriptor(
+        window,
+        'location'
+      );
+      Object.defineProperty(window, 'location', {
+        value: {},
+        writable: true,
+        configurable: true,
+      });
+      Object.defineProperty(window.location, 'href', {
+        set: hrefSetter,
+        get: () => '',
+        configurable: true,
+      });
+      try {
+        component.selectAll();
+        component.approve();
+        await fixture.whenStable();
+
+        expect(hrefSetter).not.toHaveBeenCalled();
+        expect(component.completed()).toBe(false);
+        expect(snackBar.open).toHaveBeenCalledWith(
+          "This application's return address is not allowed, so you were not sent back to it",
+          'Dismiss',
+          { duration: 5000 }
+        );
+      } finally {
+        if (originalDescriptor) {
+          Object.defineProperty(window, 'location', originalDescriptor);
+        }
+      }
+    });
+
     it('should handle submission error', async () => {
       oauthService.submitConsent = vi.fn().mockReturnValue(
         throwError(() => ({
@@ -419,6 +459,35 @@ describe('OAuthConsentComponent', () => {
       // Restore
       if (originalDescriptor) {
         Object.defineProperty(window, 'location', originalDescriptor);
+      }
+    });
+
+    it('does not follow a script redirect_uri when denying', () => {
+      component['queryParams'].update(params =>
+        params ? { ...params, redirectUri: 'javascript:alert(1)' } : params
+      );
+      const hrefSetter = vi.fn();
+      const originalDescriptor = Object.getOwnPropertyDescriptor(
+        window,
+        'location'
+      );
+      Object.defineProperty(window, 'location', {
+        value: {},
+        writable: true,
+        configurable: true,
+      });
+      Object.defineProperty(window.location, 'href', {
+        set: hrefSetter,
+        get: () => '',
+        configurable: true,
+      });
+      try {
+        component.deny();
+        expect(hrefSetter).not.toHaveBeenCalled();
+      } finally {
+        if (originalDescriptor) {
+          Object.defineProperty(window, 'location', originalDescriptor);
+        }
       }
     });
 

@@ -15,6 +15,7 @@ import { autoReviewService } from '../services/auto-review.service';
 import { autoReviewRejectionService } from '../services/auto-review-rejection.service';
 import { openAILintService } from '../services/openai-lint.service';
 import { requireAuth } from '../middleware/auth';
+import { userRateLimit } from '../middleware/rate-limit';
 import { requireAiEnabled } from '../utils/ai-kill-switch';
 import { documentRuntime } from '../utils/document-runtime';
 import { logger } from '../services/logger.service';
@@ -30,6 +31,11 @@ lintReviewRoutes.use('*', requireAuth);
 // Only `review` calls the AI provider; accepting/rejecting/clearing marks
 // edits the document locally and stays available with the kill switch on.
 lintReviewRoutes.use('/:username/:slug/docs/:docId/auto-review/review', requireAiEnabled);
+// A review sends a whole document to a paid model: cap it per account.
+lintReviewRoutes.use(
+  '/:username/:slug/docs/:docId/auto-review/review',
+  userRateLimit('ai-review', 60 * 60 * 1000, 60)
+);
 
 /**
  * Resolve the project from the URL path params and enforce write access for

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import { Hono } from 'hono';
-import { rateLimit } from '../src/middleware/rate-limit';
+import { rateLimit, userRateLimit } from '../src/middleware/rate-limit';
 
 function createApp(options: { windowMs: number; max: number }) {
   const app = new Hono();
@@ -163,5 +163,39 @@ describe('rateLimit middleware', () => {
     // /other should be fine
     const resp = await app.request('/other', { method: 'POST' });
     expect(resp.status).toBe(200);
+  });
+});
+
+describe('userRateLimit', () => {
+  it('counts per signed-in user, not per address', async () => {
+    const previous = process.env['INKWELD_DISABLE_RATE_LIMIT'];
+    const previousEnv = process.env['NODE_ENV'];
+    delete process.env['INKWELD_DISABLE_RATE_LIMIT'];
+    process.env['NODE_ENV'] = 'production';
+    try {
+      const app = new Hono<{ Variables: { user: { id: string } } }>();
+      app.use('/ai', async (c, next) => {
+        c.set('user', { id: c.req.header('X-User') ?? '' });
+        await next();
+      });
+      app.use('/ai', userRateLimit('ai-test', 60_000, 1));
+      app.post('/ai', (c) => c.json({ ok: true }));
+      const as = (user: string) =>
+        app.request('/ai', { method: 'POST', headers: { 'X-User': user } });
+
+      expect((await as('alice')).status).toBe(200);
+      const refused = await as('alice');
+      expect(refused.status).toBe(429);
+      expect((await refused.json()).error).toBe('Too many requests, please try again later');
+      // Same address, another account: its own allowance
+      expect((await as('bob')).status).toBe(200);
+    } finally {
+      const restore = (name: string, value: string | undefined) => {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      };
+      restore('INKWELD_DISABLE_RATE_LIMIT', previous);
+      restore('NODE_ENV', previousEnv);
+    }
   });
 });

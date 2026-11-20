@@ -278,7 +278,7 @@ Call `list_projects` first, then use tools like `search_elements`, `create_eleme
 ### Supported Standards
 
 - **OAuth 2.1** with mandatory PKCE (S256)
-- **Dynamic Client Registration** (RFC 7591) — no pre-registration needed
+- **Dynamic Client Registration** (RFC 7591) — no pre-registration needed. Redirect URIs must be `https:`, `http:` on a loopback host (`localhost`, `127.0.0.1`, `[::1]`, `*.localhost`) or a native-app scheme such as `claude://`, with no fragment (`utils/oauth-redirect-uri.ts`). Script and content schemes (`javascript:`, `data:`, `file:`, …) are refused at registration and again at `/oauth/authorize`, and the consent page refuses to navigate to one (`isSafeNavigationUrl`). The client's `client_uri`, `logo_uri`, `policy_uri` and `tos_uri` must be `http(s)`
 - **Token Rotation** — refresh tokens are rotated on each use with a grace period
 - **JWT Access Tokens** — HS256 signed, contain session and user info
 

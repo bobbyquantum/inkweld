@@ -85,7 +85,7 @@ See the [MCP & OAuth Integration](./mcp-oauth.md) guide for the full OAuth flow,
 
 ## Rate Limiting
 
-General API endpoints are not rate limited by the server. A fixed set of abuse-sensitive endpoints is limited per client IP, answering `429 Too Many Requests` once the limit is passed:
+General API endpoints are not rate limited by the server. A fixed set of abuse-sensitive endpoints is limited per client IP, answering `429 Too Many Requests` with a `Retry-After` header once the limit is passed:
 
 | Endpoint                                  | Limit         |
 | ----------------------------------------- | ------------- |
@@ -97,8 +97,21 @@ General API endpoints are not rate limited by the server. A fixed set of abuse-s
 | `/api/v1/auth/passkeys/register/*`        | 10 per minute |
 | `/api/v1/auth/passkey-recovery/*`         | 3 per minute  |
 | `POST /oauth/register` (MCP client setup) | 10 per hour   |
+| `/oauth/token`, `/oauth/revoke`           | 60 per minute |
 
-The limits are fixed (not configurable) and are held in memory per server process, so they apply on Bun and Docker but not meaningfully on Cloudflare Workers, where isolates are short-lived. On Workers, add Cloudflare WAF rate-limiting rules in front of the auth endpoints. Set `INKWELD_DISABLE_RATE_LIMIT=true` to switch them off (for example in automated tests).
+Endpoints that cost the instance money or land in other people's inboxes are limited per account instead:
+
+| Endpoint                                                   | Limit per account |
+| ---------------------------------------------------------- | ----------------- |
+| `POST /api/v1/ai/image/generate`, `/generate-stream`       | 60 per hour       |
+| `POST /api/v1/ai/text/optimize-image-prompt`               | 120 per hour      |
+| `POST /api/v1/ai/lint`                                     | 120 per hour      |
+| `POST …/docs/:docId/auto-review/review`                    | 60 per hour       |
+| `POST /api/v1/collaboration/:username/:slug/collaborators` | 30 per hour       |
+
+Password-reset and passkey-recovery emails are also sent at most once a minute per account, whoever asks; a request inside that minute answers as usual but sends nothing and keeps the earlier link valid.
+
+The limits are fixed (not configurable). On Bun and Docker they are counted in the server's memory (a sliding window). On Cloudflare Workers, where every isolate has its own short-lived memory, they are counted in the `rate_limit_buckets` table in D1 instead (a fixed window), so all isolates share them. If that table can't be reached the request is let through rather than refused. Set `INKWELD_DISABLE_RATE_LIMIT=true` to switch them off (for example in automated tests).
 
 ## CORS
 

@@ -6,6 +6,7 @@
  */
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { requireAuth } from '../middleware/auth';
+import { userRateLimit } from '../middleware/rate-limit';
 import { requireAiEnabled } from '../utils/ai-kill-switch';
 import { configService } from '../services/config.service';
 import { logger } from '../services/logger.service';
@@ -27,6 +28,8 @@ aiTextRoutes.use('*', requireAuth);
 // The default model catalog stays open for the admin settings page.
 aiTextRoutes.use('/status', requireAiEnabled);
 aiTextRoutes.use('/optimize-image-prompt', requireAiEnabled);
+// Every call goes to a paid text model: cap it per account.
+aiTextRoutes.use('/optimize-image-prompt', userRateLimit('ai-text', 60 * 60 * 1000, 120));
 
 // ============================================================================
 // Schemas
@@ -128,11 +131,11 @@ const OptimizeImagePromptRequestSchema = z
       example:
         'Character: Elena, age 25, dark hair, blue eyes, wears leather armor, carries a sword',
     }),
-    targetStyle: z.string().optional().openapi({
+    targetStyle: z.string().max(500).optional().openapi({
       description: 'Target image style',
       example: 'fantasy art, detailed, painterly',
     }),
-    context: z.string().optional().openapi({
+    context: z.string().max(2000).optional().openapi({
       description: 'Additional context for the optimization',
       example: 'character portrait for a book cover',
     }),

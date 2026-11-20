@@ -293,6 +293,47 @@ describe('Share Routes', () => {
       }
     });
 
+    it('serves a private cover only to people with access to the project', async () => {
+      const db = getDatabase();
+      const outsiderId = crypto.randomUUID();
+      const viewerId = crypto.randomUUID();
+      const password = await bcrypt.hash(TEST_PASSWORDS.DEFAULT, 10);
+      await db.insert(users).values([
+        { id: outsiderId, username: 'cover-outsider', password, approved: true, enabled: true },
+        { id: viewerId, username: 'cover-viewer', password, approved: true, enabled: true },
+      ]);
+      await db.insert(projectCollaborators).values({
+        projectId,
+        userId: viewerId,
+        role: 'viewer',
+        status: 'accepted',
+        invitedAt: Date.now(),
+      });
+      await getStorageService().saveProjectFile(
+        'shareroutes-user',
+        'share-test-project',
+        'cover.jpg',
+        Buffer.from('fake cover')
+      );
+      await db.update(projects).set({ coverImage: 'cover.jpg' }).where(eq(projects.id, projectId));
+      try {
+        const coverPath = '/api/v1/projects/shareroutes-user/share-test-project/cover';
+        const outsider = new TestClient(baseUrl);
+        expect(await outsider.login('cover-outsider', TEST_PASSWORDS.DEFAULT)).toBe(true);
+        expect((await outsider.request(coverPath)).response.status).toBe(404);
+
+        const viewer = new TestClient(baseUrl);
+        expect(await viewer.login('cover-viewer', TEST_PASSWORDS.DEFAULT)).toBe(true);
+        expect((await viewer.request(coverPath)).response.status).toBe(200);
+        expect((await client.request(coverPath)).response.status).toBe(200);
+      } finally {
+        await db.update(projects).set({ coverImage: null }).where(eq(projects.id, projectId));
+        await db.delete(projectCollaborators).where(eq(projectCollaborators.userId, viewerId));
+        await db.delete(users).where(eq(users.id, outsiderId));
+        await db.delete(users).where(eq(users.id, viewerId));
+      }
+    });
+
     it('does not expose missing public project slugs', async () => {
       const response = await fetch(`${baseUrl}/api/v1/share/projects/shareroutes-user/missing`);
       expect(response.status).toBe(404);

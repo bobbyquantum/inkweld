@@ -1,5 +1,5 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import { eq, and, lt, isNotNull, or } from 'drizzle-orm';
+import { eq, and, gt, lt, isNotNull, or } from 'drizzle-orm';
 import { passwordResetTokens } from '../db/schema';
 import { userService } from './user.service';
 import { emailService } from './email.service';
@@ -7,10 +7,18 @@ import { passwordResetRequestEmail, passwordResetConfirmEmail } from './email-te
 import { logger } from './logger.service';
 import { getBaseUrl } from './url.service';
 import type { DatabaseInstance } from '../types/context';
+import type { D1DatabaseInstance } from '../db/d1';
 
 /** Token validity in seconds (1 hour) */
 const TOKEN_EXPIRY_SECONDS = 3600;
 const TOKEN_EXPIRY_MINUTES = TOKEN_EXPIRY_SECONDS / 60;
+
+/**
+ * Minimum seconds between two emails to the same account. Without it anyone
+ * could make the server mail one address over and over from many IPs, and
+ * each request would also invalidate the link sent before it.
+ */
+const REQUEST_COOLDOWN_SECONDS = 60;
 
 /**
  * Hash a raw token using SHA-256.
@@ -56,13 +64,30 @@ class PasswordResetService {
       return { success: true, emailSent: false };
     }
 
+    const now = Math.floor(Date.now() / 1000);
+    const [recent] = await (db as D1DatabaseInstance)
+      .select({ id: passwordResetTokens.id })
+      .from(passwordResetTokens)
+      .where(
+        and(
+          eq(passwordResetTokens.userId, user.id),
+          gt(passwordResetTokens.createdAt, now - REQUEST_COOLDOWN_SECONDS)
+        )
+      )
+      .limit(1);
+    if (recent) {
+      logger.info('PasswordReset', 'Reset requested again within the cooldown; not resent', {
+        userId: user.id,
+      });
+      return { success: true, emailSent: false };
+    }
+
     // Delete any existing unused tokens for this user
     await db.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, user.id));
 
     // Generate a new token
     const rawToken = randomBytes(32).toString('hex');
     const tokenHash = hashToken(rawToken);
-    const now = Math.floor(Date.now() / 1000);
 
     await db.insert(passwordResetTokens).values({
       userId: user.id,

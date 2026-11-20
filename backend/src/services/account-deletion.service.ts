@@ -21,6 +21,7 @@ import { projectService } from './project.service';
 import { getStorageService } from './storage.service';
 import { userService } from './user.service';
 import { forEachSequential } from '@inkweld/async';
+import { notifySessionsRevoked } from '../utils/session-validity';
 
 export type DeleteAccountResult = 'deleted' | 'last-admin';
 
@@ -44,6 +45,8 @@ class AccountDeletionService {
         await this.deleteProfileImages(c, username, user.hasAvatar);
       }
       await userService.deleteUser(db, user.id);
+      // Close the account's sockets on other people's projects too.
+      notifySessionsRevoked(user.id);
     } catch (error) {
       // Leave the account usable so the deletion can be retried; projects
       // already removed stay removed.

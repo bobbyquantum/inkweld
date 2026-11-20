@@ -634,7 +634,8 @@ describe('PasskeyRecoveryService internals', () => {
         userId,
         tokenHash: 'old'.padEnd(64, '0'),
         expiresAt: now + 900,
-        createdAt: now - 60,
+        // Older than the one-minute resend cooldown
+        createdAt: now - 120,
       });
       expect(await passkeyRecoveryService._countActiveTokensForUser(db, userId)).toBe(1);
 
@@ -648,6 +649,33 @@ describe('PasskeyRecoveryService internals', () => {
       expect(remaining.find((r) => r.tokenHash === 'old'.padEnd(64, '0'))).toBeUndefined();
       expect(remaining).toHaveLength(1);
     } finally {
+      await configService.delete(db, 'EMAIL_ENABLED');
+    }
+  });
+
+  it('requestRecovery() sends nothing new within a minute of the last link', async () => {
+    await configService.set(db, 'EMAIL_ENABLED', 'true');
+    try {
+      await db.delete(passkeyRecoveryTokens).where(eq(passkeyRecoveryTokens.userId, userId));
+      const now = Math.floor(Date.now() / 1000);
+      await db.insert(passkeyRecoveryTokens).values({
+        userId,
+        tokenHash: 'recent'.padEnd(64, '0'),
+        expiresAt: now + 900,
+        createdAt: now - 5,
+      });
+
+      const result = await passkeyRecoveryService.requestRecovery(db, 'recovsvc@example.com');
+
+      expect(result).toEqual({ success: true, emailSent: false });
+      // The link already sent stays valid.
+      const remaining = await db
+        .select()
+        .from(passkeyRecoveryTokens)
+        .where(eq(passkeyRecoveryTokens.userId, userId));
+      expect(remaining.map((r) => r.tokenHash)).toEqual(['recent'.padEnd(64, '0')]);
+    } finally {
+      await db.delete(passkeyRecoveryTokens).where(eq(passkeyRecoveryTokens.userId, userId));
       await configService.delete(db, 'EMAIL_ENABLED');
     }
   });
