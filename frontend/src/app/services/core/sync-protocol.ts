@@ -40,7 +40,8 @@ export function withSyncClientParams(wsUrl: string): string {
   const query = wsUrl.indexOf('?');
   if (query === -1) return `${wsUrl}?${params}`;
   const rest = wsUrl.slice(query + 1);
-  return `${wsUrl.slice(0, query + 1)}${params}${rest ? `&${rest}` : ''}`;
+  const tail = rest ? '&' + rest : '';
+  return `${wsUrl.slice(0, query + 1)}${params}${tail}`;
 }
 
 const mismatchListeners = new Set<() => void>();
@@ -57,7 +58,8 @@ export function onSyncVersionMismatch(listener: () => void): () => void {
 
 /** Called by the socket code when the server answers `version-mismatch`. */
 export function reportSyncVersionMismatch(): void {
-  for (const listener of [...mismatchListeners]) {
+  // A Set stays safe to iterate while a listener removes itself.
+  for (const listener of mismatchListeners) {
     try {
       listener();
     } catch (error) {
