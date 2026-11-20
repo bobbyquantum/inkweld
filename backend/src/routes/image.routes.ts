@@ -13,6 +13,7 @@ import { getStorageService } from '../services/storage.service';
 import { quotaService } from '../services/quota.service';
 import { quotaStorageContext, storedProjectFileSize } from '../utils/quota-context';
 import { projectService } from '../services/project.service';
+import { collaborationService } from '../services/collaboration.service';
 import { UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '../errors';
 import { type AppContext } from '../types/context';
 import { ProjectPathParamsSchema, QuotaExceededSchema } from '../schemas/common.schemas';
@@ -215,8 +216,22 @@ imageRoutes.openapi(getCoverRoute, async (c) => {
 
   // Look up the actual cover filename from the project record
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
-  const coverFilename = project?.coverImage;
+  if (!project) {
+    throw new NotFoundError('Cover image not found');
+  }
 
+  // The middleware admits anonymous reads of public projects only; for a
+  // private project it just proves the caller is signed in, so check they
+  // own or collaborate on it. A 404 (not 403) keeps the project's existence
+  // private too.
+  if (!c.get('publicProjectRead')) {
+    const access = await collaborationService.checkAccess(db, project.id, c.get('user')?.id);
+    if (!access.canRead) {
+      throw new NotFoundError('Cover image not found');
+    }
+  }
+
+  const coverFilename = project.coverImage;
   if (!coverFilename) {
     throw new NotFoundError('Cover image not found');
   }

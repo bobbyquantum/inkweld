@@ -28,6 +28,7 @@ import {
   OAuthService as OAuthApiService,
 } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
+import { isSafeNavigationUrl } from '@utils/safe-navigation-url';
 
 /** Grant with selection state for the UI */
 interface ProjectGrant {
@@ -312,12 +313,10 @@ export class OAuthConsentComponent implements OnInit {
           // Show the completion state first, then attempt the redirect.
           // For custom-scheme URIs (e.g. claude://) the browser tab stays open,
           // so the user will see the "return to your application" message.
+          this.submitting.set(false);
+          if (!this.navigateToClient(response.redirectUri)) return;
           this.redirectUri.set(response.redirectUri);
           this.completed.set(true);
-          this.submitting.set(false);
-
-          // Attempt to navigate to the redirect URI
-          globalThis.location.href = response.redirectUri;
         },
         error: (err: OAuthApiError) => {
           console.error('Failed to submit consent:', err);
@@ -349,7 +348,26 @@ export class OAuthConsentComponent implements OnInit {
     if (params.state) {
       redirectUrl.searchParams.set('state', params.state);
     }
-    globalThis.location.href = redirectUrl.toString();
+    this.navigateToClient(redirectUrl.toString());
+  }
+
+  /**
+   * Send the browser back to the client. Refuses a URL whose scheme would
+   * run script or show content on this origin (a `javascript:` redirect URI
+   * would run as the signed-in user); the server refuses those too, this is
+   * the last line. Returns whether it navigated.
+   */
+  private navigateToClient(url: string): boolean {
+    if (!isSafeNavigationUrl(url)) {
+      this.snackBar.open(
+        this.transloco.translate('auth.oauthConsent.unsafeRedirect'),
+        this.transloco.translate('dismiss'),
+        { duration: 5000 }
+      );
+      return false;
+    }
+    globalThis.location.href = url;
+    return true;
   }
 
   /** Select all projects */

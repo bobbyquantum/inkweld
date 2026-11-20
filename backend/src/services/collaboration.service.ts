@@ -39,7 +39,6 @@ export interface CollaboratorWithUser {
   mcpSessionId: string | null;
   username: string;
   name: string | null;
-  email: string | null;
   invitedByUsername: string | null;
   /** OAuth client name (only set for oauth_app type) */
   clientName: string | null;
@@ -95,7 +94,6 @@ class CollaborationService {
         mcpSessionId: projectCollaborators.mcpSessionId,
         username: users.username,
         name: users.name,
-        email: users.email,
       })
       .from(projectCollaborators)
       .leftJoin(users, eq(projectCollaborators.userId, users.id))
@@ -142,7 +140,6 @@ class CollaborationService {
       mcpSessionId: r.mcpSessionId,
       username: r.username ?? '',
       name: r.name,
-      email: r.email,
       invitedByUsername: r.invitedBy ? (inviterMap.get(r.invitedBy) ?? null) : null,
       clientName: r.mcpSessionId ? (clientNameMap.get(r.mcpSessionId) ?? null) : null,
     }));
@@ -183,8 +180,11 @@ class CollaborationService {
     invitedByUserId: string
   ): Promise<CollaboratorWithUser> {
     // Find the target user
+    // An account that can't sign in (disabled, unapproved, rejected) is
+    // reported exactly like a missing one, so inviting can't be used to learn
+    // an account's status.
     const targetUser = await userService.findByUsername(db, targetUsername);
-    if (!targetUser) {
+    if (!targetUser || !userService.canLogin(targetUser)) {
       throw new NotFoundError(`User "${targetUsername}" not found`);
     }
 

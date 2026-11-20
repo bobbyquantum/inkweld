@@ -7,6 +7,7 @@
 
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { requireAuth } from '../middleware/auth';
+import { userRateLimit } from '../middleware/rate-limit';
 import { projectService } from '../services/project.service';
 import { collaborationService } from '../services/collaboration.service';
 import { activityService } from '../services/activity.service';
@@ -19,6 +20,13 @@ const collaborationRoutes = new OpenAPIHono<AppContext>();
 
 // Apply session auth middleware
 collaborationRoutes.use('*', requireAuth);
+
+// Each invitation lands in someone else's inbox: cap them per account so one
+// account can't flood every user with pending invitations.
+const inviteLimit = userRateLimit('invite', 60 * 60 * 1000, 30);
+collaborationRoutes.use('/:username/:slug/collaborators', (c, next) =>
+  c.req.method === 'POST' ? inviteLimit(c, next) : next()
+);
 
 // ============================================
 // Schemas
@@ -39,7 +47,6 @@ const CollaboratorSchema = z
     userId: z.string(),
     username: z.string(),
     name: z.string().nullable(),
-    email: z.string().nullable(),
     role: CollaboratorRoleSchema,
     status: InvitationStatusSchema,
     invitedBy: z.string().nullable(),

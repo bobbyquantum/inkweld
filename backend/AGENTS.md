@@ -36,6 +36,21 @@ LevelDB per project for Yjs documents (Durable Objects on Workers). The root
   same watermark and `enabled`/`approved` on every request and refresh
   (`mcpOAuthService.isSessionRevoked`). A new way to end a user's sessions also
   calls `mcpOAuthService.revokeUserSessions`, as `userService` does.
+- **Rate limits** (`middleware/rate-limit.ts`): give every `rateLimit()` a
+  `name`. On Workers a named limiter counts in the `rate_limit_buckets` D1
+  table, shared by all isolates; an unnamed one counts in isolate memory,
+  which limits nothing there. Endpoints that cost money (AI) or reach other
+  users (invitations) use `userRateLimit()` after `requireAuth`, counting per
+  account. List new limits in `docs/site/docs/developer/api.md`.
+- **Live sockets and revocation**: a new way to end all of a user's sessions
+  also calls `notifySessionsRevoked(userId)` (`utils/session-validity.ts`),
+  which closes their Bun sockets at once. Sockets on both runtimes re-check
+  their session every `SESSION_RECHECK_MS`; on Workers the Durable Object's
+  alarm does it (`utils/socket-session-recheck.ts`), so keep `iat`, `exp` and
+  `checkedAt` in every `WSAttachment` written after auth.
+- **MCP OAuth redirect URIs** go through `isAllowedRedirectUri`
+  (`utils/oauth-redirect-uri.ts`) at registration and at `/oauth/authorize`:
+  https, loopback http or a native-app scheme, never `javascript:`/`data:`.
 - **Reserved usernames** live in `RESERVED_USERNAMES`
   (`schemas/auth.schemas.ts`). A new top-level frontend route (such as
   `public`, for public project links) is added there too, or an account could

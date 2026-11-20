@@ -1,5 +1,5 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import { eq, and, lt, isNotNull, isNull, or } from 'drizzle-orm';
+import { eq, and, gt, lt, isNotNull, isNull, or } from 'drizzle-orm';
 import { passkeyRecoveryTokens, type PasskeyRecoveryToken, userPasskeys } from '../db/schema';
 import { userService } from './user.service';
 import { emailService } from './email.service';
@@ -9,6 +9,7 @@ import { passkeyRecoveryEmail } from './email-templates';
 import { logger } from './logger.service';
 import { getBaseUrl } from './url.service';
 import type { DatabaseInstance } from '../types/context';
+import type { D1DatabaseInstance } from '../db/d1';
 import type { PasskeyRpConfig } from './passkey.service';
 import type {
   PublicKeyCredentialCreationOptionsJSON,
@@ -24,6 +25,13 @@ import type {
  */
 const TOKEN_EXPIRY_SECONDS = 900;
 const TOKEN_EXPIRY_MINUTES = TOKEN_EXPIRY_SECONDS / 60;
+
+/**
+ * Minimum seconds between two emails to the same account. Without it anyone
+ * could make the server mail one address over and over from many IPs, and
+ * each request would also invalidate the link sent before it.
+ */
+const REQUEST_COOLDOWN_SECONDS = 60;
 
 function hashToken(rawToken: string): string {
   return createHash('sha256').update(rawToken).digest('hex');
@@ -93,6 +101,24 @@ class PasskeyRecoveryService {
       return { success: true, emailSent: false };
     }
 
+    const now = Math.floor(Date.now() / 1000);
+    const [recent] = await (db as D1DatabaseInstance)
+      .select({ id: passkeyRecoveryTokens.id })
+      .from(passkeyRecoveryTokens)
+      .where(
+        and(
+          eq(passkeyRecoveryTokens.userId, user.id),
+          gt(passkeyRecoveryTokens.createdAt, now - REQUEST_COOLDOWN_SECONDS)
+        )
+      )
+      .limit(1);
+    if (recent) {
+      logger.info('PasskeyRecovery', 'Recovery requested again within the cooldown; not resent', {
+        userId: user.id,
+      });
+      return { success: true, emailSent: false };
+    }
+
     // Burn any pending tokens for this user — we only allow one outstanding
     // recovery link at a time, so a fresh request invalidates the previous
     // one (which limits the window of risk if a request was a typo/phish).
@@ -100,7 +126,6 @@ class PasskeyRecoveryService {
 
     const rawToken = randomBytes(32).toString('hex');
     const tokenHash = hashToken(rawToken);
-    const now = Math.floor(Date.now() / 1000);
 
     await db.insert(passkeyRecoveryTokens).values({
       userId: user.id,

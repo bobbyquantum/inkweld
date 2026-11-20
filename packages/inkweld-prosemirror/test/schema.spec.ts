@@ -19,6 +19,7 @@ import {
   createExtendedSchemaSpec,
   elementRefNodeSpec,
   elementRefSchemaExtension,
+  safeLinkHref,
   secureLinkMarkSpec,
 } from '../src/schema';
 
@@ -233,6 +234,49 @@ describe('commentMarkSpec', () => {
 // ---------------------------------------------------------------------------
 // secureLinkMarkSpec
 // ---------------------------------------------------------------------------
+
+describe('safeLinkHref', () => {
+  it('keeps web, mail, phone and relative links', () => {
+    for (const href of [
+      'https://example.com/a?b=c',
+      'http://example.com',
+      'MAILTO:someone@example.com',
+      'tel:+441234567890',
+      '/relative/path',
+      '#heading',
+      'chapter-2.html',
+    ]) {
+      expect(safeLinkHref(href)).toBe(href);
+    }
+  });
+
+  it('drops script, data and other schemes, however they are written', () => {
+    for (const href of [
+      'javascript:alert(1)',
+      ' JavaScript:alert(1)',
+      'java\tscript:alert(1)',
+      'java\nscript:alert(1)',
+      '\u0001javascript:alert(1)',
+      'data:text/html,<script>alert(1)</script>',
+      'vbscript:msgbox(1)',
+      'file:///etc/passwd',
+    ]) {
+      expect(safeLinkHref(href)).toBeNull();
+    }
+    expect(safeLinkHref(undefined)).toBeNull();
+  });
+
+  it('is what the link mark renders', () => {
+    const schema = new Schema({ nodes: baseNodes, marks: { link: secureLinkMarkSpec } });
+    const mark = schema.marks['link'].create({ href: 'javascript:alert(document.cookie)' });
+    const [, attrs] = secureLinkMarkSpec.toDOM!(mark, true) as [
+      string,
+      Record<string, string | null>,
+      number,
+    ];
+    expect(attrs['href']).toBeNull();
+  });
+});
 
 describe('secureLinkMarkSpec', () => {
   it('declares the documented attributes (with rel + target)', () => {

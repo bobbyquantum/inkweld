@@ -68,31 +68,51 @@ export function registerRateLimits(app: {
 }): void {
   if (!rateLimitsDisabled()) {
     // Password login — 5 attempts per minute per IP
-    app.use('/api/v1/auth/login', rateLimit({ windowMs: 60_000, max: 5 }));
-    const oidcLimiter = rateLimit({ windowMs: 60_000, max: 20 });
+    app.use('/api/v1/auth/login', rateLimit({ name: 'login', windowMs: 60_000, max: 5 }));
+    const oidcLimiter = rateLimit({ name: 'oidc', windowMs: 60_000, max: 20 });
     app.use('/api/v1/auth/oidc/*', oidcLimiter);
 
     // Registration — 3 attempts per minute per IP (prevents spam sign-ups)
-    app.use('/api/v1/auth/register', rateLimit({ windowMs: 60_000, max: 3 }));
+    app.use('/api/v1/auth/register', rateLimit({ name: 'register', windowMs: 60_000, max: 3 }));
 
     // Password reset — 3 requests and 5 reset attempts per minute per IP
-    app.use('/api/v1/auth/forgot-password', rateLimit({ windowMs: 60_000, max: 3 }));
-    app.use('/api/v1/auth/reset-password', rateLimit({ windowMs: 60_000, max: 5 }));
+    app.use(
+      '/api/v1/auth/forgot-password',
+      rateLimit({ name: 'forgot-password', windowMs: 60_000, max: 3 })
+    );
+    app.use(
+      '/api/v1/auth/reset-password',
+      rateLimit({ name: 'reset-password', windowMs: 60_000, max: 5 })
+    );
 
     // Passkey login — 10 attempts per minute per IP (2 WebAuthn calls per ceremony)
-    app.use('/api/v1/auth/passkeys/login/*', rateLimit({ windowMs: 60_000, max: 10 }));
+    app.use(
+      '/api/v1/auth/passkeys/login/*',
+      rateLimit({ name: 'passkey-login', windowMs: 60_000, max: 10 })
+    );
 
     // Passkey registration — 10 attempts per minute per IP
-    app.use('/api/v1/auth/passkeys/register/*', rateLimit({ windowMs: 60_000, max: 10 }));
+    app.use(
+      '/api/v1/auth/passkeys/register/*',
+      rateLimit({ name: 'passkey-register', windowMs: 60_000, max: 10 })
+    );
 
     // Passkey recovery (magic-link) — 3 attempts per minute per IP
-    app.use('/api/v1/auth/passkey-recovery/*', rateLimit({ windowMs: 60_000, max: 3 }));
+    app.use(
+      '/api/v1/auth/passkey-recovery/*',
+      rateLimit({ name: 'passkey-recovery', windowMs: 60_000, max: 3 })
+    );
 
     // MCP OAuth dynamic client registration (RFC 7591) is anonymous by
     // design — 10 registrations per hour per IP. A total cap is enforced in
     // McpOAuthService.registerClient as well.
-    app.use('/oauth/register', rateLimit({ windowMs: 3_600_000, max: 10 }));
-    app.use('/register', rateLimit({ windowMs: 3_600_000, max: 10 }));
+    app.use('/oauth/register', rateLimit({ name: 'oauth-register', windowMs: 3_600_000, max: 10 }));
+    app.use('/register', rateLimit({ name: 'oauth-register', windowMs: 3_600_000, max: 10 }));
+
+    // MCP OAuth token exchange and revocation — 60 per minute per IP
+    const oauthTokenLimiter = rateLimit({ name: 'oauth-token', windowMs: 60_000, max: 60 });
+    app.use('/oauth/token', oauthTokenLimiter);
+    app.use('/oauth/revoke', oauthTokenLimiter);
   }
 }
 

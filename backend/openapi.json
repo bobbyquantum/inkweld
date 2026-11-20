@@ -3218,11 +3218,13 @@
           },
           "targetStyle": {
             "type": "string",
+            "maxLength": 500,
             "description": "Target image style",
             "example": "fantasy art, detailed, painterly"
           },
           "context": {
             "type": "string",
+            "maxLength": 2000,
             "description": "Additional context for the optimization",
             "example": "character portrait for a book cover"
           },
@@ -4232,10 +4234,6 @@
             "type": "string",
             "nullable": true
           },
-          "email": {
-            "type": "string",
-            "nullable": true
-          },
           "role": {
             "$ref": "#/components/schemas/CollaboratorRole"
           },
@@ -4275,7 +4273,6 @@
           "userId",
           "username",
           "name",
-          "email",
           "role",
           "status",
           "invitedBy",
@@ -5058,10 +5055,10 @@
           "redirect_uris": {
             "type": "array",
             "items": {
-              "type": "string",
-              "format": "uri"
+              "type": "string"
             },
-            "minItems": 1
+            "minItems": 1,
+            "maxItems": 10
           },
           "client_uri": {
             "type": "string",

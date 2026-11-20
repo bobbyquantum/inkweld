@@ -106,6 +106,8 @@ import {
  */
 const DEDUPE_DEBOUNCE_MS = 300;
 import { checkWsRateLimit } from './ws-rate-limiter';
+import { SESSION_RECHECK_MS } from '../utils/session-validity';
+import { recheckSocketSessions } from '../utils/socket-session-recheck';
 import {
   PRESENCE_KEEPALIVE_PING,
   PRESENCE_KEEPALIVE_PONG,
@@ -210,6 +212,13 @@ interface WSAttachment {
    *  so the DO can enforce read-only after a hibernation wake without a new
    *  DB lookup. */
   canWrite: boolean;
+  /** Issued-at and expiry (unix seconds) of the session token the socket
+   *  authenticated with, for the periodic session re-check (see alarm()).
+   *  Absent for public viewers. */
+  iat?: number;
+  exp?: number;
+  /** Epoch ms the socket's session was last checked (auth or re-check). */
+  checkedAt?: number;
   /** Writing-session metadata persisted so tryFinalizeSession can emit a
    *  document_edit activity event with the correct element name after a
    *  hibernation wake. All fields are optional — absent when no writing
@@ -1570,11 +1579,12 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    * Client must send JWT token as first text message after connecting
    */
   /**
-   * Arm the DO alarm for the pre-auth deadline of a newly accepted socket,
-   * unless an earlier alarm is already pending. Uses the alarm API rather than
-   * setTimeout because a live timer prevents the DO from hibernating.
+   * Arm the DO alarm for `deadlineMs` (the pre-auth deadline of a newly
+   * accepted socket, or the next session re-check), unless an earlier alarm
+   * is already pending. Uses the alarm API rather than setTimeout because a
+   * live timer prevents the DO from hibernating.
    */
-  private async scheduleAuthDeadline(deadlineMs: number): Promise<void> {
+  private async scheduleAlarmBy(deadlineMs: number): Promise<void> {
     const storage = this.state.storage as {
       getAlarm?: () => Promise<number | null>;
       setAlarm?: (at: number) => Promise<void>;
@@ -1600,29 +1610,99 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   }
 
   /**
-   * Alarm handler: close every socket that was accepted but never
-   * authenticated within PREAUTH_TIMEOUT_MS, then re-arm for the earliest
-   * remaining unauthenticated socket, if any.
+   * Alarm handler. Closes every socket that was accepted but never
+   * authenticated within PREAUTH_TIMEOUT_MS, and re-checks the session of
+   * every authenticated member socket last checked SESSION_RECHECK_MS ago
+   * (token expiry, account still enabled/approved, revocation watermark,
+   * access to the project). Then re-arms for the earliest next deadline.
    */
   async alarm(): Promise<void> {
     const now = Date.now();
-    let nextDeadline: number | null = null;
+    let nextAlarm: number | null = null;
+    const earliest = (at: number): void => {
+      if (nextAlarm === null || at < nextAlarm) nextAlarm = at;
+    };
+    const due: Array<{ ws: WebSocket; attachment: WSAttachment & { userId: string } }> = [];
     for (const ws of this.state.getWebSockets()) {
       const attachment = this.readAttachment(ws);
-      if (!attachment || attachment.authenticated || attachment.connectedAt === undefined) continue;
-      if (preAuthDeadlinePassed(attachment.connectedAt, now)) {
-        projDOLog.warn(`No auth token within deadline for ${attachment.documentId}; closing`);
-        safeSend(ws, 'access-denied:auth-timeout');
-        safeClose(ws, WS_CLOSE_AUTH_TIMEOUT, 'Authentication timeout');
-        this.connections.delete(ws);
+      if (!attachment) continue;
+      if (!attachment.authenticated) {
+        if (attachment.connectedAt === undefined) continue;
+        if (preAuthDeadlinePassed(attachment.connectedAt, now)) {
+          projDOLog.warn(`No auth token within deadline for ${attachment.documentId}; closing`);
+          safeSend(ws, 'access-denied:auth-timeout');
+          safeClose(ws, WS_CLOSE_AUTH_TIMEOUT, 'Authentication timeout');
+          this.connections.delete(ws);
+          continue;
+        }
+        earliest(attachment.connectedAt + PREAUTH_TIMEOUT_MS);
         continue;
       }
-      const deadline = attachment.connectedAt + PREAUTH_TIMEOUT_MS;
-      if (nextDeadline === null || deadline < nextDeadline) nextDeadline = deadline;
+      const userId = attachment.userId;
+      if (!userId || userId === PUBLIC_VIEWER_ID) continue;
+      const checkedAt = attachment.checkedAt ?? 0;
+      if (now - checkedAt >= SESSION_RECHECK_MS) {
+        due.push({ ws, attachment: { ...attachment, userId } });
+      } else {
+        earliest(checkedAt + SESSION_RECHECK_MS);
+      }
     }
-    if (nextDeadline !== null) {
-      await this.scheduleAuthDeadline(nextDeadline);
+    if (due.length > 0 && (await this.recheckSessions(due, now))) {
+      earliest(now + SESSION_RECHECK_MS);
     }
+    if (nextAlarm !== null) {
+      await this.scheduleAlarmBy(nextAlarm);
+    }
+  }
+
+  /**
+   * Re-check the sessions of `due` sockets (see alarm()). Closes those whose
+   * token expired or whose account or access is gone, makes those whose
+   * write permission changed reconnect, and stamps the rest as checked.
+   * Returns whether any socket is still open and needs another re-check.
+   */
+  private async recheckSessions(
+    due: Array<{ ws: WebSocket; attachment: WSAttachment & { userId: string } }>,
+    now: number
+  ): Promise<boolean> {
+    const db = this.getDb();
+    const parsed = this.parseDocumentOwner(due[0].attachment.documentId);
+    // Without a database only expiry can be checked; a failed check keeps
+    // the socket for the next round.
+    const checkAccess: Parameters<typeof recheckSocketSessions>[2] =
+      db && parsed
+        ? (claims) => resolveProjectAccess(db, parsed.projectOwner, parsed.slug, claims)
+        : () => Promise.reject(new Error('No database for the session re-check'));
+    const outcomes = await recheckSocketSessions(
+      due.map(({ ws, attachment }) => ({ key: ws, session: attachment })),
+      Math.floor(now / 1000),
+      checkAccess
+    );
+    let stillOpen = false;
+    for (const { ws, attachment } of due) {
+      const outcome = outcomes.get(ws) ?? 'keep';
+      if (outcome === 'keep') {
+        try {
+          ws.serializeAttachment({ ...attachment, checkedAt: now });
+        } catch {
+          // Socket closed meanwhile.
+        }
+        stillOpen = true;
+        continue;
+      }
+      projDOLog.info(`Session re-check closed a socket of ${attachment.userId} (${outcome})`);
+      this.cleanupConnection(ws);
+      if (outcome === 'expired') {
+        safeSend(ws, 'access-denied:invalid-token');
+        safeClose(ws, WS_CLOSE_INVALID_TOKEN, 'Session expired');
+      } else if (outcome === 'forbidden') {
+        safeSend(ws, 'access-denied:forbidden');
+        safeClose(ws, WS_CLOSE_FORBIDDEN, 'Access revoked');
+      } else {
+        safeClose(ws, WS_CLOSE_ACCESS_CHANGED, 'Access changed');
+      }
+    }
+    return stillOpen;
   }
 
   private async handleWebSocketUpgrade(request: Request, url: URL): Promise<Response> {
@@ -1673,7 +1753,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     this.state.acceptWebSocket(server, [documentId]);
 
     // Close it again if no token arrives in time. See alarm().
-    await this.scheduleAuthDeadline(connectedAt + PREAUTH_TIMEOUT_MS);
+    await this.scheduleAlarmBy(connectedAt + PREAUTH_TIMEOUT_MS);
 
     // Note: We do NOT set up Yjs here - we wait for authentication
     // The client must send a JWT token as the first text message
@@ -2974,14 +3054,24 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
 
       // Persist the new authenticated state (including canWrite) so a
       // hibernation wake will re-attach this socket without a new DB lookup.
+      // Kept for the periodic session re-check (see alarm()).
+      const sessionCheck = {
+        iat: sessionData?.iat,
+        exp: sessionData?.exp,
+        checkedAt: Date.now(),
+      };
       const attachment: WSAttachment = {
         documentId: connInfo.documentId,
         authenticated: true,
         userId: connInfo.userId,
         username: connInfo.username,
         canWrite,
+        ...sessionCheck,
       };
       ws.serializeAttachment(attachment);
+      if (!isPublicViewer) {
+        await this.scheduleAlarmBy(sessionCheck.checkedAt + SESSION_RECHECK_MS);
+      }
 
       projDOLog.debug(
         `WS authenticated for ${connInfo.documentId} (user: ${identity.label}, canWrite: ${canWrite})`
@@ -3065,6 +3155,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         userId: connInfo.userId,
         username: connInfo.username,
         canWrite,
+        ...sessionCheck,
         writingSessionId: connInfo.writingSessionId,
         trackedProjectId: connInfo.trackedProjectId,
         trackedUserId: connInfo.trackedUserId,

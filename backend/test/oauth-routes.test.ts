@@ -270,6 +270,34 @@ describe('OAuth Client Registration', () => {
     });
     expect(response.status).toBe(400);
   });
+
+  it('POST /oauth/register rejects script, data and remote http redirect URIs', async () => {
+    for (const uri of [
+      "javascript:void(0)||fetch('https://evil.example/')//",
+      'data:text/html,<script>alert(1)</script>',
+      'http://evil.example/callback',
+    ]) {
+      const { response } = await unauthClient.request('/oauth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_name: 'Hostile App', redirect_uris: [uri] }),
+      });
+      expect(response.status).toBe(400);
+    }
+  });
+
+  it('POST /oauth/register rejects a non-web logo_uri', async () => {
+    const { response } = await unauthClient.request('/oauth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_name: 'Logo App',
+        redirect_uris: ['http://localhost:9999/callback'],
+        logo_uri: 'javascript:alert(1)',
+      }),
+    });
+    expect(response.status).toBe(400);
+  });
 });
 
 // ============================================

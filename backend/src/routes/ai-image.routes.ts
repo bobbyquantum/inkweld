@@ -6,6 +6,7 @@
  */
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { requireAuth, requireAdmin } from '../middleware/auth';
+import { userRateLimit } from '../middleware/rate-limit';
 import { requireAiEnabled } from '../utils/ai-kill-switch';
 import { imageGenerationService } from '../services/image-generation.service';
 import { imageProfileService } from '../services/image-profile.service';
@@ -47,6 +48,11 @@ aiImageRoutes.use('*', requireAuth);
 aiImageRoutes.use('/status', requireAiEnabled);
 aiImageRoutes.use('/generate', requireAiEnabled);
 aiImageRoutes.use('/generate-stream', requireAiEnabled);
+
+// Each generation costs the instance money: cap it per account.
+const imageGenerationLimit = userRateLimit('ai-image', 60 * 60 * 1000, 60);
+aiImageRoutes.use('/generate', imageGenerationLimit);
+aiImageRoutes.use('/generate-stream', imageGenerationLimit);
 
 // ============================================================================
 // Schemas

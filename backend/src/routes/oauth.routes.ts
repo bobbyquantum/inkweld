@@ -19,6 +19,7 @@ import { authService } from '../services/auth.service';
 import { userService } from '../services/user.service';
 import { logger } from '../services/logger.service';
 import { getClientIp } from '../utils/client-ip';
+import { isAllowedRedirectUri, isWebUrl } from '../utils/oauth-redirect-uri';
 
 const oauthRoutes = new OpenAPIHono<AppContext>();
 
@@ -33,15 +34,21 @@ const OAuthErrorSchema = z
   })
   .openapi('OAuthError');
 
+const RedirectUriSchema = z.string().refine(isAllowedRedirectUri, {
+  message:
+    'redirect_uri must be https, http on a loopback host, or a native-app scheme, with no fragment',
+});
+const WebUrlSchema = z.url().refine(isWebUrl, { message: 'Must be an http(s) URL' });
+
 const ClientRegistrationRequestSchema = z
   .object({
     client_name: z.string().min(1).max(100),
-    redirect_uris: z.array(z.url()).min(1),
-    client_uri: z.url().optional(),
-    logo_uri: z.url().optional(),
+    redirect_uris: z.array(RedirectUriSchema).min(1).max(10),
+    client_uri: WebUrlSchema.optional(),
+    logo_uri: WebUrlSchema.optional(),
     contacts: z.array(z.email()).optional(),
-    policy_uri: z.url().optional(),
-    tos_uri: z.url().optional(),
+    policy_uri: WebUrlSchema.optional(),
+    tos_uri: WebUrlSchema.optional(),
     token_endpoint_auth_method: z
       .enum(['none', 'client_secret_basic', 'client_secret_post'])
       .optional(),

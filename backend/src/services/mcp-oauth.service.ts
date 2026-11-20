@@ -53,6 +53,7 @@ import {
   type ValidatedAuthRequest,
 } from './mcp-oauth.types';
 import { forEachSequential } from '@inkweld/async';
+import { isAllowedRedirectUri } from '../utils/oauth-redirect-uri';
 
 const oauthLog = logger.child('OAuth');
 
@@ -326,6 +327,11 @@ class McpOAuthService {
     const allowedUris: string[] = JSON.parse(client.redirectUris);
     if (!allowedUris.includes(redirect_uri)) {
       throw new OAuthError('invalid_request', 'redirect_uri not registered for this client');
+    }
+    // Clients registered before the scheme rule was enforced may still hold
+    // a URI the consent page must never navigate to.
+    if (!isAllowedRedirectUri(redirect_uri)) {
+      throw new OAuthError('invalid_request', 'redirect_uri is not an allowed redirect URI');
     }
 
     return {

@@ -15,7 +15,6 @@ export interface Collaborator {
   userId: string;
   username: string;
   name: string | null;
-  email: string | null;
   role: CollaboratorRole;
   status: InvitationStatus;
   invitedBy: string | null;

@@ -1392,3 +1392,31 @@ describe('MCP OAuth Service - dynamic client cap', () => {
     ).rejects.toThrow(OAuthError);
   });
 });
+
+describe('MCP OAuth Service - parseAuthorizationRequest redirect URIs', () => {
+  it('refuses a registered javascript: URI from before the scheme rule', async () => {
+    const clientId = crypto.randomUUID();
+    const hostile = "javascript:void(0)||fetch('https://evil.example/')//";
+    await db.insert(mcpOAuthClients).values({
+      id: clientId,
+      clientName: 'Legacy Hostile Client',
+      redirectUris: JSON.stringify([hostile]),
+      clientType: 'public',
+      isDynamic: true,
+      createdAt: Date.now(),
+    });
+    try {
+      await expect(
+        mcpOAuthService.parseAuthorizationRequest(db, {
+          client_id: clientId,
+          redirect_uri: hostile,
+          response_type: 'code',
+          code_challenge: 'challenge',
+          code_challenge_method: 'S256',
+        })
+      ).rejects.toThrow('redirect_uri is not an allowed redirect URI');
+    } finally {
+      await db.delete(mcpOAuthClients).where(eq(mcpOAuthClients.id, clientId));
+    }
+  });
+});

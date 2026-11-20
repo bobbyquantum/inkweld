@@ -1,10 +1,11 @@
-import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, it, spyOn } from 'bun:test';
 import * as bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 import { getDatabase } from '../src/db/index';
 import { users } from '../src/db/schema/index';
 import { userService } from '../src/services/user.service';
 import { isSessionRevoked } from '../src/utils/session-validity';
+import { yjsService } from '../src/services/yjs.service';
 import {
   enablePasswordLoginForTests,
   startTestServer,
@@ -106,5 +107,22 @@ describe('session revocation watermark', () => {
     await new Promise((r) => setTimeout(r, 1100));
     await userService.invalidateSessions(getDatabase(), userId);
     expect(await whoAmI(client)).toBe('revoked');
+  });
+
+  it('closes the live collaboration sockets of every revocation path', async () => {
+    const db = getDatabase();
+    const close = spyOn(yjsService, 'closeUserSockets').mockReturnValue(0);
+    try {
+      await userService.invalidateSessions(db, userId);
+      await userService.updatePassword(db, userId, TEST_PASSWORDS.DEFAULT);
+      await userService.setUserEnabled(db, userId, false);
+      await userService.setUserEnabled(db, userId, true);
+      await userService.rejectUser(db, userId);
+      // Re-enabling revokes nothing, so it closes nothing.
+      expect(close.mock.calls).toEqual([[userId], [userId], [userId], [userId]]);
+    } finally {
+      close.mockRestore();
+      await db.update(users).set({ approved: true, rejectedAt: null }).where(eq(users.id, userId));
+    }
   });
 });

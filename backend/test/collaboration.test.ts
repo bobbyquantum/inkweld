@@ -156,6 +156,45 @@ describe('Collaboration', () => {
       expect(data.status).toBe('pending');
     });
 
+    it("never returns the invited user's email", async () => {
+      const { response, json } = await ownerClient.request(
+        `/api/v1/collaboration/${ownerUsername}/${testProject.slug}/collaborators`
+      );
+      expect(response.status).toBe(200);
+      const data = (await json()) as Record<string, unknown>[];
+      expect(data.length).toBeGreaterThan(0);
+      for (const row of data) expect(row).not.toHaveProperty('email');
+    });
+
+    it('reports an account that cannot sign in like a missing one', async () => {
+      const db = getDatabase();
+      const disabledId = crypto.randomUUID();
+      await db.insert(users).values({
+        id: disabledId,
+        username: 'collab_disabled',
+        email: 'collab_disabled@example.com',
+        approved: true,
+        enabled: false,
+      });
+      try {
+        const invite = (username: string) =>
+          ownerClient.request(
+            `/api/v1/collaboration/${ownerUsername}/${testProject.slug}/collaborators`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ username, role: 'viewer' }),
+            }
+          );
+        const disabled = await invite('collab_disabled');
+        const missing = await invite('collab_nobody_here');
+        expect(disabled.response.status).toBe(404);
+        expect(missing.response.status).toBe(404);
+      } finally {
+        await db.delete(users).where(eq(users.id, disabledId));
+      }
+    });
+
     it('should not allow duplicate invitations', async () => {
       const { response } = await ownerClient.request(
         `/api/v1/collaboration/${ownerUsername}/${testProject.slug}/collaborators`,

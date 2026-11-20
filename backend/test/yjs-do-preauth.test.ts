@@ -81,7 +81,7 @@ let closeCodes: typeof import('../src/utils/ws-close-codes');
 
 interface DoInternals {
   handleBinaryMessage(ws: unknown, connInfo: unknown, message: ArrayBuffer): void;
-  scheduleAuthDeadline(deadlineMs: number): Promise<void>;
+  scheduleAlarmBy(deadlineMs: number): Promise<void>;
   alarm(): Promise<void>;
   connections: Map<unknown, unknown>;
 }
@@ -150,11 +150,11 @@ describe('YjsProject DO pre-auth limits', () => {
   it('arms the alarm only if none is pending earlier', async () => {
     const state = makeState();
     const doInstance = makeDO(state);
-    await doInstance.scheduleAuthDeadline(5_000);
+    await doInstance.scheduleAlarmBy(5_000);
     expect(state.storage.alarm).toBe(5_000);
-    await doInstance.scheduleAuthDeadline(9_000);
+    await doInstance.scheduleAlarmBy(9_000);
     expect(state.storage.alarm).toBe(5_000);
-    await doInstance.scheduleAuthDeadline(2_000);
+    await doInstance.scheduleAlarmBy(2_000);
     expect(state.storage.alarm).toBe(2_000);
   });
 
@@ -191,6 +191,50 @@ describe('YjsProject DO pre-auth limits', () => {
     expect(authed.closes).toEqual([]);
     // Re-armed for the fresh socket's deadline.
     expect(state.storage.alarm).toBe(fresh.attachment!.connectedAt + limits.PREAUTH_TIMEOUT_MS);
+  });
+
+  it('alarm re-checks member sessions: closes expired tokens and re-arms for the rest', async () => {
+    const now = Date.now();
+    const nowSeconds = Math.floor(now / 1000);
+    const { SESSION_RECHECK_MS } = await import('../src/utils/session-validity');
+    const expired = makeWs({
+      documentId: 'alice:proj:doc-1',
+      authenticated: true,
+      canWrite: true,
+      userId: 'u1',
+      exp: nowSeconds - 1,
+      checkedAt: now - SESSION_RECHECK_MS,
+    });
+    const due = makeWs({
+      documentId: 'alice:proj:doc-2',
+      authenticated: true,
+      canWrite: true,
+      userId: 'u2',
+      exp: nowSeconds + 3600,
+      checkedAt: now - SESSION_RECHECK_MS,
+    });
+    const recent = makeWs({
+      documentId: 'alice:proj:doc-3',
+      authenticated: true,
+      canWrite: true,
+      userId: 'u3',
+      checkedAt: now - 1_000,
+    });
+    const state = makeState([expired, due, recent]);
+    const doInstance = makeDO(state);
+
+    await doInstance.alarm();
+
+    expect(expired.sent).toEqual(['access-denied:invalid-token']);
+    expect(expired.closes).toEqual([
+      { code: closeCodes.WS_CLOSE_INVALID_TOKEN, reason: 'Session expired' },
+    ]);
+    // No database in this harness: the session stays open until it can be checked.
+    expect(due.closes).toEqual([]);
+    expect((due.attachment as { checkedAt: number }).checkedAt).toBeGreaterThanOrEqual(now);
+    expect(recent.closes).toEqual([]);
+    // The next re-check is the recent socket's.
+    expect(state.storage.alarm).toBe(now - 1_000 + SESSION_RECHECK_MS);
   });
 
   it('alarm leaves the schedule empty when every socket is authenticated', async () => {

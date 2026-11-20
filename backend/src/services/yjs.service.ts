@@ -14,6 +14,7 @@ import type { DocumentRevisionEntry } from '../types/document-revision.types';
 import { forEachSequential } from '@inkweld/async';
 import { documentProjectKey, parseDocumentId } from '../utils/yjs-document-id';
 import { MAX_YJS_JSON_DEPTH, isYjsMessageWithinLimits } from '../utils/yjs-message-limits';
+import { onSessionsRevoked } from '../utils/session-validity';
 
 const yjsLog = logger.child('Yjs');
 
@@ -797,6 +798,32 @@ export class YjsService {
   }
 
   /**
+   * Close every live socket `userId` holds on any project, after all of the
+   * user's sessions were revoked (password change, disable, unapprove,
+   * account deletion). The transient access-changed code makes the client
+   * reconnect, and the reconnect's auth check refuses the revoked token.
+   *
+   * Returns the number of sockets closed.
+   */
+  closeUserSockets(userId: string): number {
+    let closed = 0;
+    for (const [docId, doc] of this.docs) {
+      for (const [ws, wsUserId] of doc.wsUserIds) {
+        if (
+          wsUserId === userId &&
+          this.closeRevokedSocket(ws, 'changed', `${userId} on ${docId}`)
+        ) {
+          closed++;
+        }
+      }
+    }
+    if (closed > 0) {
+      yjsLog.info(`Closed ${closed} socket(s) for user ${userId} (sessions revoked)`);
+    }
+    return closed;
+  }
+
+  /**
    * Close one revoked socket. A removed user gets the permanent forbidden
    * code (y-websocket stops retrying); a re-roled user gets the transient
    * access-changed code so the client reconnects with its new permissions.
@@ -1212,3 +1239,8 @@ export class YjsService {
 
 // Create singleton instance
 export const yjsService = new YjsService();
+
+// Sessions revoked elsewhere (userService) close this process's sockets.
+onSessionsRevoked((userId) => {
+  yjsService.closeUserSockets(userId);
+});

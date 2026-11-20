@@ -29,7 +29,7 @@ export {
   commentMarkSpec,
 } from './comment-mark-spec';
 
-export { secureLinkMarkSpec } from './secure-link-spec';
+export { safeLinkHref, secureLinkMarkSpec } from './secure-link-spec';
 
 export {
   AUTO_REVIEW_MARK_NAME,
