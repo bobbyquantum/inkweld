@@ -233,6 +233,12 @@ interface WSAttachment {
   trackedElementName?: string | null;
 }
 
+/** A member socket whose session re-check is due (see alarm()). */
+interface DueSessionCheck {
+  ws: WebSocket;
+  attachment: WSAttachment & { userId: string };
+}
+
 interface SessionData {
   /** Present on first-party session JWTs and on Worker-minted DO JWTs. */
   userId?: string;
@@ -1618,41 +1624,45 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    */
   async alarm(): Promise<void> {
     const now = Date.now();
-    let nextAlarm: number | null = null;
-    const earliest = (at: number): void => {
-      if (nextAlarm === null || at < nextAlarm) nextAlarm = at;
-    };
-    const due: Array<{ ws: WebSocket; attachment: WSAttachment & { userId: string } }> = [];
+    const deadlines: number[] = [];
+    const due: DueSessionCheck[] = [];
     for (const ws of this.state.getWebSockets()) {
-      const attachment = this.readAttachment(ws);
-      if (!attachment) continue;
-      if (!attachment.authenticated) {
-        if (attachment.connectedAt === undefined) continue;
-        if (preAuthDeadlinePassed(attachment.connectedAt, now)) {
-          projDOLog.warn(`No auth token within deadline for ${attachment.documentId}; closing`);
-          safeSend(ws, 'access-denied:auth-timeout');
-          safeClose(ws, WS_CLOSE_AUTH_TIMEOUT, 'Authentication timeout');
-          this.connections.delete(ws);
-          continue;
-        }
-        earliest(attachment.connectedAt + PREAUTH_TIMEOUT_MS);
-        continue;
-      }
-      const userId = attachment.userId;
-      if (!userId || userId === PUBLIC_VIEWER_ID) continue;
-      const checkedAt = attachment.checkedAt ?? 0;
-      if (now - checkedAt >= SESSION_RECHECK_MS) {
-        due.push({ ws, attachment: { ...attachment, userId } });
-      } else {
-        earliest(checkedAt + SESSION_RECHECK_MS);
-      }
+      const deadline = this.sweepSocket(ws, now, due);
+      if (deadline !== null) deadlines.push(deadline);
     }
     if (due.length > 0 && (await this.recheckSessions(due, now))) {
-      earliest(now + SESSION_RECHECK_MS);
+      deadlines.push(now + SESSION_RECHECK_MS);
     }
-    if (nextAlarm !== null) {
-      await this.scheduleAlarmBy(nextAlarm);
+    if (deadlines.length > 0) {
+      await this.scheduleAlarmBy(Math.min(...deadlines));
     }
+  }
+
+  /**
+   * One socket's part of alarm(): closes it if its pre-auth deadline passed,
+   * adds it to `due` if its session re-check is due, and returns when it next
+   * needs the alarm (null when it never does or was just handled).
+   */
+  private sweepSocket(ws: WebSocket, now: number, due: DueSessionCheck[]): number | null {
+    const attachment = this.readAttachment(ws);
+    if (!attachment) return null;
+    if (!attachment.authenticated) {
+      if (attachment.connectedAt === undefined) return null;
+      if (!preAuthDeadlinePassed(attachment.connectedAt, now)) {
+        return attachment.connectedAt + PREAUTH_TIMEOUT_MS;
+      }
+      projDOLog.warn(`No auth token within deadline for ${attachment.documentId}; closing`);
+      safeSend(ws, 'access-denied:auth-timeout');
+      safeClose(ws, WS_CLOSE_AUTH_TIMEOUT, 'Authentication timeout');
+      this.connections.delete(ws);
+      return null;
+    }
+    const userId = attachment.userId;
+    if (!userId || userId === PUBLIC_VIEWER_ID) return null;
+    const checkedAt = attachment.checkedAt ?? 0;
+    if (now - checkedAt < SESSION_RECHECK_MS) return checkedAt + SESSION_RECHECK_MS;
+    due.push({ ws, attachment: { ...attachment, userId } });
+    return null;
   }
 
   /**
@@ -1661,10 +1671,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    * write permission changed reconnect, and stamps the rest as checked.
    * Returns whether any socket is still open and needs another re-check.
    */
-  private async recheckSessions(
-    due: Array<{ ws: WebSocket; attachment: WSAttachment & { userId: string } }>,
-    now: number
-  ): Promise<boolean> {
+  private async recheckSessions(due: DueSessionCheck[], now: number): Promise<boolean> {
     const db = this.getDb();
     const parsed = this.parseDocumentOwner(due[0].attachment.documentId);
     // Without a database only expiry can be checked; a failed check keeps
