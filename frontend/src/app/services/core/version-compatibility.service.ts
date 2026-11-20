@@ -7,14 +7,20 @@ import {
 } from '@angular/core';
 import { stripTrailingSlashes } from '@utils/string-utils';
 
-import { environment } from '../../../environments/environment';
 import { ReconnectScheduler } from '../sync/reconnect-scheduler';
 import {
   type ServerConfig,
   type ServerVersionInfo,
   StorageContextService,
 } from './storage-context.service';
+import {
+  CLIENT_PROTOCOL_VERSION,
+  getClientVersion,
+  onSyncVersionMismatch,
+} from './sync-protocol';
 import { UpdateService } from './update.service';
+
+export { CLIENT_PROTOCOL_VERSION, getClientVersion } from './sync-protocol';
 
 /**
  * Expected health endpoint response shape for type safety
@@ -23,19 +29,6 @@ interface HealthResponse {
   version?: string;
   protocolVersion?: number;
   minClientVersion?: string;
-}
-
-/**
- * Current client protocol version.
- * This must match the server's PROTOCOL_VERSION for full compatibility.
- */
-export const CLIENT_PROTOCOL_VERSION = 1;
-
-/**
- * Get the current client version from environment/package.json
- */
-export function getClientVersion(): string {
-  return environment.version || '0.1.0';
 }
 
 /**
@@ -146,7 +139,29 @@ export class VersionCompatibilityService {
   private recheck: ReconnectScheduler | null = null;
 
   constructor() {
-    this.destroyRef.onDestroy(() => this.stopRecheck());
+    // The server refuses a sync socket whose version it won't sync with even
+    // when `/health` said otherwise or hasn't answered yet: check again so
+    // the banner explains it, and fetch the build that can sync.
+    const stopListening = onSyncVersionMismatch(() => {
+      void this.handleServerRefusedVersion();
+    });
+    this.destroyRef.onDestroy(() => {
+      stopListening();
+      this.stopRecheck();
+    });
+  }
+
+  /**
+   * A sync socket was refused for its version. Re-run the `/health` check
+   * for the active server (once at a time) and ask the service worker for a
+   * newer build.
+   */
+  private async handleServerRefusedVersion(): Promise<void> {
+    void this.updateService.checkForUpdate();
+    if (this.checking()) return;
+    const activeConfig = this.storageContext.activeConfig();
+    if (activeConfig?.type !== 'server') return;
+    await this.checkAndUpdateProfileCompatibility(activeConfig);
   }
 
   /**

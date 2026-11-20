@@ -81,7 +81,9 @@ import {
   WS_CLOSE_AUTH_TIMEOUT,
   WS_CLOSE_PREAUTH_OVERFLOW,
   WS_CLOSE_ACCESS_CHANGED,
+  WS_CLOSE_VERSION_MISMATCH,
 } from '../utils/ws-close-codes';
+import { checkSyncClient, VERSION_MISMATCH_REASON } from '../utils/sync-client-gate';
 import {
   PREAUTH_TIMEOUT_MS,
   preAuthDeadlinePassed,
@@ -1641,6 +1643,21 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     const documentId = parsedId.bareId;
     this.projectId = documentProjectKey(parsedId);
 
+    // A client whose Yjs data format differs from ours would corrupt the
+    // document for everyone (utils/sync-client-gate.ts). Refuse it before
+    // any token or document work, on a socket so it gets the denial and the
+    // permanent close code (an HTTP error would read as a network failure
+    // and be retried forever).
+    const verdict = checkSyncClient((name) => url.searchParams.get(name));
+    if (!verdict.ok) {
+      projDOLog.info(`Refusing a sync client for ${documentId}: ${verdict.detail}`);
+      return this.refuseSocket(
+        `access-denied:${VERSION_MISMATCH_REASON}`,
+        WS_CLOSE_VERSION_MISMATCH,
+        'Incompatible client version'
+      );
+    }
+
     // Note: WS reconnect rate limiting is applied AFTER authentication
     // (in handleAuthMessage), not here — an unauthenticated upgrade doesn't
     // consume the cooldown, so an attacker can't exhaust it for legitimate
@@ -1682,6 +1699,22 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       `WS connected: ${documentId}, awaiting authentication... (${this.connections.size} total connections, DO: ${this.projectId})`
     );
 
+    return new Response(null, {
+      status: 101,
+      webSocket: client,
+    } as any);
+  }
+
+  /**
+   * Answer an upgrade with a socket that is sent `text` and closed at once.
+   * It is accepted outside hibernation (`accept()`, not `acceptWebSocket`),
+   * so it never reaches the handlers or the connection map.
+   */
+  private refuseSocket(text: string, code: number, reason: string): Response {
+    const [client, server] = new WebSocketPair();
+    server.accept();
+    safeSend(server, text);
+    safeClose(server, code, reason);
     return new Response(null, {
       status: 101,
       webSocket: client,

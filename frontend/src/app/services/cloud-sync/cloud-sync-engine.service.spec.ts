@@ -30,12 +30,14 @@ import {
 } from 'vitest';
 import * as Y from 'yjs';
 
+import { onSyncVersionMismatch } from '../core/sync-protocol';
 import {
   CloudProjectMirrorService,
   type ProjectSyncSummary,
 } from './cloud-project-mirror.service';
 import { CloudSyncConnectService } from './cloud-sync-connect.service';
 import { CloudSyncEngineService } from './cloud-sync-engine.service';
+import { CLOUD_SYNC_PROTOCOL_PATH } from './cloud-sync-protocol';
 import { CloudSyncStateService } from './cloud-sync-state.service';
 import { GoogleDriveAuthService } from './google-drive/google-drive-auth.service';
 import {
@@ -539,6 +541,35 @@ describe('CloudSyncEngineService', () => {
 
     expect(mirror.syncProject.mock.calls.length).toBeGreaterThan(callsBefore);
     expect(engine.status()).toBe('synced');
+  });
+
+  it('stops before reading a folder a newer sync protocol wrote, and stays stopped', async () => {
+    store.seed(CLOUD_SYNC_PROTOCOL_PATH, JSON.stringify({ protocol: 999 }));
+    const mismatch = vi.fn();
+    const stopListening = onSyncVersionMismatch(mismatch);
+    try {
+      engine.initialize({ runStartupPass: false });
+      await engine.syncNow();
+
+      expect(engine.status()).toBe('outdated');
+      expect(engine.isActive()).toBe(true);
+      expect(engine.lastError()).toMatch(/newer version of Inkweld/);
+      expect(mismatch).toHaveBeenCalledTimes(1);
+      // Nothing listed, pulled or written.
+      expect(
+        store.log.filter(l => !l.endsWith(CLOUD_SYNC_PROTOCOL_PATH))
+      ).toEqual([]);
+      expect(mirror.syncProject).not.toHaveBeenCalled();
+      expect(connect.disconnect).not.toHaveBeenCalled();
+
+      // Timers and edits don't retry it; only "Sync now" checks again.
+      engine.markDirty('bobby/novel');
+      await vi.advanceTimersByTimeAsync(120_000);
+      expect(mirror.syncProject).not.toHaveBeenCalled();
+      expect(engine.status()).toBe('outdated');
+    } finally {
+      stopListening();
+    }
   });
 
   it('reports other failures without giving up credentials', async () => {

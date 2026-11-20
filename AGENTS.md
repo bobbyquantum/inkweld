@@ -188,6 +188,10 @@ release-please cuts releases (`.github/workflows/release-please.yml`,
   `utils/username-rules.ts`; `backend/AGENTS.md`).
 - **Project archive format changes** bump `ARCHIVE_VERSION`
   (`frontend/AGENTS.md`).
+- **A change to the Yjs data older builds could misread** (a Yjs major, a new
+  binding) bumps the sync protocol on both sides, so the server and Cloud Sync
+  refuse older builds (`frontend/src/app/services/sync/AGENTS.md`, "Version
+  gate").
 - **No hardcoded user-facing English** in the frontend; use Transloco keys.
 
 ## Where the details live

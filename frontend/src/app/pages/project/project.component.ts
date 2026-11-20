@@ -180,6 +180,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       case 'error':
       case 'disconnected':
       case 'paused':
+      case 'outdated':
         return DocumentSyncState.Local;
       default:
         return DocumentSyncState.Synced;

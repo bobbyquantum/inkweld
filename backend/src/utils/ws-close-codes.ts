@@ -27,6 +27,11 @@ export const WS_CLOSE_INVALID_DOCUMENT = 4400;
 export const WS_CLOSE_PROJECT_NOT_FOUND = 4404;
 /** Permanent: the user has no access to this project. */
 export const WS_CLOSE_FORBIDDEN = 4403;
+/**
+ * Permanent: the client's sync protocol or app version is not one this server
+ * syncs with (`utils/sync-client-gate.ts`). Only a different build can fix it.
+ */
+export const WS_CLOSE_VERSION_MISMATCH = 4426;
 /** Transient: a server-side failure (DO load error, storage error). Self-heals; retry later. */
 export const WS_CLOSE_SERVER_ERROR = 4500;
 /** Transient: reconnect rate limit hit. The client must honour the cooldown. */

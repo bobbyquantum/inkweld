@@ -34,7 +34,9 @@ import {
   WS_CLOSE_SERVER_ERROR,
   WS_CLOSE_AUTH_TIMEOUT,
   WS_CLOSE_PREAUTH_OVERFLOW,
+  WS_CLOSE_VERSION_MISMATCH,
 } from '../utils/ws-close-codes';
+import { checkSyncClient, VERSION_MISMATCH_REASON } from '../utils/sync-client-gate';
 import { PREAUTH_TIMEOUT_MS, preAuthQueueAccepts } from '../utils/ws-preauth';
 import { ingressSessionMatches } from '../utils/ingress';
 
@@ -170,7 +172,9 @@ function startPingInterval(ws: WsHandle, documentId: string, onClear: () => void
  * The `documentId` query parameter is checked before any of this, with the
  * parser every runtime shares (`utils/yjs-document-id.ts`): a socket opened
  * with a malformed id is sent `access-denied:invalid-document` and closed as
- * soon as it opens.
+ * soon as it opens. So is a client whose sync protocol or app version this
+ * server does not sync with (`access-denied:version-mismatch`, see
+ * `utils/sync-client-gate.ts`).
  *
  * Denial closes use the y-websocket 3.1 close-code convention (see
  * utils/ws-close-codes.ts): 44xx = permanent (the client stops reconnecting),
@@ -205,6 +209,23 @@ app.get(
             WS_CLOSE_INVALID_DOCUMENT,
             'Invalid document ID',
             'access-denied:invalid-document'
+          );
+        },
+      };
+    }
+    // A client whose Yjs data format differs from ours would corrupt the
+    // document for everyone (utils/sync-client-gate.ts): refuse it before
+    // any token or document work.
+    const verdict = checkSyncClient((name) => c.req.query(name));
+    if (!verdict.ok) {
+      wsLog.info(`Refusing a sync client: ${verdict.detail}`);
+      return {
+        onOpen(_event, ws) {
+          closeQuietly(
+            ws,
+            WS_CLOSE_VERSION_MISMATCH,
+            'Incompatible client version',
+            `access-denied:${VERSION_MISMATCH_REASON}`
           );
         },
       };

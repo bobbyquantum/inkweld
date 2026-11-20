@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { StorageContextService } from './storage-context.service';
+import { reportSyncVersionMismatch } from './sync-protocol';
+import { UpdateService } from './update.service';
 import {
   CLIENT_PROTOCOL_VERSION,
   compareVersions,
@@ -379,6 +381,40 @@ describe('VersionCompatibilityService', () => {
       // Answered: no more checks.
       await vi.advanceTimersByTimeAsync(10 * 60_000);
       expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('checks again and looks for an update when the server refuses a socket for its version', async () => {
+      const updates = vi
+        .spyOn(TestBed.inject(UpdateService), 'checkForUpdate')
+        .mockResolvedValue(false);
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            version: '9.0.0',
+            protocolVersion: CLIENT_PROTOCOL_VERSION + 1,
+            minClientVersion: '0.0.0',
+          }),
+      });
+      globalThis.fetch = fetchMock;
+
+      reportSyncVersionMismatch();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(updates).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(service.syncBlocked()).toBe(true);
+    });
+
+    it('stops listening for refused sockets once destroyed', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(healthy);
+      globalThis.fetch = fetchMock;
+      TestBed.resetTestingModule();
+
+      reportSyncVersionMismatch();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(fetchMock).not.toHaveBeenCalled();
     });
 
     it('does not start checking again when the first check fails after the service is destroyed', async () => {

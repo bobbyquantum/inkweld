@@ -36,6 +36,7 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import type * as Y from 'yjs';
 
+import { reportSyncVersionMismatch } from '../core/sync-protocol';
 import {
   CLOUD_SYNC_ORIGIN,
   CloudProjectMirrorService,
@@ -49,6 +50,10 @@ import {
   projectKeyOf,
   splitProjectKey,
 } from './cloud-sync-layout';
+import {
+  CloudSyncProtocolError,
+  ensureCloudSyncProtocol,
+} from './cloud-sync-protocol';
 import { CloudSyncStateService } from './cloud-sync-state.service';
 import { GoogleDriveAuthService } from './google-drive/google-drive-auth.service';
 import {
@@ -69,6 +74,7 @@ export type CloudSyncStatus =
   | 'synced'
   | 'offline'
   | 'paused' // sign-in needs renewing by the user; edits wait locally
+  | 'outdated' // a newer sync protocol wrote the folder; update the app
   | 'error';
 
 /** Quiet period after the last local edit before a project is synced */
@@ -133,6 +139,8 @@ export class CloudSyncEngineService {
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
   private elementsListener: { doc: Y.Doc; handler: () => void } | null = null;
   private manifestVersion = '';
+  /** When the folder's sync protocol was last checked (0 = never). */
+  private protocolCheckedAt = 0;
 
   /**
    * Start the engine. Safe to call more than once; does nothing outside
@@ -180,11 +188,15 @@ export class CloudSyncEngineService {
   /** Sync one project as soon as the queue allows */
   syncProject(projectKey: string): Promise<void> {
     return this.enqueue(async () => {
-      if (!this.store) return;
+      // Only an app update or "Sync now" moves past an outdated folder.
+      if (!this.store || this.status() === 'outdated') return;
       const parts = splitProjectKey(projectKey);
       if (!parts) return;
       this.status.set('syncing');
       try {
+        if (Date.now() - this.protocolCheckedAt > PERIODIC_MS) {
+          await this.checkProtocol(this.store);
+        }
         const summary = await this.mirror.syncProject(
           this.store,
           parts.username,
@@ -353,7 +365,8 @@ export class CloudSyncEngineService {
       }
       if (
         !options.force &&
-        Date.now() - this.lastFullPassAt < MIN_FULL_PASS_GAP_MS
+        (this.status() === 'outdated' ||
+          Date.now() - this.lastFullPassAt < MIN_FULL_PASS_GAP_MS)
       ) {
         return;
       }
@@ -371,6 +384,9 @@ export class CloudSyncEngineService {
 
   private async runFullPass(): Promise<void> {
     const store = this.store!;
+    // Before reading anything: an older build must not pull what a newer
+    // protocol wrote (cloud-sync-protocol.ts).
+    await this.checkProtocol(store);
     const listing = await store.list(CLOUD_PROJECTS_ROOT, { recursive: true });
     const files = this.mirror.indexFiles(listing);
 
@@ -676,6 +692,11 @@ export class CloudSyncEngineService {
     return run;
   }
 
+  private async checkProtocol(store: RemoteStore): Promise<void> {
+    await ensureCloudSyncProtocol(store);
+    this.protocolCheckedAt = Date.now();
+  }
+
   private markSynced(): void {
     if (this.status() === 'syncing') this.status.set('synced');
     this.lastSyncAt.set(new Date().toISOString());
@@ -683,6 +704,14 @@ export class CloudSyncEngineService {
   }
 
   private handleError(error: unknown): void {
+    if (error instanceof CloudSyncProtocolError) {
+      // Edits stay local until the app is updated; look for that update.
+      this.status.set('outdated');
+      this.lastError.set(error.message);
+      this.logger.warn('CloudSync', error.message);
+      reportSyncVersionMismatch();
+      return;
+    }
     if (error instanceof RemoteRateLimitError) {
       // Not a failure: the provider wants a pause. Keep the status calm and
       // try again after the interval it asked for.

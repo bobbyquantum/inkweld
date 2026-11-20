@@ -145,6 +145,7 @@ Everything lives inside the provider app folder:
 
 ```
 /manifest.json
+/sync-protocol.json                             newest sync protocol that wrote here (absent = 1)
 /projects/<username>/<slug>/project.json        title, description, dates (last writer wins)
 /projects/<username>/<slug>/elements.yjs        full Yjs state of the elements doc
 /projects/<username>/<slug>/documents/<id>.yjs  prose documents (ITEM elements)
@@ -158,6 +159,23 @@ Yjs files contain `Y.encodeStateAsUpdate(doc)`. Merging is `Y.applyUpdate`, so
 two devices that edited the same document before either synced converge
 without a conflict dialog. Canvas, timeline and relationship-chart data live
 inside the elements doc, so those three files cover a whole project.
+
+### The sync protocol marker
+
+`/sync-protocol.json` (`{ "protocol": <n> }`) records the newest sync protocol
+(`CLIENT_PROTOCOL_VERSION`) that has written to the folder. Every full pass
+reads it first, and a project sync re-reads it at most once a minute. A build
+whose protocol is lower, or that can't read the marker, stops before reading
+anything else and shows "update Inkweld to keep syncing" (status `outdated`):
+an older build that pulled what a newer one wrote could delete that content
+for everyone. A build with a higher protocol raises the marker; equal
+protocols write nothing, so the file only appears after the first bump.
+
+It is a separate file because builds from before it rebuild the manifest from
+the fields they know, and never touch anything outside `/projects`. Those
+builds can't be stopped by the marker, so a protocol bump must also keep them
+away from what the new protocol writes, for example by storing documents
+under new paths.
 
 ### The manifest
 

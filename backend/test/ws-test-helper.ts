@@ -24,9 +24,19 @@ export interface CollectedSocket {
   closed: Promise<{ code: number; reason: string }>;
 }
 
-/** Open a socket to the Yjs route for `documentId` and resolve once connected. */
-export function connectYjsSocket(baseUrl: string, documentId: string): Promise<CollectedSocket> {
-  const url = `${baseUrl.replace('http', 'ws')}/api/v1/ws/yjs?documentId=${encodeURIComponent(documentId)}`;
+/**
+ * Open a socket to the Yjs route for `documentId` and resolve once connected.
+ * `query` adds parameters ahead of `documentId`, where the app puts them.
+ */
+export function connectYjsSocket(
+  baseUrl: string,
+  documentId: string,
+  query: Record<string, string> = {}
+): Promise<CollectedSocket> {
+  const extra = Object.entries(query)
+    .map(([name, value]) => `${encodeURIComponent(name)}=${encodeURIComponent(value)}&`)
+    .join('');
+  const url = `${baseUrl.replace('http', 'ws')}/api/v1/ws/yjs?${extra}documentId=${encodeURIComponent(documentId)}`;
   const ws = new WebSocket(url);
   ws.binaryType = 'arraybuffer';
   const collected: CollectedSocket = {

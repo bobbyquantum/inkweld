@@ -29,6 +29,29 @@ but never resends the token; the server closes that socket as `auth-timeout`
 Worker request, a Durable Object request and an alarm every ~10 s per open
 document until the tab is closed.
 
+## Version gate
+
+An older build that receives Yjs data a newer protocol wrote can delete that
+content for everyone (an old ProseMirror binding rewrites the document to match
+the view it could render). So no build syncs with another sync protocol:
+
+- **Server sockets**: `createAuthenticatedWebsocketProvider` adds
+  `syncProtocol` and `clientVersion` to every socket URL
+  (`core/sync-protocol.ts`, `withSyncClientParams`), ahead of `documentId`.
+  The server refuses a mismatch with `access-denied:version-mismatch` (a hard
+  denial), and the provider reports it through `reportSyncVersionMismatch()`;
+  `VersionCompatibilityService` then re-checks `/health` and looks for an app
+  update. This is what covers the window before `/health` has answered.
+- **Cloud Sync**: no server, so the folder carries `/sync-protocol.json`
+  (`cloud-sync/cloud-sync-protocol.ts`), checked before every full pass and at
+  most once a minute before a project sync. A build older than the marker
+  stops with status `outdated` (only "Sync now" checks again); a newer one
+  raises it. Builds from before the marker ignore it, so a protocol bump must
+  also keep them away from what the new protocol writes (new file paths, say).
+
+`CLIENT_PROTOCOL_VERSION` and the backend's `PROTOCOL_VERSION` must be bumped
+together.
+
 ## Bulk sync fast path (document revision manifest)
 
 Design: `docs/site/docs/developer/architecture.md` → "Bulk Sync Fast Path".

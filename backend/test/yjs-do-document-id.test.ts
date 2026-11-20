@@ -63,6 +63,8 @@ interface FakeSocket {
   sent: string[];
   closes: Array<{ code?: number; reason?: string }>;
   attachment: unknown;
+  accepted: boolean;
+  accept(): void;
   send(message: string): void;
   close(code?: number, reason?: string): void;
   serializeAttachment(attachment: unknown): void;
@@ -75,6 +77,10 @@ function makeWs(): FakeSocket {
     sent: [],
     closes: [],
     attachment: null,
+    accepted: false,
+    accept() {
+      ws.accepted = true;
+    },
     send(message: string) {
       ws.sent.push(message);
     },
@@ -135,10 +141,34 @@ const VALID_IDS: Array<{ id: string; bare: string }> = [
   { id: 'alice:proj:doc-1/', bare: 'alice:proj:doc-1' },
 ];
 
-function upgradeRequest(documentId: string): Request {
-  return new Request(`https://yjs-do/api/v1/ws/yjs?documentId=${encodeURIComponent(documentId)}`, {
-    headers: { Upgrade: 'websocket' },
-  });
+function upgradeRequest(documentId: string, query = ''): Request {
+  return new Request(
+    `https://yjs-do/api/v1/ws/yjs?${query}documentId=${encodeURIComponent(documentId)}`,
+    { headers: { Upgrade: 'websocket' } }
+  );
+}
+
+/** Run `body` with a WebSocketPair stub whose pairs are recorded. */
+async function withSocketPairs<T>(
+  body: (pairs: Array<[FakeSocket, FakeSocket]>) => Promise<T>
+): Promise<T> {
+  const globals = globalThis as Record<string, unknown>;
+  const hadPair = 'WebSocketPair' in globals;
+  const savedPair = globals.WebSocketPair;
+  const pairs: Array<[FakeSocket, FakeSocket]> = [];
+  globals.WebSocketPair = class {
+    constructor() {
+      const pair: [FakeSocket, FakeSocket] = [makeWs(), makeWs()];
+      pairs.push(pair);
+      return pair;
+    }
+  };
+  try {
+    return await body(pairs);
+  } finally {
+    if (hadPair) globals.WebSocketPair = savedPair;
+    else delete globals.WebSocketPair;
+  }
 }
 
 async function ownerToken(): Promise<string> {
@@ -200,6 +230,35 @@ describe('YjsProject DO document ids', () => {
       );
       expect(statuses).toEqual(MALFORMED_IDS.map((id) => ({ id, status: 400 })));
       expect(accepted).toEqual([]);
+    });
+
+    it('refuses a client of another sync protocol on a socket closed at once', async () => {
+      await withSocketPairs(async (pairs) => {
+        const { instance, accepted } = makeDO();
+        const res = await instance.fetch(
+          upgradeRequest('alice:proj:elements', 'syncProtocol=999&clientVersion=9.0.0&')
+        );
+        expect(res.status).toBe(101);
+        // Never handed to hibernation or the connection map.
+        expect(accepted).toEqual([]);
+        const server = pairs[0][1];
+        expect(server.accepted).toBe(true);
+        expect(server.sent).toEqual(['access-denied:version-mismatch']);
+        expect(server.closes).toEqual([
+          { code: closeCodes.WS_CLOSE_VERSION_MISMATCH, reason: 'Incompatible client version' },
+        ]);
+      });
+    });
+
+    it('accepts a client of the current sync protocol', async () => {
+      await withSocketPairs(async () => {
+        const { instance, accepted } = makeDO();
+        const res = await instance.fetch(
+          upgradeRequest('alice:proj:elements', 'syncProtocol=1&clientVersion=1.0.0-beta.9&')
+        );
+        expect(res.status).toBe(101);
+        expect(accepted).toHaveLength(1);
+      });
     });
 
     it('accepts every id form real clients send, tracked without the trailing slash', async () => {

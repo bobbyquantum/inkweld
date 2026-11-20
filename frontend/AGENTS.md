@@ -181,8 +181,10 @@ Read `e2e/BEST_PRACTICES.md` before writing one.
   (tested in its spec). Since 1.0.0-beta.1, dropping support for an older
   archive version is not an option (root `AGENTS.md`, "Releases and
   versioning").
-  `ARCHIVE_VERSION` (file format) and the backend `PROTOCOL_VERSION` (live Yjs
-  sync) are separate. Docs: `docs/site/docs/developer/project-archives.md`.
+  `ARCHIVE_VERSION` (file format) and the sync protocol
+  (`CLIENT_PROTOCOL_VERSION` in `services/core/sync-protocol.ts` and the
+  backend `PROTOCOL_VERSION`, live Yjs sync; see `services/sync/AGENTS.md`,
+  "Version gate") are separate. Docs: `docs/site/docs/developer/project-archives.md`.
 - **Markdown input rules** are opt-in (`components/editor-input-rules/AGENTS.md`).
 - **Read-only documents stay clickable.** ngx-editor's
   `NgxEditor__Content--Disabled` turns pointer events off, but that element
