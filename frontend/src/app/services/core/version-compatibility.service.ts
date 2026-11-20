@@ -138,6 +138,12 @@ export class VersionCompatibilityService {
   /** Re-runs a check the server did not answer, until it does. */
   private recheck: ReconnectScheduler | null = null;
 
+  /** The `/health` check in flight, if any. */
+  private inFlightCheck: Promise<unknown> | null = null;
+
+  /** The check queued by refused sockets, shared by all of them. */
+  private refusalRecheck: Promise<void> | null = null;
+
   constructor() {
     // The server refuses a sync socket whose version it won't sync with even
     // when `/health` said otherwise or hasn't answered yet: check again so
@@ -152,13 +158,22 @@ export class VersionCompatibilityService {
   }
 
   /**
-   * A sync socket was refused for its version. Re-run the `/health` check
-   * for the active server (once at a time) and ask the service worker for a
-   * newer build.
+   * A sync socket was refused for its version. Ask the service worker for a
+   * newer build and check `/health` again for the active server. Several
+   * sockets are usually refused together; one queued check answers them all.
    */
-  private async handleServerRefusedVersion(): Promise<void> {
+  private handleServerRefusedVersion(): Promise<void> {
     void this.updateService.checkForUpdate();
-    if (this.checking()) return;
+    this.refusalRecheck ??= this.recheckAfterRefusal().finally(() => {
+      this.refusalRecheck = null;
+    });
+    return this.refusalRecheck;
+  }
+
+  private async recheckAfterRefusal(): Promise<void> {
+    // A check already in flight may have been answered before the server
+    // changed: let it finish, then ask again. One check at a time.
+    await this.inFlightCheck?.catch(() => undefined);
     const activeConfig = this.storageContext.activeConfig();
     if (activeConfig?.type !== 'server') return;
     await this.checkAndUpdateProfileCompatibility(activeConfig);
@@ -286,8 +301,9 @@ export class VersionCompatibilityService {
   /**
    * Check compatibility with a server by fetching its health endpoint.
    * A server that can't be reached or answers with an error returns an
-   * incompatible result without `serverInfo`, and leaves {@link lastResult}
-   * as it was.
+   * incompatible result without `serverInfo`. It never touches
+   * {@link lastResult}: {@link checkAndUpdateProfileCompatibility} publishes
+   * an answer only for the profile that is still active.
    */
   async checkServerCompatibility(
     serverUrl: string
@@ -370,7 +386,6 @@ export class VersionCompatibilityService {
         serverInfo,
       };
 
-      this.lastResult.set(result);
       return result;
     } catch (error) {
       console.error('[VersionCompatibility] Health check error:', error);
@@ -413,7 +428,14 @@ export class VersionCompatibilityService {
       };
     }
 
-    const result = await this.checkServerCompatibility(profile.serverUrl);
+    const check = this.checkServerCompatibility(profile.serverUrl);
+    this.inFlightCheck = check;
+    let result: CompatibilityResult;
+    try {
+      result = await check;
+    } finally {
+      if (this.inFlightCheck === check) this.inFlightCheck = null;
+    }
 
     // Update stored version info if we got server info
     if (result.serverInfo) {
@@ -421,6 +443,11 @@ export class VersionCompatibilityService {
         profile.id,
         result.serverInfo
       );
+      // Only the active profile's server decides whether sync is blocked: a
+      // late answer for a profile switched away from must not overwrite it.
+      if (this.storageContext.activeConfig()?.id === profile.id) {
+        this.lastResult.set(result);
+      }
     }
 
     return result;

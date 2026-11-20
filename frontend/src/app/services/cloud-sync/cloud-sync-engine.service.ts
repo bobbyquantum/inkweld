@@ -707,6 +707,9 @@ export class CloudSyncEngineService {
     if (error instanceof CloudSyncProtocolError) {
       // Edits stay local until the app is updated; look for that update.
       this.status.set('outdated');
+      // Network events replace 'outdated' with 'idle' or 'offline', so the
+      // next project sync must check the folder again, not trust the cache.
+      this.protocolCheckedAt = 0;
       this.lastError.set(error.message);
       this.logger.warn('CloudSync', error.message);
       reportSyncVersionMismatch();

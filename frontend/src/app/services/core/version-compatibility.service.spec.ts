@@ -92,6 +92,8 @@ describe('VersionCompatibilityService', () => {
   beforeEach(() => {
     storageContextMock = {
       updateConfigVersionInfo: vi.fn(),
+      activeConfig: (() =>
+        null) as unknown as StorageContextService['activeConfig'],
     };
 
     TestBed.configureTestingModule({
@@ -404,6 +406,77 @@ describe('VersionCompatibilityService', () => {
       expect(updates).toHaveBeenCalledTimes(1);
       expect(fetchMock).toHaveBeenCalledTimes(1);
       expect(service.syncBlocked()).toBe(true);
+    });
+
+    it('checks again after a check that was in flight when sockets were refused', async () => {
+      vi.spyOn(
+        TestBed.inject(UpdateService),
+        'checkForUpdate'
+      ).mockResolvedValue(false);
+      let answerFirst: (value: unknown) => void = () => {};
+      const fetchMock = vi
+        .fn()
+        .mockReturnValueOnce(
+          new Promise(resolve => {
+            answerFirst = resolve;
+          })
+        )
+        .mockResolvedValue({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              version: '9.0.0',
+              protocolVersion: CLIENT_PROTOCOL_VERSION + 1,
+              minClientVersion: '0.0.0',
+            }),
+        });
+      globalThis.fetch = fetchMock;
+
+      const initialized = service.initialize();
+      // Three sockets refused while the first answer is on its way.
+      reportSyncVersionMismatch();
+      reportSyncVersionMismatch();
+      reportSyncVersionMismatch();
+      answerFirst(healthy);
+      await initialized;
+      await vi.advanceTimersByTimeAsync(0);
+
+      // The stale "compatible" answer, then one check for all three refusals.
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(service.syncBlocked()).toBe(true);
+    });
+
+    it('ignores an answer for a profile that is no longer active', async () => {
+      let answer: (value: unknown) => void = () => {};
+      globalThis.fetch = vi.fn().mockReturnValue(
+        new Promise(resolve => {
+          answer = resolve;
+        })
+      );
+      const check = service.checkAndUpdateProfileCompatibility({
+        id: 'server-1',
+        type: 'server',
+        serverUrl: 'http://localhost:8333',
+      } as never);
+      (storageContextMock as { activeConfig: () => unknown }).activeConfig =
+        () => ({ id: 'server-2', type: 'server', serverUrl: 'http://other' });
+      answer({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            version: '9.0.0',
+            protocolVersion: CLIENT_PROTOCOL_VERSION + 1,
+            minClientVersion: '0.0.0',
+          }),
+      });
+      await check;
+
+      expect(service.lastResult()).toBeNull();
+      // Still stored for the profile that answered.
+      expect(storageContextMock.updateConfigVersionInfo).toHaveBeenCalledWith(
+        'server-1',
+        expect.anything()
+      );
     });
 
     it('stops listening for refused sockets once destroyed', async () => {

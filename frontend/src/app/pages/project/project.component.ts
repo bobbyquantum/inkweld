@@ -192,11 +192,14 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     () => !this.storageContext.isCloudMode() && this.isLocalMode()
   );
 
-  protected readonly stripLastError = computed(() =>
-    this.storageContext.isCloudMode()
-      ? this.cloudSync.lastError()
-      : this.lastConnectionError()
-  );
+  protected readonly stripLastError = computed(() => {
+    if (!this.storageContext.isCloudMode()) return this.lastConnectionError();
+    // The engine's message for this one is English, for the log.
+    if (this.cloudSync.status() === 'outdated') {
+      return this.transloco.translate('app.cloudSyncOutdatedDetail');
+    }
+    return this.cloudSync.lastError();
+  });
 
   /**
    * Last-known over-capacity state, surfaced on the sync strap. Only true on a

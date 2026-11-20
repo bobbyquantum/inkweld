@@ -572,6 +572,25 @@ describe('CloudSyncEngineService', () => {
     }
   });
 
+  it('checks the folder again before a project sync once a refusal was recorded', async () => {
+    engine.initialize({ runStartupPass: false });
+    await engine.syncNow();
+    expect(engine.status()).toBe('synced');
+    const callsBefore = mirror.syncProject.mock.calls.length;
+
+    store.seed(CLOUD_SYNC_PROTOCOL_PATH, JSON.stringify({ protocol: 999 }));
+    await engine.syncNow();
+    expect(engine.status()).toBe('outdated');
+
+    // Coming back online replaces 'outdated'; the project sync that follows
+    // within the minute must not trust the check from before the refusal.
+    globalThis.dispatchEvent(new Event('online'));
+    await engine.syncProject('bobby/novel');
+
+    expect(mirror.syncProject.mock.calls).toHaveLength(callsBefore);
+    expect(engine.status()).toBe('outdated');
+  });
+
   it('reports other failures without giving up credentials', async () => {
     mirror.syncProject.mockRejectedValue(new Error('rate limited'));
     engine.initialize();

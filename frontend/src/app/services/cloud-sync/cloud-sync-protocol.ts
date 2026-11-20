@@ -78,8 +78,10 @@ async function readMarker(
  * than the folder's. Equal protocols write nothing, so while the protocol is
  * 1 no marker is ever created.
  *
- * A marker raised by two builds at once can end lower than the newest one;
- * that build raises it again on its next pass, so it settles.
+ * Providers can't all create a file only if it is absent (Drive has no
+ * conditional writes), so two builds raising a marker at once can leave it
+ * lower than the newer one. Reading it back right after the write narrows
+ * that window, and the newer build raises it again on every pass.
  */
 export async function ensureCloudSyncProtocol(
   store: RemoteStore,
@@ -108,5 +110,10 @@ export async function ensureCloudSyncProtocol(
       return;
     }
     throw error;
+  }
+  // A newer build may have written its marker over ours just now.
+  const written = await readMarker(store);
+  if (written.protocol === null || written.protocol > localProtocol) {
+    throw new CloudSyncProtocolError(written.protocol, localProtocol);
   }
 }

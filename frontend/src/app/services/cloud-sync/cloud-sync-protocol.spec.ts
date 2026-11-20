@@ -90,6 +90,21 @@ describe('ensureCloudSyncProtocol', () => {
     expect(store.text(CLOUD_SYNC_PROTOCOL_PATH)).toBe('{"protocol":"two"}');
   });
 
+  it('stops when a newer build overwrote the marker it just raised', async () => {
+    const store = new InMemoryRemoteStore();
+    const put = store.put.bind(store);
+    store.put = async (path, content, options): Promise<RemoteFileInfo> => {
+      const info = await put(path, content, options);
+      // Neither write was conditional (no marker yet): the newer one lands last.
+      if (path === CLOUD_SYNC_PROTOCOL_PATH) store.seed(path, marker(4));
+      return info;
+    };
+    await expect(ensureCloudSyncProtocol(store, 2)).rejects.toMatchObject({
+      remoteProtocol: 4,
+      localProtocol: 2,
+    });
+  });
+
   it('judges again by what another device wrote in between', async () => {
     const store = new InMemoryRemoteStore();
     store.seed(CLOUD_SYNC_PROTOCOL_PATH, marker(1));
