@@ -16,7 +16,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router, RouterModule } from '@angular/router';
 import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { type User } from '@inkweld/index';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { type TutorialTourId } from '@models/tutorial';
 import { AnnouncementService } from '@services/announcement/announcement.service';
 import { AuthTokenService } from '@services/auth/auth-token.service';
@@ -68,6 +68,7 @@ export class UserMenuComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly themeService = inject(ThemeService);
   private readonly tutorialService = inject(TutorialService);
+  private readonly transloco = inject(TranslocoService);
 
   @Input() user: User | undefined = undefined;
   @Input() miniMode = false;
@@ -235,6 +236,12 @@ export class UserMenuComponent implements OnInit {
         return {
           icon: 'cloud_off',
           text: 'Cloud Sync · paused, sync now to resume',
+          cssClass: 'local',
+        };
+      case 'outdated':
+        return {
+          icon: 'system_update',
+          text: this.transloco.translate('app.cloudSyncOutdated'),
           cssClass: 'local',
         };
       default:

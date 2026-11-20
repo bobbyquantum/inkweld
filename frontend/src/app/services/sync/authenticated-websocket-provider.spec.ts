@@ -14,6 +14,8 @@ interface MockWebSocket {
 // Type for our mock provider instance
 interface MockProviderInstance {
   ws: MockWebSocket | null;
+  /** The URL the provider was created with. */
+  _serverUrl: string;
   on: ReturnType<typeof vi.fn>;
   off: ReturnType<typeof vi.fn>;
   connect: ReturnType<typeof vi.fn>;
@@ -86,6 +88,7 @@ const { MockWebsocketProvider, mockProviderInstances, resetMockInstances } =
       };
       _listeners = new Map<string, Array<(arg: unknown) => void>>();
       _options: Record<string, unknown> = {};
+      _serverUrl = '';
 
       _emitStatus(status: string) {
         const listeners = this._listeners.get('status');
@@ -98,6 +101,7 @@ const { MockWebsocketProvider, mockProviderInstances, resetMockInstances } =
         _doc?: unknown,
         options?: Record<string, unknown>
       ) {
+        this._serverUrl = _serverUrl ?? '';
         this._options = options ?? {};
         mockProviderInstances.push(this);
       }
@@ -251,6 +255,51 @@ describe('authenticated-websocket-provider', () => {
         'WebSocket authentication denied: invalid-token'
       );
       expect(mockProvider._destroySpy).toHaveBeenCalled();
+    });
+
+    it('puts the sync protocol and app version ahead of the document id', async () => {
+      const { CLIENT_PROTOCOL_VERSION, getClientVersion } =
+        await import('../core/sync-protocol');
+      void createAuthenticatedWebsocketProvider(
+        'ws://localhost:8333/api/v1/ws/yjs?documentId=test:doc:id',
+        '',
+        mockDoc,
+        'token'
+      ).catch(() => undefined);
+      expect(mockProviderInstances[0]._serverUrl).toBe(
+        `ws://localhost:8333/api/v1/ws/yjs?syncProtocol=${CLIENT_PROTOCOL_VERSION}` +
+          `&clientVersion=${encodeURIComponent(getClientVersion())}` +
+          '&documentId=test:doc:id'
+      );
+      mockProviderInstances[0]._emitStatus('disconnected');
+    });
+
+    it('reports a version-mismatch denial, and only that one', async () => {
+      const { onSyncVersionMismatch } = await import('../core/sync-protocol');
+      const listener = vi.fn();
+      const stop = onSyncVersionMismatch(listener);
+      try {
+        const deny = async (reason: string) => {
+          const promise = createAuthenticatedWebsocketProvider(
+            'ws://localhost:8333/api/v1/ws/yjs?documentId=test:doc:id',
+            '',
+            mockDoc,
+            'token'
+          );
+          const instance = mockProviderInstances.at(-1)!;
+          instance._emitStatus('connected');
+          instance.ws?.onmessage?.(
+            new MessageEvent('message', { data: `access-denied:${reason}` })
+          );
+          await expect(promise).rejects.toThrow(reason);
+        };
+        await deny('forbidden');
+        expect(listener).not.toHaveBeenCalled();
+        await deny('version-mismatch');
+        expect(listener).toHaveBeenCalledTimes(1);
+      } finally {
+        stop();
+      }
     });
 
     it('should reject on disconnect before auth', async () => {
@@ -550,6 +599,30 @@ describe('authenticated-websocket-provider', () => {
 
       expect(onAuthError).toHaveBeenCalledWith('No auth token available');
       expect(mockProvider.disconnect).toHaveBeenCalled();
+    });
+
+    it('reports a version-mismatch denial on reconnect', async () => {
+      const { onSyncVersionMismatch } = await import('../core/sync-protocol');
+      const listener = vi.fn();
+      const stop = onSyncVersionMismatch(listener);
+      const onAuthError = vi.fn();
+      const mockProvider = new MockWebsocketProvider();
+      setupReauthentication(
+        mockProvider as unknown as Parameters<typeof setupReauthentication>[0],
+        () => 'token',
+        onAuthError
+      );
+      mockProvider.connect();
+      mockProvider._emitStatus('disconnected');
+      mockProvider._emitStatus('connected');
+      mockProvider.ws?.onmessage?.(
+        new MessageEvent('message', { data: 'access-denied:version-mismatch' })
+      );
+      stop();
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(onAuthError).toHaveBeenCalledWith(
+        'Access denied: version-mismatch'
+      );
     });
 
     it('should handle re-auth denial', () => {

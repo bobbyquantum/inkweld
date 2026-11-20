@@ -180,6 +180,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       case 'error':
       case 'disconnected':
       case 'paused':
+      case 'outdated':
         return DocumentSyncState.Local;
       default:
         return DocumentSyncState.Synced;
@@ -191,11 +192,15 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     () => !this.storageContext.isCloudMode() && this.isLocalMode()
   );
 
-  protected readonly stripLastError = computed(() =>
-    this.storageContext.isCloudMode()
-      ? this.cloudSync.lastError()
-      : this.lastConnectionError()
-  );
+  protected readonly stripLastError = computed(() => {
+    if (!this.storageContext.isCloudMode()) return this.lastConnectionError();
+    // The engine logs this one instead of storing it. The flag outlives the
+    // status, which going offline or online replaces.
+    if (this.cloudSync.folderOutdated()) {
+      return this.transloco.translate('app.cloudSyncOutdatedDetail');
+    }
+    return this.cloudSync.lastError();
+  });
 
   /**
    * Last-known over-capacity state, surfaced on the sync strap. Only true on a

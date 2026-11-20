@@ -1,3 +1,5 @@
+import { VERSION_MISMATCH_REASON } from '../core/sync-protocol';
+
 /**
  * Shared helpers for reacting to a server `access-denied` frame on a Yjs
  * WebSocket. Both the per-document sync path (DocumentService) and the
@@ -33,6 +35,9 @@ export const HARD_DENIAL_REASONS: ReadonlySet<string> = new Set([
   'forbidden',
   'project-not-found',
   'invalid-document',
+  // This build's sync protocol or version is not one the server syncs with
+  // (`core/sync-protocol.ts`). Only another build can fix it.
+  VERSION_MISMATCH_REASON,
 ]);
 
 /**

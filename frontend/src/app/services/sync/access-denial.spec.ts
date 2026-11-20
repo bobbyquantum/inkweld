@@ -51,6 +51,8 @@ describe('HARD_DENIAL_REASONS', () => {
     expect(HARD_DENIAL_REASONS.has('forbidden')).toBe(true);
     expect(HARD_DENIAL_REASONS.has('project-not-found')).toBe(true);
     expect(HARD_DENIAL_REASONS.has('invalid-document')).toBe(true);
+    // Only another build can fix a refused sync protocol or version.
+    expect(HARD_DENIAL_REASONS.has('version-mismatch')).toBe(true);
   });
 
   it('does not treat transient reasons as hard denials', () => {

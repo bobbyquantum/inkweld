@@ -366,6 +366,15 @@ Details: `backend/src/routes/README_YJS.md`.
   access check, the LevelDB store and the Durable Object agree. A new route
   that takes a document id from a client uses it too. `YjsService` refuses ids
   it rejects, and its per-project helpers skip keys they cannot parse.
+- **Client versions are checked at the sync handshake** (`checkSyncClient`,
+  `utils/sync-client-gate.ts`, on both runtimes): a client of another
+  `PROTOCOL_VERSION`, or below `MIN_CLIENT_VERSION`, is closed with
+  `access-denied:version-mismatch` / 4426 before authenticating. Bump
+  `PROTOCOL_VERSION` together with the frontend's `CLIENT_PROTOCOL_VERSION`
+  whenever an older build could misread the Yjs data a newer one writes (a Yjs
+  major, say); that locks out every older build, including those from before
+  clients sent the parameter. `MIN_CLIENT_VERSION` can't tell betas of one
+  version apart. Details: `src/routes/README_YJS.md`.
 - **Sync and awareness messages are checked before they are applied**, on both
   runtimes (`isYjsMessageWithinLimits`, `utils/yjs-message-limits.ts`): an
   update must decode completely and its JSON values may nest at most

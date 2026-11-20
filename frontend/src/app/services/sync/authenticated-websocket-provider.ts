@@ -5,6 +5,17 @@ import {
 import { WebsocketProvider } from 'y-websocket';
 import type * as Y from 'yjs';
 
+import {
+  reportSyncVersionMismatch,
+  VERSION_MISMATCH_REASON,
+  withSyncClientParams,
+} from '../core/sync-protocol';
+
+/** Pass a server denial's reason on to whoever handles a version refusal. */
+function noteDenialReason(reason: string): void {
+  if (reason === VERSION_MISMATCH_REASON) reportSyncVersionMismatch();
+}
+
 /**
  * Authentication result from the WebSocket auth protocol
  */
@@ -313,17 +324,24 @@ export function createAuthenticatedWebsocketProvider(
 
   return new Promise((resolve, reject) => {
     // Start with connect: false so we can set up auth handling first
-    const provider = new WebsocketProvider(wsUrl, roomName, doc, {
-      ...wsOptions,
-      connect: false,
-      disableBc: authToken === 'public-view' || wsOptions.disableBc,
-      // y-websocket 3.1's default already treats the permanent band
-      // (4400-4499) as terminal. We adopt that convention (the backend closes
-      // hard denials with 44xx and transient failures with 45xx — see
-      // backend/src/utils/ws-close-codes.ts), so pass the default explicitly to
-      // document the intent and keep it stable if the library default changes.
-      shouldReconnect: event => !(event.code >= 4400 && event.code < 4500),
-    });
+    // The server refuses a socket without this build's sync protocol and
+    // version (backend utils/sync-client-gate.ts).
+    const provider = new WebsocketProvider(
+      withSyncClientParams(wsUrl),
+      roomName,
+      doc,
+      {
+        ...wsOptions,
+        connect: false,
+        disableBc: authToken === 'public-view' || wsOptions.disableBc,
+        // y-websocket 3.1's default already treats the permanent band
+        // (4400-4499) as terminal. We adopt that convention (the backend closes
+        // hard denials with 44xx and transient failures with 45xx — see
+        // backend/src/utils/ws-close-codes.ts), so pass the default explicitly to
+        // document the intent and keep it stable if the library default changes.
+        shouldReconnect: event => !(event.code >= 4400 && event.code < 4500),
+      }
+    );
 
     // Install the permanent message guard + keepalive BEFORE registering the
     // auth status handler. Both listen on 'status'; lib0's ObservableV2 calls
@@ -395,6 +413,7 @@ export function createAuthenticatedWebsocketProvider(
             } else if (response.startsWith('access-denied')) {
               const reason = response.split(':')[1] || 'unknown';
               console.error(`[AuthWS] Authentication denied: ${reason}`);
+              noteDenialReason(reason);
               fail(new Error(`WebSocket authentication denied: ${reason}`));
             }
             // Ignore other text messages
@@ -498,6 +517,7 @@ export function setupReauthentication(
           } else if (response.startsWith('access-denied')) {
             const reason = response.split(':')[1] || 'unknown';
             console.error(`[AuthWS] Re-authentication denied: ${reason}`);
+            noteDenialReason(reason);
             authComplete = true;
             needsAuth = false;
             ws.onmessage = originalHandler;

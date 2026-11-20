@@ -25,6 +25,18 @@ never send that prefix). Any other id is refused before authentication: the Bun
 route sends `access-denied:invalid-document` and closes with 4400, and the
 Worker route and the Durable Object answer 400.
 
+## Client versions
+
+Clients put `syncProtocol=<n>&clientVersion=<version>` in the query, ahead of
+`documentId` (y-websocket appends `/` + room name to the URL, so `documentId`
+must stay last). Both runtimes check them with `checkSyncClient`
+(`utils/sync-client-gate.ts`) right after the id, before any token or document
+work. A client of another sync protocol (a missing one counts as 1: builds from
+before the parameter), or one whose version is below `MIN_CLIENT_VERSION`, is
+sent `access-denied:version-mismatch` and closed with 4426 (permanent). The
+Durable Object accepts such a socket with `accept()`, outside hibernation, only
+to send the denial: an HTTP error would read as a network failure and be retried.
+
 ## Authentication
 
 Browsers cannot send an `Authorization` header on a WebSocket, so the connection

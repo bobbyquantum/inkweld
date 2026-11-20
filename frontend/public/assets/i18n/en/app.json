@@ -33,5 +33,7 @@
   "setup": {
     "upgradeIntro": "Your projects from {{source}} will be copied into {{provider}} and kept in sync from now on. The Browser copy is removed once they are safely copied.",
     "upgradeUsernameHint": "Kept from {{source}}, so your project addresses stay the same."
-  }
+  },
+  "cloudSyncOutdated": "Cloud Sync · paused, update Inkweld to keep syncing",
+  "cloudSyncOutdatedDetail": "This cloud folder was synced by a newer version of Inkweld. Your changes are kept on this device until you update the app."
 }

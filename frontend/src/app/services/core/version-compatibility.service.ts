@@ -7,14 +7,20 @@ import {
 } from '@angular/core';
 import { stripTrailingSlashes } from '@utils/string-utils';
 
-import { environment } from '../../../environments/environment';
 import { ReconnectScheduler } from '../sync/reconnect-scheduler';
 import {
   type ServerConfig,
   type ServerVersionInfo,
   StorageContextService,
 } from './storage-context.service';
+import {
+  CLIENT_PROTOCOL_VERSION,
+  getClientVersion,
+  onSyncVersionMismatch,
+} from './sync-protocol';
 import { UpdateService } from './update.service';
+
+export { CLIENT_PROTOCOL_VERSION, getClientVersion } from './sync-protocol';
 
 /**
  * Expected health endpoint response shape for type safety
@@ -23,19 +29,6 @@ interface HealthResponse {
   version?: string;
   protocolVersion?: number;
   minClientVersion?: string;
-}
-
-/**
- * Current client protocol version.
- * This must match the server's PROTOCOL_VERSION for full compatibility.
- */
-export const CLIENT_PROTOCOL_VERSION = 1;
-
-/**
- * Get the current client version from environment/package.json
- */
-export function getClientVersion(): string {
-  return environment.version || '0.1.0';
 }
 
 /**
@@ -145,8 +138,58 @@ export class VersionCompatibilityService {
   /** Re-runs a check the server did not answer, until it does. */
   private recheck: ReconnectScheduler | null = null;
 
+  /** The `/health` check in flight, if any. */
+  private inFlightCheck: Promise<unknown> | null = null;
+
+  /** The checks queued by refused sockets, shared by all of them. */
+  private refusalRecheck: Promise<void> | null = null;
+
+  /** A socket was refused since the last refusal check started. */
+  private refusalPending = false;
+
   constructor() {
-    this.destroyRef.onDestroy(() => this.stopRecheck());
+    // The server refuses a sync socket whose version it won't sync with even
+    // when `/health` said otherwise or hasn't answered yet: check again so
+    // the banner explains it, and fetch the build that can sync.
+    const stopListening = onSyncVersionMismatch(() => {
+      void this.handleServerRefusedVersion();
+    });
+    this.destroyRef.onDestroy(() => {
+      stopListening();
+      this.stopRecheck();
+    });
+  }
+
+  /**
+   * A sync socket was refused for its version. Ask the service worker for a
+   * newer build and check `/health` again for the active server. Several
+   * sockets are usually refused together; one queued check answers them all.
+   */
+  private handleServerRefusedVersion(): Promise<void> {
+    void this.updateService.checkForUpdate();
+    this.refusalPending = true;
+    this.refusalRecheck ??= this.drainRefusals().finally(() => {
+      this.refusalRecheck = null;
+    });
+    return this.refusalRecheck;
+  }
+
+  /** Check once for the refusals so far, and again for any that came during it. */
+  private async drainRefusals(): Promise<void> {
+    await this.recheckAfterRefusal();
+    // A refusal that arrived while that check ran may postdate its answer.
+    if (this.refusalPending) await this.drainRefusals();
+  }
+
+  private async recheckAfterRefusal(): Promise<void> {
+    // A check already in flight may have been answered before the server
+    // changed: let it finish, then ask again. One check at a time.
+    await this.inFlightCheck?.catch(() => undefined);
+    // This check answers every refusal so far; later ones need another.
+    this.refusalPending = false;
+    const activeConfig = this.storageContext.activeConfig();
+    if (activeConfig?.type !== 'server') return;
+    await this.checkAndUpdateProfileCompatibility(activeConfig);
   }
 
   /**
@@ -271,8 +314,9 @@ export class VersionCompatibilityService {
   /**
    * Check compatibility with a server by fetching its health endpoint.
    * A server that can't be reached or answers with an error returns an
-   * incompatible result without `serverInfo`, and leaves {@link lastResult}
-   * as it was.
+   * incompatible result without `serverInfo`. It never touches
+   * {@link lastResult}: {@link checkAndUpdateProfileCompatibility} publishes
+   * an answer only for the profile that is still active.
    */
   async checkServerCompatibility(
     serverUrl: string
@@ -355,7 +399,6 @@ export class VersionCompatibilityService {
         serverInfo,
       };
 
-      this.lastResult.set(result);
       return result;
     } catch (error) {
       console.error('[VersionCompatibility] Health check error:', error);
@@ -398,7 +441,14 @@ export class VersionCompatibilityService {
       };
     }
 
-    const result = await this.checkServerCompatibility(profile.serverUrl);
+    const check = this.checkServerCompatibility(profile.serverUrl);
+    this.inFlightCheck = check;
+    let result: CompatibilityResult;
+    try {
+      result = await check;
+    } finally {
+      if (this.inFlightCheck === check) this.inFlightCheck = null;
+    }
 
     // Update stored version info if we got server info
     if (result.serverInfo) {
@@ -406,6 +456,11 @@ export class VersionCompatibilityService {
         profile.id,
         result.serverInfo
       );
+      // Only the active profile's server decides whether sync is blocked: a
+      // late answer for a profile switched away from must not overwrite it.
+      if (this.storageContext.activeConfig()?.id === profile.id) {
+        this.lastResult.set(result);
+      }
     }
 
     return result;

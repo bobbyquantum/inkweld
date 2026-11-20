@@ -294,6 +294,11 @@ describe('UserMenuComponent', () => {
       ['error', 'Cloud Sync · error', 'cloud_alert'],
       ['disconnected', 'Cloud Sync · reconnect needed', 'cloud_off'],
       ['idle', 'Cloud Sync', 'cloud_sync'],
+      [
+        'outdated',
+        'Cloud Sync · paused, update Inkweld to keep syncing',
+        'system_update',
+      ],
     ])('maps engine status %s to the menu line', (status, text, icon) => {
       setupServiceMock.getMode.mockReturnValue('cloud');
       cloudSyncMock.status.mockReturnValue(status);

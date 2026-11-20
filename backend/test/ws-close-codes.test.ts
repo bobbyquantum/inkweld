@@ -9,6 +9,7 @@ import {
   WS_CLOSE_AUTH_TIMEOUT,
   WS_CLOSE_PREAUTH_OVERFLOW,
   WS_CLOSE_ACCESS_CHANGED,
+  WS_CLOSE_VERSION_MISMATCH,
 } from '../src/utils/ws-close-codes';
 
 /**
@@ -30,6 +31,7 @@ describe('ws-close-codes', () => {
       WS_CLOSE_INVALID_DOCUMENT,
       WS_CLOSE_FORBIDDEN,
       WS_CLOSE_PROJECT_NOT_FOUND,
+      WS_CLOSE_VERSION_MISMATCH,
     ]) {
       expect(isPermanent(code)).toBe(true);
     }
@@ -53,6 +55,7 @@ describe('ws-close-codes', () => {
       WS_CLOSE_INVALID_DOCUMENT,
       WS_CLOSE_FORBIDDEN,
       WS_CLOSE_PROJECT_NOT_FOUND,
+      WS_CLOSE_VERSION_MISMATCH,
     ];
     const transient = [
       WS_CLOSE_SERVER_ERROR,
@@ -77,6 +80,7 @@ describe('ws-close-codes', () => {
       WS_CLOSE_AUTH_TIMEOUT,
       WS_CLOSE_PREAUTH_OVERFLOW,
       WS_CLOSE_ACCESS_CHANGED,
+      WS_CLOSE_VERSION_MISMATCH,
     ];
     expect(new Set(all).size).toBe(all.length);
   });

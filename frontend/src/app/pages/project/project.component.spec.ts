@@ -88,6 +88,10 @@ class MockTabInterfaceComponent {
 
 describe('ProjectComponent', () => {
   let component: ProjectComponent;
+  const cloudMode = signal(false);
+  const cloudStatus = signal('disabled');
+  const cloudLastError = signal<string | null>(null);
+  const cloudFolderOutdated = signal(false);
   let fixture: ComponentFixture<ProjectComponent>;
   let projectStateService: Partial<ProjectStateService>;
   let documentService: Partial<DocumentService>;
@@ -287,8 +291,9 @@ describe('ProjectComponent', () => {
         {
           provide: CloudSyncEngineService,
           useValue: {
-            status: () => 'disabled',
-            lastError: () => null,
+            status: cloudStatus,
+            lastError: cloudLastError,
+            folderOutdated: cloudFolderOutdated,
             initialize: () => undefined,
             syncNow: () => Promise.resolve(),
           },
@@ -327,7 +332,7 @@ describe('ProjectComponent', () => {
           provide: StorageContextService,
           useValue: {
             isLocalMode: signal(false),
-            isCloudMode: signal(false),
+            isCloudMode: cloudMode,
             prefixDbName: vi.fn((name: string) => name),
             getActiveConfig: vi.fn(() => ({ id: 'test-config' })),
           },
@@ -422,6 +427,39 @@ describe('ProjectComponent', () => {
       expect(projectSearchService.initialize).toHaveBeenCalledTimes(
         projectSearchCalls + 1
       );
+    });
+  });
+
+  describe('cloud sync strip', () => {
+    afterEach(() => {
+      cloudMode.set(false);
+      cloudStatus.set('disabled');
+      cloudLastError.set(null);
+      cloudFolderOutdated.set(false);
+    });
+
+    it('explains an outdated folder in the app language, not the engine message', () => {
+      const strip = component as unknown as {
+        stripSyncState: () => string;
+        stripLastError: () => string | null;
+      };
+      cloudMode.set(true);
+      cloudStatus.set('outdated');
+      cloudFolderOutdated.set(true);
+      cloudLastError.set('English engine message');
+
+      expect(strip.stripSyncState()).toBe(DocumentSyncState.Local);
+      expect(strip.stripLastError()).toContain('newer version of Inkweld');
+      expect(strip.stripLastError()).not.toBe('English engine message');
+
+      // Going offline replaces the status but not the reason.
+      cloudStatus.set('offline');
+      expect(strip.stripLastError()).toContain('newer version of Inkweld');
+
+      // Once a protocol check passes, other errors show as they are.
+      cloudFolderOutdated.set(false);
+      cloudStatus.set('error');
+      expect(strip.stripLastError()).toBe('English engine message');
     });
   });
 
