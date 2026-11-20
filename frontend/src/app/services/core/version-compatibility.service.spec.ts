@@ -446,6 +446,42 @@ describe('VersionCompatibilityService', () => {
       expect(service.syncBlocked()).toBe(true);
     });
 
+    it('checks again for a socket refused while the refusal check runs', async () => {
+      vi.spyOn(
+        TestBed.inject(UpdateService),
+        'checkForUpdate'
+      ).mockResolvedValue(false);
+      let answerFirst: (value: unknown) => void = () => {};
+      const fetchMock = vi
+        .fn()
+        .mockReturnValueOnce(
+          new Promise(resolve => {
+            answerFirst = resolve;
+          })
+        )
+        .mockResolvedValue({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              version: '9.0.0',
+              protocolVersion: CLIENT_PROTOCOL_VERSION + 1,
+              minClientVersion: '0.0.0',
+            }),
+        });
+      globalThis.fetch = fetchMock;
+
+      reportSyncVersionMismatch();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      // Refused again while that check is out: its answer may predate this.
+      reportSyncVersionMismatch();
+      answerFirst(healthy);
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(service.syncBlocked()).toBe(true);
+    });
+
     it('ignores an answer for a profile that is no longer active', async () => {
       let answer: (value: unknown) => void = () => {};
       globalThis.fetch = vi.fn().mockReturnValue(

@@ -122,6 +122,12 @@ export class CloudSyncEngineService {
   readonly status = signal<CloudSyncStatus>('disabled');
   readonly lastSyncAt = signal<string | null>(null);
   readonly lastError = signal<string | null>(null);
+  /**
+   * The folder was written by a newer sync protocol. Unlike `status`, which
+   * network events change, it holds until a protocol check passes, so the UI
+   * can keep explaining why nothing syncs.
+   */
+  readonly folderOutdated = signal(false);
   /** Projects with local edits waiting for the debounce */
   readonly pendingProjects = signal<ReadonlySet<string>>(new Set());
 
@@ -695,6 +701,7 @@ export class CloudSyncEngineService {
   private async checkProtocol(store: RemoteStore): Promise<void> {
     await ensureCloudSyncProtocol(store);
     this.protocolCheckedAt = Date.now();
+    this.folderOutdated.set(false);
   }
 
   private markSynced(): void {
@@ -707,6 +714,7 @@ export class CloudSyncEngineService {
     if (error instanceof CloudSyncProtocolError) {
       // Edits stay local until the app is updated; look for that update.
       this.status.set('outdated');
+      this.folderOutdated.set(true);
       // Network events replace 'outdated' with 'idle' or 'offline', so the
       // next project sync must check the folder again, not trust the cache.
       this.protocolCheckedAt = 0;

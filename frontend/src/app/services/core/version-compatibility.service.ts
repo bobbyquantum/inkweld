@@ -141,8 +141,11 @@ export class VersionCompatibilityService {
   /** The `/health` check in flight, if any. */
   private inFlightCheck: Promise<unknown> | null = null;
 
-  /** The check queued by refused sockets, shared by all of them. */
+  /** The checks queued by refused sockets, shared by all of them. */
   private refusalRecheck: Promise<void> | null = null;
+
+  /** A socket was refused since the last refusal check started. */
+  private refusalPending = false;
 
   constructor() {
     // The server refuses a sync socket whose version it won't sync with even
@@ -164,16 +167,26 @@ export class VersionCompatibilityService {
    */
   private handleServerRefusedVersion(): Promise<void> {
     void this.updateService.checkForUpdate();
-    this.refusalRecheck ??= this.recheckAfterRefusal().finally(() => {
+    this.refusalPending = true;
+    this.refusalRecheck ??= this.drainRefusals().finally(() => {
       this.refusalRecheck = null;
     });
     return this.refusalRecheck;
+  }
+
+  /** Check once for the refusals so far, and again for any that came during it. */
+  private async drainRefusals(): Promise<void> {
+    await this.recheckAfterRefusal();
+    // A refusal that arrived while that check ran may postdate its answer.
+    if (this.refusalPending) await this.drainRefusals();
   }
 
   private async recheckAfterRefusal(): Promise<void> {
     // A check already in flight may have been answered before the server
     // changed: let it finish, then ask again. One check at a time.
     await this.inFlightCheck?.catch(() => undefined);
+    // This check answers every refusal so far; later ones need another.
+    this.refusalPending = false;
     const activeConfig = this.storageContext.activeConfig();
     if (activeConfig?.type !== 'server') return;
     await this.checkAndUpdateProfileCompatibility(activeConfig);

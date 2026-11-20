@@ -591,6 +591,23 @@ describe('CloudSyncEngineService', () => {
     expect(engine.status()).toBe('outdated');
   });
 
+  it('keeps the folder marked outdated through network changes until a check passes', async () => {
+    store.seed(CLOUD_SYNC_PROTOCOL_PATH, JSON.stringify({ protocol: 999 }));
+    engine.initialize({ runStartupPass: false });
+    await engine.syncNow();
+    expect(engine.folderOutdated()).toBe(true);
+
+    globalThis.dispatchEvent(new Event('offline'));
+    expect(engine.status()).toBe('offline');
+    expect(engine.folderOutdated()).toBe(true);
+
+    // The app was updated elsewhere and the folder is readable again.
+    store.seed(CLOUD_SYNC_PROTOCOL_PATH, JSON.stringify({ protocol: 1 }));
+    await engine.syncNow();
+    expect(engine.folderOutdated()).toBe(false);
+    expect(engine.status()).toBe('synced');
+  });
+
   it('reports other failures without giving up credentials', async () => {
     mirror.syncProject.mockRejectedValue(new Error('rate limited'));
     engine.initialize();

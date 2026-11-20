@@ -91,6 +91,7 @@ describe('ProjectComponent', () => {
   const cloudMode = signal(false);
   const cloudStatus = signal('disabled');
   const cloudLastError = signal<string | null>(null);
+  const cloudFolderOutdated = signal(false);
   let fixture: ComponentFixture<ProjectComponent>;
   let projectStateService: Partial<ProjectStateService>;
   let documentService: Partial<DocumentService>;
@@ -292,6 +293,7 @@ describe('ProjectComponent', () => {
           useValue: {
             status: cloudStatus,
             lastError: cloudLastError,
+            folderOutdated: cloudFolderOutdated,
             initialize: () => undefined,
             syncNow: () => Promise.resolve(),
           },
@@ -433,6 +435,7 @@ describe('ProjectComponent', () => {
       cloudMode.set(false);
       cloudStatus.set('disabled');
       cloudLastError.set(null);
+      cloudFolderOutdated.set(false);
     });
 
     it('explains an outdated folder in the app language, not the engine message', () => {
@@ -442,12 +445,19 @@ describe('ProjectComponent', () => {
       };
       cloudMode.set(true);
       cloudStatus.set('outdated');
+      cloudFolderOutdated.set(true);
       cloudLastError.set('English engine message');
 
       expect(strip.stripSyncState()).toBe(DocumentSyncState.Local);
       expect(strip.stripLastError()).toContain('newer version of Inkweld');
       expect(strip.stripLastError()).not.toBe('English engine message');
 
+      // Going offline replaces the status but not the reason.
+      cloudStatus.set('offline');
+      expect(strip.stripLastError()).toContain('newer version of Inkweld');
+
+      // Once a protocol check passes, other errors show as they are.
+      cloudFolderOutdated.set(false);
       cloudStatus.set('error');
       expect(strip.stripLastError()).toBe('English engine message');
     });
