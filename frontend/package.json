@@ -99,7 +99,7 @@
     "ngx-input-color": "7.0.1",
     "prosemirror-history": "1.5.2",
     "prosemirror-tables": "1.8.5",
-    "prosemirror-transform": "1.12.6",
+    "prosemirror-transform": "1.12.7",
     "prosemirror-view": "1.43.0",
     "rxjs": "7.8.2",
     "tslib": "2.9.1",
@@ -158,7 +158,7 @@
     "prosemirror-schema-list": "1.6.1",
     "prosemirror-state": "1.4.4",
     "prosemirror-tables": "1.8.5",
-    "prosemirror-transform": "1.12.6",
+    "prosemirror-transform": "1.12.7",
     "prosemirror-view": "1.43.0"
   },
   "packageManager": "bun@1.4.5"
