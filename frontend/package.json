@@ -100,7 +100,7 @@
     "prosemirror-history": "1.5.1",
     "prosemirror-tables": "1.8.5",
     "prosemirror-transform": "1.12.6",
-    "prosemirror-view": "1.42.9",
+    "prosemirror-view": "1.43.0",
     "rxjs": "7.8.2",
     "tslib": "2.9.1",
     "y-indexeddb": "9.0.12",
@@ -159,7 +159,7 @@
     "prosemirror-state": "1.4.4",
     "prosemirror-tables": "1.8.5",
     "prosemirror-transform": "1.12.6",
-    "prosemirror-view": "1.42.9"
+    "prosemirror-view": "1.43.0"
   },
   "packageManager": "bun@1.4.5"
 }
