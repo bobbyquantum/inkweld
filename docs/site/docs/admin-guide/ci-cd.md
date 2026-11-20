@@ -129,9 +129,10 @@ for the full list.
 
 Releases promote themselves: when release-please's release build has published
 the image, its **Promote to production** job fast-forwards `production` to the
-release tag and starts the production deploy. The tag's commit has already
-deployed to preview, since every merge to `main` does. If `production` already
-contains the release, the job leaves it alone.
+release tag and starts the production deploy. The release merge to `main` also
+starts a preview deploy of that commit, but the job doesn't wait for it to
+succeed. If `production` already contains the release, the job leaves it alone
+and only starts a deploy if none has run for that commit.
 
 To promote a commit between releases by hand, check it on preview first, then
 fast-forward `production` to it:
