@@ -194,8 +194,8 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
   protected readonly stripLastError = computed(() => {
     if (!this.storageContext.isCloudMode()) return this.lastConnectionError();
-    // The engine's message for this one is English, for the log. The flag
-    // outlives the status, which going offline or online replaces.
+    // The engine logs this one instead of storing it. The flag outlives the
+    // status, which going offline or online replaces.
     if (this.cloudSync.folderOutdated()) {
       return this.transloco.translate('app.cloudSyncOutdatedDetail');
     }

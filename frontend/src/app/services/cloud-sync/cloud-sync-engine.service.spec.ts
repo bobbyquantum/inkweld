@@ -553,7 +553,9 @@ describe('CloudSyncEngineService', () => {
 
       expect(engine.status()).toBe('outdated');
       expect(engine.isActive()).toBe(true);
-      expect(engine.lastError()).toMatch(/newer version of Inkweld/);
+      // Explained by the UI from folderOutdated; the English text only logs.
+      expect(engine.folderOutdated()).toBe(true);
+      expect(engine.lastError()).toBeNull();
       expect(mismatch).toHaveBeenCalledTimes(1);
       // Nothing listed, pulled or written.
       expect(
@@ -606,6 +608,24 @@ describe('CloudSyncEngineService', () => {
     await engine.syncNow();
     expect(engine.folderOutdated()).toBe(false);
     expect(engine.status()).toBe('synced');
+  });
+
+  it('leaves no protocol message behind when a later check passes but the pass fails', async () => {
+    store.seed(CLOUD_SYNC_PROTOCOL_PATH, JSON.stringify({ protocol: 999 }));
+    engine.initialize({ runStartupPass: false });
+    await engine.syncNow();
+    expect(engine.folderOutdated()).toBe(true);
+
+    store.seed(CLOUD_SYNC_PROTOCOL_PATH, JSON.stringify({ protocol: 1 }));
+    mirror.syncProject.mockImplementationOnce(() => {
+      // The connection drops mid-pass, after the protocol check passed.
+      globalThis.dispatchEvent(new Event('offline'));
+      return Promise.reject(new Error('network down'));
+    });
+    await engine.syncNow();
+
+    expect(engine.folderOutdated()).toBe(false);
+    expect(engine.lastError() ?? '').not.toMatch(/newer version of Inkweld/);
   });
 
   it('reports other failures without giving up credentials', async () => {

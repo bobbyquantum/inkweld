@@ -718,7 +718,9 @@ export class CloudSyncEngineService {
       // Network events replace 'outdated' with 'idle' or 'offline', so the
       // next project sync must check the folder again, not trust the cache.
       this.protocolCheckedAt = 0;
-      this.lastError.set(error.message);
+      // The message is English and only for the log: the UI explains this
+      // from `folderOutdated`, so it never reaches `lastError` to linger.
+      this.lastError.set(null);
       this.logger.warn('CloudSync', error.message);
       reportSyncVersionMismatch();
       return;
