@@ -44,7 +44,10 @@ describe('StorageUsageService', () => {
           useValue: { getMyStorageUsage },
         },
         { provide: LoggerService, useValue: { error: () => undefined } },
-        { provide: StorageContextService, useValue: { activeConfig } },
+        {
+          provide: StorageContextService,
+          useValue: { getActiveConfig: () => activeConfig() },
+        },
       ],
     });
     service = TestBed.inject(StorageUsageService);

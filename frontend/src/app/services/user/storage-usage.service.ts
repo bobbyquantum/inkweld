@@ -210,7 +210,7 @@ export class StorageUsageService {
 
   /** The active profile's id, which names the server usage is read from. */
   private activeServerId(): string | undefined {
-    return this.storageContext.activeConfig()?.id;
+    return this.storageContext.getActiveConfig()?.id;
   }
 
   /** Whether the cached value belongs to `userId` on the active server. */
