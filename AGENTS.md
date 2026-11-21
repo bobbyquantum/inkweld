@@ -43,7 +43,9 @@ tool hasn't loaded them already. Longer design notes are in the developer docs
    `backend/openapi.json` or the client are stale.
 7. **Never push to `production`** unless asked: it deploys inkweld.app. It only
    fast-forwards to a commit already on `main`
-   (`git push origin origin/main:production`). `main` deploys
+   (`git push origin <commit-sha>:production`). Releases promote themselves:
+   `release-please.yml` fast-forwards it to the release tag once the release
+   image is published. `main` deploys
    preview.inkweld.app. Deploy steps live in
    `deploy-cloudflare-reusable.yml`; see
    `docs/site/docs/admin-guide/ci-cd.md`.
