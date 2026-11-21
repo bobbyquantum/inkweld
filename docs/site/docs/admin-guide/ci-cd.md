@@ -142,16 +142,11 @@ GH_TOKEN=<token> node scripts/promote-production.mjs --repo bobbyquantum/inkweld
 ```
 
 To promote a commit between releases by hand, check it on preview first, then
-fast-forward `production` to it:
+fast-forward `production` to that exact commit. Push its SHA rather than
+`origin/main`, which may have moved on since the check:
 
 ```bash
 git fetch origin
-git push origin origin/main:production
-```
-
-To promote an older commit than the tip of `main`, push that commit instead:
-
-```bash
 git push origin <commit-sha>:production
 ```
 
