@@ -124,6 +124,10 @@ export class StorageUsageService {
     this.cachedForServerId = serverId;
 
     const requestId = ++this.requestSeq;
+    // A profile switch starts no load of its own, so a response that arrives
+    // after one belongs to the previous server and must not be published.
+    const isCurrent = () =>
+      requestId === this.requestSeq && serverId === this.activeServerId();
     this.isLoading.set(true);
     this.error.set(undefined);
     try {
@@ -132,7 +136,7 @@ export class StorageUsageService {
           .getMyStorageUsage()
           .pipe(catchError(this.handleError.bind(this)))
       );
-      if (requestId !== this.requestSeq) {
+      if (!isCurrent()) {
         return undefined;
       }
       this.usage.set(usage);
@@ -141,7 +145,7 @@ export class StorageUsageService {
     } catch (error) {
       // Already logged in handleError; keep the previous value so the meter
       // does not blink to zero on a transient failure.
-      if (requestId === this.requestSeq) {
+      if (isCurrent()) {
         this.error.set(error as StorageUsageError);
       }
       return undefined;

@@ -290,5 +290,32 @@ describe('StorageUsageService', () => {
       expect(service.usage()).toBeUndefined();
       expect(service.isLoading()).toBe(false);
     });
+
+    it('drops a response that arrives after a switch to another server', async () => {
+      const slow = new Subject<StorageUsage>();
+      getMyStorageUsage.mockReturnValueOnce(slow);
+      const pending = service.load('user-a');
+
+      activeConfig.set({ id: 'server-b' });
+      slow.next(USAGE);
+      slow.complete();
+
+      expect(await pending).toBeUndefined();
+      expect(service.usage()).toBeUndefined();
+      expect(service.isLoading()).toBe(false);
+    });
+
+    it('drops a failure that arrives after a switch to another server', async () => {
+      const slow = new Subject<StorageUsage>();
+      getMyStorageUsage.mockReturnValueOnce(slow);
+      const pending = service.load('user-a');
+
+      activeConfig.set({ id: 'server-b' });
+      slow.error({ status: 500 });
+      await pending;
+
+      expect(service.error()).toBeUndefined();
+      expect(service.isLoading()).toBe(false);
+    });
   });
 });
