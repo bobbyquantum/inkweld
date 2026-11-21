@@ -39,6 +39,7 @@ describe('AccountSettingsComponent (dialog tab)', () => {
     overQuota: ReturnType<typeof vi.fn>;
     isLoading: ReturnType<typeof vi.fn>;
     load: ReturnType<typeof vi.fn>;
+    ensureFresh: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -88,6 +89,7 @@ describe('AccountSettingsComponent (dialog tab)', () => {
       overQuota: vi.fn().mockReturnValue(false),
       isLoading: vi.fn().mockReturnValue(false),
       load: vi.fn().mockResolvedValue(undefined),
+      ensureFresh: vi.fn().mockResolvedValue(undefined),
     };
 
     await TestBed.configureTestingModule({

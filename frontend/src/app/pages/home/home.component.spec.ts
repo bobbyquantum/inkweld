@@ -355,6 +355,7 @@ describe('HomeComponent', () => {
             getPrefix: vi.fn().mockReturnValue('srv:test:'),
             configurations: signal([]),
             activeConfig: signal(null),
+            getActiveConfig: vi.fn(() => null),
             isLocalMode: signal(false),
             isConfigured: signal(false),
             hasConfigurations: signal(false),

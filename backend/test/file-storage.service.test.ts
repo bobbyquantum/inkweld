@@ -197,6 +197,26 @@ describe('FileStorageService', () => {
     });
   });
 
+  describe('getProjectFileSize', () => {
+    it('returns the size of an existing file', async () => {
+      await service.saveProjectFile(testUser, testSlug, 'notes.txt', 'some notes');
+      expect(await service.getProjectFileSize(testUser, testSlug, 'notes.txt')).toBe(10);
+    });
+
+    it('returns null for a missing file or a directory', async () => {
+      await service.ensureProjectDirectory(testUser, testSlug);
+      expect(await service.getProjectFileSize(testUser, testSlug, 'missing.txt')).toBeNull();
+      await service.saveProjectFile(testUser, testSlug, 'sub/inner.txt', 'x');
+      expect(await service.getProjectFileSize(testUser, testSlug, 'sub')).toBeNull();
+    });
+
+    it('should reject path traversal', async () => {
+      await expect(
+        service.getProjectFileSize(testUser, testSlug, '../../secret')
+      ).rejects.toThrow();
+    });
+  });
+
   describe('deleteProjectFile', () => {
     it('should delete an existing file', async () => {
       await service.saveProjectFile(testUser, testSlug, 'temp.txt', 'temporary');

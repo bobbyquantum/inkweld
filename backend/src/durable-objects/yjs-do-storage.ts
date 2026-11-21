@@ -41,6 +41,11 @@ export interface DoStorage {
   }): Promise<Map<string, T>>;
   put<T>(key: string, value: T): Promise<void>;
   delete(keys: string | string[]): Promise<void>;
+  /**
+   * SQLite-backed Durable Objects only (`new_sqlite_classes`). Reading `sql`
+   * on a key-value-backed object throws, so treat it as optional and guarded.
+   */
+  readonly sql?: { readonly databaseSize: number };
 }
 
 /** Cloudflare Durable Object storage caps bulk delete() at 128 keys per call. */
@@ -191,6 +196,20 @@ function randomHex(bytes: number): string {
   const rand = new Uint8Array(bytes);
   crypto.getRandomValues(rand);
   return Array.from(rand, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * The SQLite database size of a SQLite-backed Durable Object, or `undefined`
+ * when the storage has no `sql` API (key-value backend, test doubles) or
+ * reading it throws.
+ */
+export function readSqlDatabaseSize(storage: DoStorage): number | undefined {
+  try {
+    const size = storage.sql?.databaseSize;
+    return typeof size === 'number' && Number.isFinite(size) && size >= 0 ? size : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /** Coerce a persisted value (legacy `number[]` or current `Uint8Array`) to bytes. */
@@ -706,6 +725,13 @@ export class YjsDocStorage {
    * reporting.
    */
   async getTotalStorageBytes(): Promise<number> {
+    // SQLite-backed objects know their own size: one property read instead of
+    // reading (and being billed for) every stored row. It counts the whole
+    // database file, so it runs a little above the sum of the values, and it
+    // is the figure Cloudflare bills storage by.
+    const sqlSize = readSqlDatabaseSize(this.storage);
+    if (sqlSize !== undefined) return sqlSize;
+
     let total = 0;
     await pagePrefix(this.storage, '', (page) => {
       for (const value of page.values()) {

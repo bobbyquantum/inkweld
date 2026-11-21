@@ -281,6 +281,17 @@ describe('R2StorageAdapter', () => {
       expect(mockR2.head).toHaveBeenCalledTimes(1);
     });
 
+    it('getProjectFileSize reads the size with one R2 head and never lists', async () => {
+      mockR2.head = mock(() => Promise.resolve({ key: 'user/proj/f.txt', size: 42 }));
+      expect(await storage.getProjectFileSize('user', 'proj', 'f.txt')).toBe(42);
+      expect(mockR2.head).toHaveBeenCalledTimes(1);
+      expect(mockR2.list).not.toHaveBeenCalled();
+    });
+
+    it('getProjectFileSize returns null for a missing object', async () => {
+      expect(await storage.getProjectFileSize('user', 'proj', 'missing.txt')).toBeNull();
+    });
+
     it('deleteProjectFile delegates to R2 delete', async () => {
       await storage.deleteProjectFile('user', 'proj', 'f.txt');
       expect(mockR2.delete).toHaveBeenCalledTimes(1);

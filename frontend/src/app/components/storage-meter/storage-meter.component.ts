@@ -13,6 +13,9 @@ import { TranslocoModule } from '@jsverse/transloco';
 import { StorageUsageService } from '@services/user/storage-usage.service';
 import { formatBytes } from '@utils/format-bytes';
 
+/** How long the meter reuses a usage figure before asking the server again. */
+export const STORAGE_METER_MAX_AGE_MS = 2 * 60 * 1000;
+
 /**
  * Compact "used / allowance" meter for the current user's sync capacity.
  *
@@ -87,8 +90,10 @@ export class StorageMeterComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    // Fetch on first use, or when the account changed; the service keeps the
-    // last value for repeat visits by the same user.
-    void this.storageUsage.load(this.userId());
+    // Fetch on first use, when the account changed, or when the cached value
+    // is older than STORAGE_METER_MAX_AGE_MS; otherwise reuse it. Measuring
+    // usage touches every project on the server, and the home page shows this
+    // meter on each visit.
+    void this.storageUsage.ensureFresh(this.userId(), STORAGE_METER_MAX_AGE_MS);
   }
 }
