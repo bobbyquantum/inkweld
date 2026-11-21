@@ -92,13 +92,10 @@ jobs:
     with:
       tag: ${{ needs.release-please.outputs.tag_name }}
 
-  # Once the release image is published, inkweld.app moves to the release
-  # commit: `production` is fast-forwarded to the tag and its deploy started.
-  # The ref update is not forced, so it fails rather than move production off
-  # main; if production already has the release (promoted by hand), it is left
-  # alone, and deployed only if no deploy has run for that commit. A branch update made with GITHUB_TOKEN doesn't trigger
-  # deploy-cloudflare-production.yml's push trigger, so the deploy is started
-  # with workflow_dispatch, which GITHUB_TOKEN can trigger.
+  # Once the release image is published, inkweld.app moves to the release:
+  # scripts/promote-production.mjs fast-forwards `production` to the tag's
+  # commit and starts its deploy, and explains how a rerun and a release
+  # promoted by hand are handled.
   promote-production:
     name: Promote to production
     needs: [release-please, docker-release]
@@ -109,37 +106,15 @@ jobs:
       contents: write
       actions: write
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
       - name: Fast-forward production and deploy it
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ needs.release-please.outputs.tag_name }}
-        run: |
-          sha="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${RELEASE_TAG}" --jq .sha)"
-          status="$(gh api "repos/${GITHUB_REPOSITORY}/compare/${sha}...production" --jq .status)"
-          case "$status" in
-            ahead)
-              echo "::notice::production is already past ${RELEASE_TAG}; not moving it."
-              exit 0
-              ;;
-            identical)
-              # Promoted already, by hand or by an earlier attempt of this job
-              # whose dispatch failed. Deploy only if nothing has for this commit.
-              deploys="$(gh run list --repo "$GITHUB_REPOSITORY" \
-                --workflow deploy-cloudflare-production.yml --commit "$sha" \
-                --json databaseId --jq length)"
-              if [[ "$deploys" != "0" ]]; then
-                echo "::notice::production is already at ${RELEASE_TAG} and has a deploy."
-                exit 0
-              fi
-              ;;
-            *)
-              gh api --method PATCH "repos/${GITHUB_REPOSITORY}/git/refs/heads/production" \
-                -f sha="$sha" -F force=false > /dev/null
-              echo "::notice::production fast-forwarded to ${RELEASE_TAG} (${sha})."
-              ;;
-          esac
-          gh workflow run deploy-cloudflare-production.yml \
-            --repo "$GITHUB_REPOSITORY" --ref production
+        run: node scripts/promote-production.mjs --tag "$RELEASE_TAG"
 
   # release-please's notes name no one. This adds GitHub's own list of
   # first-time contributors (its "New Contributors" section) to the release;
