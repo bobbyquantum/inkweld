@@ -38,6 +38,7 @@ import {
   getRelationships as runtimeGetRelationships,
   addRelationship as runtimeAddRelationship,
   applyRelationshipChanges as runtimeApplyRelationshipChanges,
+  reconcileRelationshipFields as runtimeReconcileRelationshipFields,
   deleteWorldbuildingPaths as runtimeDeleteWorldbuildingPaths,
   removeTagsOfElements as runtimeRemoveTagsOfElements,
   getSchemas as runtimeGetSchemas,
@@ -46,7 +47,6 @@ import {
 } from './yjs-runtime';
 import {
   parseRelationshipFieldValue,
-  planRelationshipFieldLinks,
   type RelationshipFieldDefinition,
   relationshipFieldLinkErrors,
   relationshipFieldsOfSchema,
@@ -1394,7 +1394,7 @@ async function checkRelationshipFieldValues(
   slug: string,
   elementId: string,
   values: Map<RelationshipFieldDefinition, unknown>
-): Promise<{ targets: RelationshipFieldTarget[]; elementIds: Set<string> } | { errors: string[] }> {
+): Promise<{ targets: RelationshipFieldTarget[] } | { errors: string[] }> {
   const [elements, schemas] = await Promise.all([
     runtimeGetElements(ctx, username, slug),
     runtimeGetSchemas(ctx, username, slug).catch(() => []),
@@ -1421,52 +1421,34 @@ async function checkRelationshipFieldValues(
     if (fieldErrors.length > 0) errors.push(...fieldErrors);
     else targets.push({ field, value: parsed.ids });
   }
-  return errors.length > 0 ? { errors } : { targets, elementIds: new Set(byId.keys()) };
+  return errors.length > 0 ? { errors } : { targets };
 }
 
 /**
  * Make each relationship field link exactly its target ids, as the app's
  * relationship field does (`planRelationshipFieldLinks`). The plan is made
- * inside the transaction that applies it, against the relationships as they
- * are then, so two updates of a single-valued field can't both add a link.
- * Then drop any copy of the fields' values an older MCP write left in the
- * worldbuilding map (the value is the relationships).
+ * on the shared document, in the transaction that applies it (on Workers by
+ * the project Durable Object), so two updates of a single-valued field can't
+ * both add a link. Then drop any copy of the fields' values an older MCP
+ * write left in the worldbuilding map (the value is the relationships).
  */
 async function applyRelationshipFieldChanges(
   ctx: McpContext,
   username: string,
   slug: string,
   elementId: string,
-  targets: RelationshipFieldTarget[],
-  elementExists: (id: string) => boolean
+  targets: RelationshipFieldTarget[]
 ): Promise<RelationshipFieldChange[]> {
-  const now = new Date().toISOString();
-  let changes: RelationshipFieldChange[] = [];
-  await runtimeApplyRelationshipChanges(ctx, username, slug, (current) => {
-    changes = targets.map((target) => ({
-      ...target,
-      ...planRelationshipFieldLinks({
-        sourceElementId: elementId,
-        relationshipTypeId: target.field.relationshipTypeId as string,
-        desiredIds: target.value,
-        relationships: current,
-        elementExists,
-      }),
-    }));
-    return {
-      removeIds: changes.flatMap((change) => change.remove.map((r) => r.id)),
-      add: changes.flatMap(({ field, add }) =>
-        add.map((targetElementId) => ({
-          id: nanoid(),
-          sourceElementId: elementId,
-          targetElementId,
-          relationshipTypeId: field.relationshipTypeId as string,
-          createdAt: now,
-          updatedAt: now,
-        }))
-      ),
-    };
-  });
+  const results = await runtimeReconcileRelationshipFields(
+    ctx,
+    username,
+    slug,
+    targets.map((target) => ({
+      sourceElementId: elementId,
+      relationshipTypeId: target.field.relationshipTypeId as string,
+      desiredIds: target.value,
+    }))
+  );
   await runtimeDeleteWorldbuildingPaths(
     ctx,
     username,
@@ -1474,7 +1456,11 @@ async function applyRelationshipFieldChanges(
     elementId,
     targets.map((target) => target.field.key)
   );
-  return changes;
+  return targets.map((target, index) => ({
+    ...target,
+    add: (results[index]?.added ?? []).map((r) => r.targetElementId),
+    remove: results[index]?.removed ?? [],
+  }));
 }
 
 function describeRelationshipChange(change: RelationshipFieldChange): string {
@@ -1559,7 +1545,6 @@ registerTool({
 
       // Check every relationship field before writing anything
       let relationshipTargets: RelationshipFieldTarget[] = [];
-      let elementIds = new Set<string>();
       if (relationshipValues.size > 0) {
         const checked = await checkRelationshipFieldValues(
           ctx,
@@ -1579,7 +1564,7 @@ registerTool({
             isError: true,
           };
         }
-        ({ targets: relationshipTargets, elementIds } = checked);
+        relationshipTargets = checked.targets;
       }
 
       // Apply updates using runtime-aware function
@@ -1600,14 +1585,7 @@ registerTool({
 
       const relationshipChanges =
         relationshipTargets.length > 0
-          ? await applyRelationshipFieldChanges(
-              ctx,
-              username,
-              slug,
-              elementId,
-              relationshipTargets,
-              (id) => elementIds.has(id)
-            )
+          ? await applyRelationshipFieldChanges(ctx, username, slug, elementId, relationshipTargets)
           : [];
 
       const updatedFields = Object.keys(fields);

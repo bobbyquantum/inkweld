@@ -36,6 +36,11 @@ import * as Y from 'yjs';
 import { signingSecret } from '../config/signing-secret';
 import { logger } from '../services/logger.service';
 import { setYMapPath, yMapPathConflict } from '../utils/yjs-map-path';
+import {
+  reconcileRelationshipFieldsInDoc,
+  relationshipFieldReconcileError,
+  type RelationshipFieldReconcile,
+} from '../utils/relationship-field-reconcile';
 import { mirrorCanvasToElement } from '@inkweld/canvas';
 import { parseXmlToYjsNodes } from '@inkweld/prosemirror/xml';
 import { makeD1Database, type D1DatabaseInstance } from '../db/d1';
@@ -1372,6 +1377,12 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    * POST /api/document - Apply updates to document
    * Body: { updates: { path: string, value: any }[] } or { yUpdate: base64 } or { prosemirrorXml: string }
    *        or { relationships: { action: 'replace' | 'add', items: any[] } }
+   *        or { relationships: { action: 'reconcile', fields: RelationshipFieldReconcile[] } }
+   *
+   * `reconcile` plans relationship field links on this shared document and
+   * applies them in the same transaction, so concurrent MCP writes from
+   * Workers (each holding its own copy) are serialised here; the response
+   * carries `results`. See utils/relationship-field-reconcile.ts.
    */
   private async handleUpdateDocument(request: Request, documentId: string): Promise<Response> {
     const sharedDoc = await this.getOrCreateDocument(documentId);
@@ -1380,7 +1391,11 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       yUpdate?: string;
       mirrorCanvas?: string;
       prosemirrorXml?: string;
-      relationships?: { action: 'replace' | 'add'; items: unknown[] };
+      relationships?: {
+        action: 'replace' | 'add' | 'reconcile';
+        items?: unknown[];
+        fields?: unknown;
+      };
     };
 
     if (body.prosemirrorXml !== undefined) {
@@ -1413,30 +1428,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       const canvasId = body.mirrorCanvas;
       if (canvasId) sharedDoc.transact(() => mirrorCanvasToElement(sharedDoc, canvasId));
     } else if (body.relationships) {
-      // Apply relationship array mutations
-      const { action, items } = body.relationships;
-      const relationshipsArray = sharedDoc.getArray('relationships');
-      if (action === 'replace') {
-        sharedDoc.transact(() => {
-          if (relationshipsArray.length > 0) {
-            relationshipsArray.delete(0, relationshipsArray.length);
-          }
-          if (items.length > 0) {
-            relationshipsArray.insert(0, items);
-          }
-        });
-      } else if (action === 'add') {
-        sharedDoc.transact(() => {
-          relationshipsArray.push(items);
-        });
-      } else {
-        return new Response(
-          JSON.stringify({
-            error: `Invalid relationships action: ${String(action)}`,
-          }),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
+      return this.mutateRelationships(sharedDoc, body.relationships);
     } else if (body.updates && body.updates.length > 0) {
       // Apply structured updates
       const updates = body.updates;
@@ -1473,6 +1465,52 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
+  }
+
+  /**
+   * The `relationships` body of POST /api/document: `replace` or `add` raw
+   * items, or `reconcile` relationship fields against this shared document
+   * (see handleUpdateDocument).
+   */
+  private mutateRelationships(
+    sharedDoc: Y.Doc,
+    relationships: { action: string; items?: unknown[]; fields?: unknown }
+  ): Response {
+    const jsonResponse = (payload: unknown, status: number) =>
+      new Response(JSON.stringify(payload), {
+        status,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    const { action, fields } = relationships;
+    const items = relationships.items ?? [];
+    const relationshipsArray = sharedDoc.getArray('relationships');
+
+    if (action === 'reconcile') {
+      const invalid = relationshipFieldReconcileError(fields);
+      if (invalid) return jsonResponse({ error: invalid }, 400);
+      const results = reconcileRelationshipFieldsInDoc(
+        sharedDoc,
+        fields as RelationshipFieldReconcile[]
+      );
+      return jsonResponse({ success: true, results }, 200);
+    }
+    if (action === 'replace') {
+      sharedDoc.transact(() => {
+        if (relationshipsArray.length > 0) {
+          relationshipsArray.delete(0, relationshipsArray.length);
+        }
+        if (items.length > 0) {
+          relationshipsArray.insert(0, items);
+        }
+      });
+    } else if (action === 'add') {
+      sharedDoc.transact(() => {
+        relationshipsArray.push(items);
+      });
+    } else {
+      return jsonResponse({ error: `Invalid relationships action: ${String(action)}` }, 400);
+    }
+    return jsonResponse({ success: true }, 200);
   }
 
   /**
