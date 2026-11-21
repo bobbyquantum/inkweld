@@ -1,11 +1,12 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type StorageUsage, UsersService } from '@inkweld/index';
 import { of, Subject, throwError } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LoggerService } from '../core/logger.service';
+import { StorageContextService } from '../core/storage-context.service';
 import { getQuotaExceeded, StorageUsageService } from './storage-usage.service';
 
 const USAGE: StorageUsage = {
@@ -30,6 +31,7 @@ const USAGE: StorageUsage = {
 describe('StorageUsageService', () => {
   let service: StorageUsageService;
   let getMyStorageUsage: ReturnType<typeof vi.fn>;
+  const activeConfig = signal<{ id: string } | null>({ id: 'server-a' });
 
   function configure(): void {
     getMyStorageUsage = vi.fn().mockReturnValue(of(USAGE));
@@ -42,6 +44,7 @@ describe('StorageUsageService', () => {
           useValue: { getMyStorageUsage },
         },
         { provide: LoggerService, useValue: { error: () => undefined } },
+        { provide: StorageContextService, useValue: { activeConfig } },
       ],
     });
     service = TestBed.inject(StorageUsageService);
@@ -49,6 +52,7 @@ describe('StorageUsageService', () => {
 
   beforeEach(() => {
     TestBed.resetTestingModule();
+    activeConfig.set({ id: 'server-a' });
     configure();
   });
 
@@ -129,6 +133,13 @@ describe('StorageUsageService', () => {
   });
 
   describe('ensureLoaded', () => {
+    it('fetches again after a switch to another server', async () => {
+      await service.ensureLoaded('u1');
+      activeConfig.set({ id: 'server-b' });
+      await service.ensureLoaded('u1');
+      expect(getMyStorageUsage).toHaveBeenCalledTimes(2);
+    });
+
     it('fetches once and then reuses the cached value for the same user', async () => {
       await service.ensureLoaded('u1');
       await service.ensureLoaded('u1');
@@ -177,6 +188,23 @@ describe('StorageUsageService', () => {
       await service.ensureFresh('u1', 60_000);
       expect(getMyStorageUsage).toHaveBeenCalledTimes(2);
       expect(service.usage()).toEqual(USAGE);
+    });
+
+    it('fetches again, and drops the old value, after a switch to another server', async () => {
+      await service.ensureFresh('u1', 60_000);
+      activeConfig.set({ id: 'server-b' });
+      const pending = new Subject<typeof USAGE>();
+      getMyStorageUsage.mockReturnValueOnce(pending);
+
+      const refresh = service.ensureFresh('u1', 60_000);
+      // The previous server's figure is not shown while the new one loads.
+      expect(service.usage()).toBeUndefined();
+      pending.next({ ...USAGE, usedBytes: 5 });
+      pending.complete();
+      await refresh;
+
+      expect(getMyStorageUsage).toHaveBeenCalledTimes(2);
+      expect(service.usage()?.usedBytes).toBe(5);
     });
 
     it('fetches again after reset', async () => {

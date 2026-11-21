@@ -364,6 +364,10 @@ describe('search_worldbuilding on Workers', () => {
         const url = new URL(request.url);
         paths.push(url.pathname);
         if (url.pathname === '/api/elements') return json({ elements: wbElements });
+        if (url.pathname === '/api/document') {
+          singleReads.push(url.searchParams.get('documentId') ?? '');
+          return json({});
+        }
         return json({
           documents: {
             e1: { worldbuilding: { backstory: 'Slew a dragon' } },
@@ -379,6 +383,7 @@ describe('search_worldbuilding on Workers', () => {
     expect(paths.filter((p) => p === '/api/documents')).toHaveLength(1);
     // Project-level reads (relationships, schemas) hit the elements doc once
     // each; no element document is read on its own.
+    expect(singleReads.length).toBeGreaterThan(0);
     expect(singleReads.every((id) => id.startsWith('alice:novel:elements'))).toBe(true);
     // Hero and Villain match "dragon"; Castle does not.
     expect(outcome.result?.content[0]?.text).toContain('Found 2 worldbuilding entries');

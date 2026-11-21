@@ -4,6 +4,7 @@ import { type StorageUsage, UsersService } from '@inkweld/index';
 import { catchError, firstValueFrom, throwError } from 'rxjs';
 
 import { LoggerService } from '../core/logger.service';
+import { StorageContextService } from '../core/storage-context.service';
 
 /** Re-export the generated model under the name the UI already imports. */
 export type { StorageUsage };
@@ -64,6 +65,7 @@ export class StorageUsageError extends Error {
 export class StorageUsageService {
   private readonly usersApi = inject(UsersService);
   private readonly logger = inject(LoggerService);
+  private readonly storageContext = inject(StorageContextService);
 
   /** Last fetched usage; `undefined` until the first successful load. */
   readonly usage = signal<StorageUsage | undefined>(undefined);
@@ -81,6 +83,12 @@ export class StorageUsageService {
   /** The user the cached `usage` belongs to. */
   private cachedForUserId: string | undefined;
 
+  /**
+   * The profile (server) the cached `usage` came from. A profile switch keeps
+   * this singleton alive, and the same user id can exist on two servers.
+   */
+  private cachedForServerId: string | undefined;
+
   /** `Date.now()` of the last successful load, for {@link ensureFresh}. */
   private loadedAt: number | undefined;
 
@@ -96,18 +104,24 @@ export class StorageUsageService {
    * meter can degrade quietly rather than break the page it sits on.
    */
   async load(userId?: string): Promise<StorageUsage | undefined> {
-    // Different account (or a sign-out/sign-in) — the previous value is not
-    // this user's, so clear it rather than briefly showing it to them.
-    if (
+    // Different account or server (sign-out/sign-in, profile switch): the
+    // previous value is not this user's, so clear it rather than briefly
+    // showing it to them.
+    const serverId = this.activeServerId();
+    const otherUser =
       userId !== undefined &&
       this.cachedForUserId !== undefined &&
-      userId !== this.cachedForUserId
-    ) {
+      userId !== this.cachedForUserId;
+    const otherServer =
+      this.cachedForServerId !== undefined &&
+      serverId !== this.cachedForServerId;
+    if (otherUser || otherServer) {
       this.reset();
     }
     if (userId !== undefined) {
       this.cachedForUserId = userId;
     }
+    this.cachedForServerId = serverId;
 
     const requestId = ++this.requestSeq;
     this.isLoading.set(true);
@@ -143,10 +157,7 @@ export class StorageUsageService {
    * show the last-known state without forcing a recompute on every visit.
    */
   async ensureLoaded(userId?: string): Promise<void> {
-    if (
-      this.usage() !== undefined &&
-      (userId === undefined || userId === this.cachedForUserId)
-    ) {
+    if (this.usage() !== undefined && this.cacheMatches(userId)) {
       return;
     }
     await this.load(userId);
@@ -162,9 +173,8 @@ export class StorageUsageService {
     userId: string | undefined,
     maxAgeMs: number
   ): Promise<void> {
-    const sameUser = userId === undefined || userId === this.cachedForUserId;
     if (
-      sameUser &&
+      this.cacheMatches(userId) &&
       this.usage() !== undefined &&
       this.loadedAt !== undefined &&
       Date.now() - this.loadedAt < maxAgeMs
@@ -194,7 +204,21 @@ export class StorageUsageService {
     this.usage.set(undefined);
     this.error.set(undefined);
     this.cachedForUserId = undefined;
+    this.cachedForServerId = undefined;
     this.loadedAt = undefined;
+  }
+
+  /** The active profile's id, which names the server usage is read from. */
+  private activeServerId(): string | undefined {
+    return this.storageContext.activeConfig()?.id;
+  }
+
+  /** Whether the cached value belongs to `userId` on the active server. */
+  private cacheMatches(userId: string | undefined): boolean {
+    return (
+      (userId === undefined || userId === this.cachedForUserId) &&
+      this.activeServerId() === this.cachedForServerId
+    );
   }
 
   private handleError(error: unknown) {

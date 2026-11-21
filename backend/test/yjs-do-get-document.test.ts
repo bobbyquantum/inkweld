@@ -382,6 +382,16 @@ describe('YjsProject DO GET /api/document and /api/document-state', () => {
       });
     });
 
+    it('keeps an element id that names an Object prototype key', async () => {
+      const { status, body } = await batchFetch(
+        { ['__proto__']: worldbuildingDoc('1') },
+        '&elementId=__proto__'
+      );
+      expect(status).toBe(200);
+      expect(Object.keys(body.documents as object)).toEqual(['__proto__']);
+      expect(body.failed).toEqual([]);
+    });
+
     it('refuses an empty batch and one over the limit', async () => {
       expect((await batchFetch({}, '')).status).toBe(400);
       const tooMany = Array.from({ length: MAX_BATCH_DOCUMENTS + 1 }, (_, i) => `&elementId=e${i}`);

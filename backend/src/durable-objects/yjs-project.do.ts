@@ -1207,20 +1207,23 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       return jsonResponse({ error: 'Invalid elementId' }, 400);
     }
 
-    const documents: Record<string, Record<string, unknown>> = {};
+    // A Map, not an object literal: an element id such as `__proto__` would
+    // hit the prototype setter and silently drop out of the response.
+    const documents = new Map<string, Record<string, unknown>>();
     const failed: string[] = [];
     await Promise.all(
       elementIds.map(async (elementId) => {
         try {
           const sharedDoc = await this.getOrCreateDocument(`${username}:${slug}:${elementId}`);
-          documents[elementId] = this.documentToJson(sharedDoc);
+          documents.set(elementId, this.documentToJson(sharedDoc));
         } catch (error) {
           projDOLog.warn(`Failed to load ${elementId} for a batch read`, { error: String(error) });
           failed.push(elementId);
         }
       })
     );
-    return jsonResponse({ documents, failed }, 200);
+    // Object.fromEntries defines own properties, so every id survives.
+    return jsonResponse({ documents: Object.fromEntries(documents), failed }, 200);
   }
 
   /**
