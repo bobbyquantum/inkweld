@@ -23,6 +23,12 @@ import {
 } from '../../utils/yjs-map-path';
 import { openEditableDocument } from '../../services/yjs-document-access';
 import {
+  reconcileRelationshipFieldsInDoc,
+  type RelationshipFieldReconcile,
+  type RelationshipFieldReconcileResult,
+  type StoredRelationship,
+} from '../../utils/relationship-field-reconcile';
+import {
   type ElementTag,
   type TagDefinition,
   readElementTags,
@@ -367,15 +373,7 @@ export async function updateDocumentContent(
 /**
  * Relationship type stored in the relationships array
  */
-export interface Relationship {
-  id: string;
-  sourceElementId: string;
-  targetElementId: string;
-  relationshipTypeId: string;
-  note?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+export type Relationship = StoredRelationship;
 
 /**
  * Read the project's worldbuilding schema library (works on both runtimes).
@@ -555,21 +553,19 @@ export interface RelationshipChanges {
  * Remove relationships by id and add new ones in one transaction on the
  * project elements doc (works on both runtimes). Removing by id, rather than
  * replacing the whole array, leaves relationships others add meanwhile alone.
- * `changes` may be a function of the relationships as they are inside the
- * transaction, so a read-then-write is planned against current state.
  * Returns the relationships actually removed.
+ *
+ * Don't plan a read-then-write with this (on Workers the edit is made to a
+ * copy, so two concurrent plans both apply): use
+ * {@link reconcileRelationshipFields} for relationship fields.
  */
 export async function applyRelationshipChanges(
   ctx: McpContext,
   username: string,
   slug: string,
-  changes: RelationshipChanges | ((current: readonly Relationship[]) => RelationshipChanges)
+  changes: RelationshipChanges
 ): Promise<Relationship[]> {
-  if (
-    typeof changes !== 'function' &&
-    (changes.removeIds ?? []).length === 0 &&
-    (changes.add ?? []).length === 0
-  ) {
+  if ((changes.removeIds ?? []).length === 0 && (changes.add ?? []).length === 0) {
     return [];
   }
 
@@ -580,8 +576,7 @@ export async function applyRelationshipChanges(
   const relationshipsArray = editable.doc.getArray<Relationship>('relationships');
   const removed: Relationship[] = [];
   editable.doc.transact(() => {
-    const planned = typeof changes === 'function' ? changes(relationshipsArray.toArray()) : changes;
-    const removeIds = new Set(planned.removeIds ?? []);
+    const removeIds = new Set(changes.removeIds ?? []);
     // From the end, so earlier indexes stay valid while deleting.
     for (let index = relationshipsArray.length - 1; index >= 0; index--) {
       const relationship = relationshipsArray.get(index);
@@ -590,10 +585,43 @@ export async function applyRelationshipChanges(
         removed.unshift(relationship);
       }
     }
-    if (planned.add && planned.add.length > 0) relationshipsArray.push([...planned.add]);
+    if (changes.add && changes.add.length > 0) relationshipsArray.push([...changes.add]);
   });
   await editable.commit();
   return removed;
+}
+
+/**
+ * Make relationship fields link exactly the ids asked for (works on both
+ * runtimes), planned with `planRelationshipFieldLinks` against the
+ * relationships as they are on the shared document when the change is
+ * applied, so concurrent MCP writes are serialised:
+ *
+ * - Bun: on the live shared doc, in one transaction.
+ * - Workers: the project Durable Object plans and applies it on its shared
+ *   doc (`relationships.action: 'reconcile'`). Planning on the Worker's copy
+ *   instead would let two concurrent updates of a single-valued field each
+ *   add a link, and both would survive the merge.
+ */
+export async function reconcileRelationshipFields(
+  ctx: McpContext,
+  username: string,
+  slug: string,
+  fields: RelationshipFieldReconcile[]
+): Promise<RelationshipFieldReconcileResult[]> {
+  if (fields.length === 0) return [];
+  const docId = `${username}:${slug}:elements/`;
+
+  if (isCloudflareWorkers(ctx)) {
+    const workerService = new YjsWorkerService({
+      env: ctx.env as { YJS_PROJECTS: NonNullable<NonNullable<typeof ctx.env>['YJS_PROJECTS']> },
+      authToken: ctx.authToken ?? '',
+    });
+    return workerService.reconcileRelationshipFields(docId, fields);
+  }
+  const { yjsService } = await import('../../services/yjs.service');
+  const { doc } = await yjsService.getDocument(docId);
+  return reconcileRelationshipFieldsInDoc(doc, fields);
 }
 
 /**

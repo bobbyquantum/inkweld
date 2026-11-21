@@ -12,6 +12,10 @@ import type { DurableObjectNamespace, DurableObjectStub } from '../types/cloudfl
 import { type Element } from '../types/element.types';
 import { logger } from './logger.service';
 import { stripTrailingSlashes } from '../utils/string-utils';
+import type {
+  RelationshipFieldReconcile,
+  RelationshipFieldReconcileResult,
+} from '../utils/relationship-field-reconcile';
 import { chunk } from '@inkweld/async';
 
 /**
@@ -427,6 +431,28 @@ export class YjsWorkerService {
     action: 'replace' | 'add',
     items: unknown[]
   ): Promise<void> {
+    await this.postRelationships(docId, { action, items });
+  }
+
+  /**
+   * Have the Durable Object make relationship fields link exactly the ids
+   * asked for (`action: 'reconcile'`). The object plans against its shared
+   * document and applies the plan in the same transaction, so concurrent
+   * calls are serialised; planning on a copy here would not be.
+   */
+  async reconcileRelationshipFields(
+    docId: string,
+    fields: RelationshipFieldReconcile[]
+  ): Promise<RelationshipFieldReconcileResult[]> {
+    const response = await this.postRelationships(docId, { action: 'reconcile', fields });
+    const body = (await response.json()) as { results?: RelationshipFieldReconcileResult[] };
+    if (!Array.isArray(body.results)) {
+      throw new TypeError('Failed to reconcile relationships: the response has no results');
+    }
+    return body.results;
+  }
+
+  private async postRelationships(docId: string, relationships: unknown): Promise<Response> {
     const parts = stripTrailingSlashes(docId).split(':');
     if (parts.length < 2) {
       throw new Error(`Invalid docId format: ${docId}`);
@@ -443,7 +469,7 @@ export class YjsWorkerService {
           Authorization: `Bearer ${this.ctx.authToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ relationships: { action, items } }),
+        body: JSON.stringify({ relationships }),
       })
     );
 
@@ -451,6 +477,7 @@ export class YjsWorkerService {
       const errorText = await response.text();
       throw new Error(`Failed to mutate relationships: ${response.status} ${errorText}`);
     }
+    return response;
   }
 
   /**
