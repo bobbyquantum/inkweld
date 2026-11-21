@@ -253,6 +253,8 @@ Schema fields with a dotted key (`description.terrain`) are nested: `"descriptio
 
 A **relationship field** (`type: "relationship"`) takes the id of the element it links, or an array of ids when the field is `multiple`; `null` or `[]` clears it. As in the app, the field's value is its relationships, never a key in the element's data: `update_worldbuilding` makes the field link exactly the ids given, creating a relationship of the field's `relationshipTypeId` (source = the element, target = the linked element) for each new id and deleting the ones left out, so each link also shows as a backlink on its target. The ids are checked first, and nothing is written if any fails: each must be an existing worldbuilding element other than the element itself, of the field's `targetSchemaId` when it has one, and a field that isn't `multiple` takes at most one. `get_element_full` and `search_worldbuilding` read the field's value from the relationships, and `delete_relationship` (or removing the link in the app) takes the id out of the field.
 
+Concurrent `update_worldbuilding` calls on one field are applied one after the other on the server, so a field that isn't `multiple` keeps a single link. Edits made in the app at the same time, or offline, can still leave such a field with two links (every client adds its own, and both merge); reads then return both, and the next write of the field keeps only the ids it gives.
+
 ### Available Resources
 
 Resources list the projects the user has authorized access to:

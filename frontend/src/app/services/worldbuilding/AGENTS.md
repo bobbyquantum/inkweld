@@ -52,6 +52,22 @@ to shared schema") get the shared schema copied in on first open by
   when it next writes or deletes one of that field's relationships, and every
   reader ignores it. Don't start persisting the value in the map again.
 
+- **`multiple: false` is enforced per write, not by the CRDT.** Every writer
+  plans against the relationships it can see, so a single-valued field can
+  still end up with two links when two writers each add one from the same
+  state: two app clients at once, or an edit made offline. Server MCP
+  writes are serialised: `update_worldbuilding` plans inside the
+  transaction that applies the plan, on Bun's live shared doc, and on
+  Workers in the project Durable Object (`relationships.action: 'reconcile'`
+  on `POST /api/document`, `backend/src/utils/relationship-field-reconcile.ts`),
+  never on the Worker's copy, where two concurrent calls would each add a
+  link (`backend/test/yjs-do-relationship-reconcile.test.ts`). An extra link
+  is healed by the next write of the field, which keeps one link per wanted
+  target; until then reads (`linkedTargetIds`) return every link, and the
+  app's field shows each one, so picking a new element or removing a chip
+  fixes it. Don't plan a relationship field write on a Worker's copy of the
+  elements doc.
+
 - **MCP schema tools** (`create_schema` / `update_schema` / `delete_schema`,
   `backend/src/mcp/tools/schema.tools.ts`) edit the shared schemas only, never
   element copies. `schema-editing.ts` there mirrors `SchemaEditService`'s

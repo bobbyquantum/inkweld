@@ -39,6 +39,15 @@ compacted snapshots. Overview: `docs/site/docs/developer/architecture.md` →
   mirror onto its element once the update is applied. The object has the merged
   document, which a Worker's copy doesn't (`CommitOptions` in
   `services/yjs-document-access.ts`).
+- `POST /api/document` with `relationships: { action: 'reconcile', fields }`
+  makes relationship fields link exactly `desiredIds`: the object plans with
+  `planRelationshipFieldLinks` against its shared document and applies the
+  plan in the same synchronous transaction, then answers with what it added
+  and removed. MCP `update_worldbuilding` on Workers uses it so that two
+  concurrent writes of a `multiple: false` field can't each add a link; a
+  plan made on a Worker's copy could (`utils/relationship-field-reconcile.ts`,
+  `test/yjs-do-relationship-reconcile.test.ts`). Keep the read and the write
+  free of any `await` between them.
 - The object's name is `username:slug` and its rows are keyed
   `doc:username:slug:…`, so a rename copies them to the object of the new
   slug. The Worker drives `/api/rename/*` on both objects
