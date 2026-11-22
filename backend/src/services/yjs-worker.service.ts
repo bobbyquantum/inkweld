@@ -16,6 +16,13 @@ import type {
   RelationshipFieldReconcile,
   RelationshipFieldReconcileResult,
 } from '../utils/relationship-field-reconcile';
+import { chunk } from '@inkweld/async';
+
+/**
+ * Most element documents one `GET /api/documents` request carries; the
+ * Durable Object refuses a larger batch.
+ */
+export const MAX_BATCH_DOCUMENTS = 50;
 
 const log = logger.child('YjsWorkerService');
 
@@ -190,6 +197,90 @@ export class YjsWorkerService {
 
     // Create a wrapper that mimics the Y.Doc interface
     return this.createDocumentWrapper(data as Record<string, unknown>);
+  }
+
+  /**
+   * Several element documents of one project, keyed by element id, in as few
+   * Durable Object requests as the batch limit allows (one per
+   * {@link MAX_BATCH_DOCUMENTS} ids) instead of one per element. Throws
+   * {@link YjsDocumentReadError} when a request fails or the object could not
+   * load one of the documents, matching {@link getDocument}.
+   */
+  async getElementDocuments(
+    username: string,
+    slug: string,
+    elementIds: string[]
+  ): Promise<Map<string, WorkerYjsDocument>> {
+    const ids = [...new Set(elementIds)];
+    const result = new Map<string, WorkerYjsDocument>();
+    if (ids.length === 0) return result;
+
+    const batchDocId = `${username}:${slug}:elements`;
+    const stub = getDoStub(this.ctx.env, username, slug);
+    const batches = chunk(ids, MAX_BATCH_DOCUMENTS);
+
+    const pages = await Promise.all(
+      batches.map(async (batch) => {
+        const params = new URLSearchParams({ documentId: batchDocId });
+        for (const id of batch) params.append('elementId', id);
+        let response: Response;
+        try {
+          response = await stub.fetch(
+            new Request(`https://yjs-do/api/documents?${params.toString()}`, {
+              method: 'GET',
+              headers: { Authorization: `Bearer ${this.ctx.authToken}` },
+            })
+          );
+        } catch (err) {
+          log.error('Error getting documents from DO', err);
+          throw new YjsDocumentReadError(batchDocId, 'the Durable Object request failed', {
+            cause: err,
+          });
+        }
+        if (!response.ok) {
+          const errorText = await response.text().catch(() => '');
+          log.error(`DO returned ${response.status} for a batch document read`, { errorText });
+          throw new YjsDocumentReadError(
+            batchDocId,
+            `Durable Object responded ${response.status}`,
+            { status: response.status }
+          );
+        }
+        let body: { documents?: unknown; failed?: unknown };
+        try {
+          body = (await response.json()) as typeof body;
+        } catch (err) {
+          throw new YjsDocumentReadError(batchDocId, 'the response was not valid JSON', {
+            status: response.status,
+            cause: err,
+          });
+        }
+        const documents = body?.documents;
+        if (!documents || typeof documents !== 'object' || Array.isArray(documents)) {
+          throw new YjsDocumentReadError(batchDocId, 'the response had no documents object', {
+            status: response.status,
+          });
+        }
+        const failed = Array.isArray(body.failed) ? body.failed : [];
+        if (failed.length > 0) {
+          throw new YjsDocumentReadError(
+            `${username}:${slug}:${String(failed[0])}`,
+            'the Durable Object could not load the document',
+            { status: response.status }
+          );
+        }
+        return documents as Record<string, unknown>;
+      })
+    );
+
+    for (const page of pages) {
+      for (const [id, data] of Object.entries(page)) {
+        if (data && typeof data === 'object' && !Array.isArray(data)) {
+          result.set(id, this.createDocumentWrapper(data as Record<string, unknown>));
+        }
+      }
+    }
+    return result;
   }
 
   /**

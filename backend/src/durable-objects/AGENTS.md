@@ -59,3 +59,10 @@ compacted snapshots. Overview: `docs/site/docs/developer/architecture.md` →
   finds the project under either slug and refuses when both name a project.
   The lock lapses after 5 minutes, so a rename that dies half-way cannot leave
   a project unusable.
+- `GET /api/storage-size` reads the SQLite `databaseSize` (one property, no
+  row reads) and only pages every key when the object has no `sql` API. The
+  storage meter calls it once per owned project, so keep it cheap.
+- `GET /api/documents` returns several element documents in one request
+  (`YjsWorkerService.getElementDocuments`, at most `MAX_BATCH_DOCUMENTS`).
+  It takes element ids, never document ids, so a caller can only name this
+  project's documents. Use it instead of one `GET /api/document` per element.

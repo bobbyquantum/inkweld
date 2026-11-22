@@ -4,6 +4,7 @@ import { type StorageUsage, UsersService } from '@inkweld/index';
 import { catchError, firstValueFrom, throwError } from 'rxjs';
 
 import { LoggerService } from '../core/logger.service';
+import { StorageContextService } from '../core/storage-context.service';
 
 /** Re-export the generated model under the name the UI already imports. */
 export type { StorageUsage };
@@ -64,6 +65,7 @@ export class StorageUsageError extends Error {
 export class StorageUsageService {
   private readonly usersApi = inject(UsersService);
   private readonly logger = inject(LoggerService);
+  private readonly storageContext = inject(StorageContextService);
 
   /** Last fetched usage; `undefined` until the first successful load. */
   readonly usage = signal<StorageUsage | undefined>(undefined);
@@ -82,6 +84,15 @@ export class StorageUsageService {
   private cachedForUserId: string | undefined;
 
   /**
+   * The profile (server) the cached `usage` came from. A profile switch keeps
+   * this singleton alive, and the same user id can exist on two servers.
+   */
+  private cachedForServerId: string | undefined;
+
+  /** `Date.now()` of the last successful load, for {@link ensureFresh}. */
+  private loadedAt: number | undefined;
+
+  /**
    * Bumped by every load and reset, so a response that arrives after a newer
    * load (or after the account changed) is dropped instead of overwriting the
    * newer user's usage.
@@ -93,20 +104,30 @@ export class StorageUsageService {
    * meter can degrade quietly rather than break the page it sits on.
    */
   async load(userId?: string): Promise<StorageUsage | undefined> {
-    // Different account (or a sign-out/sign-in) — the previous value is not
-    // this user's, so clear it rather than briefly showing it to them.
-    if (
+    // Different account or server (sign-out/sign-in, profile switch): the
+    // previous value is not this user's, so clear it rather than briefly
+    // showing it to them.
+    const serverId = this.activeServerId();
+    const otherUser =
       userId !== undefined &&
       this.cachedForUserId !== undefined &&
-      userId !== this.cachedForUserId
-    ) {
+      userId !== this.cachedForUserId;
+    const otherServer =
+      this.cachedForServerId !== undefined &&
+      serverId !== this.cachedForServerId;
+    if (otherUser || otherServer) {
       this.reset();
     }
     if (userId !== undefined) {
       this.cachedForUserId = userId;
     }
+    this.cachedForServerId = serverId;
 
     const requestId = ++this.requestSeq;
+    // A profile switch starts no load of its own, so a response that arrives
+    // after one belongs to the previous server and must not be published.
+    const isCurrent = () =>
+      requestId === this.requestSeq && serverId === this.activeServerId();
     this.isLoading.set(true);
     this.error.set(undefined);
     try {
@@ -115,15 +136,16 @@ export class StorageUsageService {
           .getMyStorageUsage()
           .pipe(catchError(this.handleError.bind(this)))
       );
-      if (requestId !== this.requestSeq) {
+      if (!isCurrent()) {
         return undefined;
       }
       this.usage.set(usage);
+      this.loadedAt = Date.now();
       return usage;
     } catch (error) {
       // Already logged in handleError; keep the previous value so the meter
       // does not blink to zero on a transient failure.
-      if (requestId === this.requestSeq) {
+      if (isCurrent()) {
         this.error.set(error as StorageUsageError);
       }
       return undefined;
@@ -139,9 +161,27 @@ export class StorageUsageService {
    * show the last-known state without forcing a recompute on every visit.
    */
   async ensureLoaded(userId?: string): Promise<void> {
+    if (this.usage() !== undefined && this.cacheMatches(userId)) {
+      return;
+    }
+    await this.load(userId);
+  }
+
+  /**
+   * Load usage unless this user's cached value is younger than `maxAgeMs`.
+   * The server measures usage by listing every project's media and asking
+   * each project's Durable Object for its size, so a page that shows the
+   * meter on every visit would otherwise repeat that work on each navigation.
+   */
+  async ensureFresh(
+    userId: string | undefined,
+    maxAgeMs: number
+  ): Promise<void> {
     if (
+      this.cacheMatches(userId) &&
       this.usage() !== undefined &&
-      (userId === undefined || userId === this.cachedForUserId)
+      this.loadedAt !== undefined &&
+      Date.now() - this.loadedAt < maxAgeMs
     ) {
       return;
     }
@@ -168,6 +208,21 @@ export class StorageUsageService {
     this.usage.set(undefined);
     this.error.set(undefined);
     this.cachedForUserId = undefined;
+    this.cachedForServerId = undefined;
+    this.loadedAt = undefined;
+  }
+
+  /** The active profile's id, which names the server usage is read from. */
+  private activeServerId(): string | undefined {
+    return this.storageContext.getActiveConfig()?.id;
+  }
+
+  /** Whether the cached value belongs to `userId` on the active server. */
+  private cacheMatches(userId: string | undefined): boolean {
+    return (
+      (userId === undefined || userId === this.cachedForUserId) &&
+      this.activeServerId() === this.cachedForServerId
+    );
   }
 
   private handleError(error: unknown) {

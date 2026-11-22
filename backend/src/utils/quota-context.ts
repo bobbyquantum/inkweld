@@ -28,6 +28,5 @@ export async function storedProjectFileSize(
   slug: string,
   filename: string
 ): Promise<number> {
-  const matches = await storage.listProjectFiles(username, slug, filename);
-  return matches.find((f) => f.filename === filename)?.size ?? 0;
+  return (await storage.getProjectFileSize(username, slug, filename)) ?? 0;
 }

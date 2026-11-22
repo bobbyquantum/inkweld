@@ -69,6 +69,7 @@ function makeStorage(entries: Map<string, unknown>) {
   };
 }
 
+let MAX_BATCH_DOCUMENTS: number;
 let YjsProject: new (state: unknown, env: unknown) => { fetch(req: Request): Promise<Response> };
 let projectService: { findByUsernameAndSlug: (...args: unknown[]) => Promise<unknown> };
 let userService: { findById: (...args: unknown[]) => Promise<unknown> };
@@ -86,6 +87,7 @@ describe('YjsProject DO GET /api/document and /api/document-state', () => {
         sessionsValidFrom: null,
       })
     );
+    ({ MAX_BATCH_DOCUMENTS } = await import('../src/services/yjs-worker.service'));
     ({ YjsProject } = (await import('../src/durable-objects/yjs-project.do')) as unknown as {
       YjsProject: typeof YjsProject;
     });
@@ -320,5 +322,87 @@ describe('YjsProject DO GET /api/document and /api/document-state', () => {
     expect(status).toBe(400);
     expect((body as { error: string }).error).toContain('"description" holds a string value');
     expect(after.getMap('worldbuilding').toJSON()).toEqual({ description: 'Legacy text' });
+  });
+
+  describe('GET /api/documents (batch)', () => {
+    /** A DO holding one snapshot per `docs` entry, keyed by element id. */
+    async function batchFetch(
+      docs: Record<string, Y.Doc>,
+      query: string
+    ): Promise<{ status: number; body: Record<string, unknown> }> {
+      spyOn(projectService, 'findByUsernameAndSlug').mockResolvedValue({
+        id: 'project-1',
+        userId: 'owner-1',
+      });
+      const entries = new Map<string, unknown>();
+      for (const [id, doc] of Object.entries(docs)) {
+        entries.set(`doc:alice:proj:${id}:snapshot`, Y.encodeStateAsUpdate(doc));
+      }
+      const token = await signJwt({
+        userId: 'owner-1',
+        username: 'alice',
+        exp: Math.floor(Date.now() / 1000) + 3600,
+      });
+      const doInstance = new YjsProject(
+        {
+          storage: makeStorage(entries),
+          getWebSockets: () => [],
+          setWebSocketAutoResponse: () => {},
+        },
+        { DATABASE_KEY: SECRET, DB: {} }
+      );
+      const res = await doInstance.fetch(
+        new Request(
+          `https://yjs-do/api/documents?documentId=${encodeURIComponent('alice:proj:elements')}${query}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+      );
+      return { status: res.status, body: (await res.json()) as Record<string, unknown> };
+    }
+
+    function worldbuildingDoc(age: string): Y.Doc {
+      const doc = new Y.Doc();
+      doc.getMap('worldbuilding').set('age', age);
+      doc.getMap('identity').set('description', `Aged ${age}`);
+      return doc;
+    }
+
+    it('returns each element document, keyed by element id, in one response', async () => {
+      const { status, body } = await batchFetch(
+        { e1: worldbuildingDoc('34'), e2: worldbuildingDoc('70') },
+        '&elementId=e1&elementId=e2&elementId=e3'
+      );
+      expect(status).toBe(200);
+      expect(body.failed).toEqual([]);
+      expect(body.documents).toEqual({
+        e1: { worldbuilding: { age: '34' }, identity: { description: 'Aged 34' } },
+        e2: { worldbuilding: { age: '70' }, identity: { description: 'Aged 70' } },
+        // Never written: an empty document, as GET /api/document reports it.
+        e3: {},
+      });
+    });
+
+    it('keeps an element id that names an Object prototype key', async () => {
+      const { status, body } = await batchFetch(
+        { ['__proto__']: worldbuildingDoc('1') },
+        '&elementId=__proto__'
+      );
+      expect(status).toBe(200);
+      expect(Object.keys(body.documents as object)).toEqual(['__proto__']);
+      expect(body.failed).toEqual([]);
+    });
+
+    it('refuses an empty batch and one over the limit', async () => {
+      expect((await batchFetch({}, '')).status).toBe(400);
+      const tooMany = Array.from({ length: MAX_BATCH_DOCUMENTS + 1 }, (_, i) => `&elementId=e${i}`);
+      expect((await batchFetch({}, tooMany.join(''))).status).toBe(400);
+    });
+
+    it('refuses an element id that could name another document', async () => {
+      expect(
+        (await batchFetch({}, `&elementId=${encodeURIComponent('bob:other:e1')}`)).status
+      ).toBe(400);
+      expect((await batchFetch({}, `&elementId=${encodeURIComponent('e1/')}`)).status).toBe(400);
+    });
   });
 });

@@ -45,6 +45,16 @@ export interface StorageService {
 
   projectFileExists(username: string, projectSlug: string, filename: string): Promise<boolean>;
 
+  /**
+   * Size in bytes of one file in a project directory, or `null` when it does
+   * not exist. One metadata read (an R2 `head`), never a listing.
+   */
+  getProjectFileSize(
+    username: string,
+    projectSlug: string,
+    filename: string
+  ): Promise<number | null>;
+
   deleteProjectFile(username: string, projectSlug: string, filename: string): Promise<void>;
 
   deleteProjectDirectory(username: string, projectSlug: string): Promise<void>;
@@ -151,6 +161,14 @@ class FileStorageAdapter implements StorageService {
     filename: string
   ): Promise<boolean> {
     return await this.fileStorage.projectFileExists(username, projectSlug, filename);
+  }
+
+  async getProjectFileSize(
+    username: string,
+    projectSlug: string,
+    filename: string
+  ): Promise<number | null> {
+    return await this.fileStorage.getProjectFileSize(username, projectSlug, filename);
   }
 
   async deleteProjectFile(username: string, projectSlug: string, filename: string): Promise<void> {
@@ -264,6 +282,15 @@ class R2StorageAdapter implements StorageService {
     filename: string
   ): Promise<boolean> {
     return await this.r2Storage.projectFileExists(username, projectSlug, filename);
+  }
+
+  async getProjectFileSize(
+    username: string,
+    projectSlug: string,
+    filename: string
+  ): Promise<number | null> {
+    const object = await this.r2Storage.getFileMetadata(username, projectSlug, filename);
+    return object ? object.size : null;
   }
 
   async deleteProjectFile(username: string, projectSlug: string, filename: string): Promise<void> {
