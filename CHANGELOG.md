@@ -10,7 +10,7 @@ titles.
 
 ### Bug Fixes
 
-* **mcp:** keep a single-value relationship field to one link when MCP updates race on Workers ([#1783](https://github.com/bobbyquantum/inkweld/issues/1783)) ([dbf427f](https://github.com/bobbyquantum/inkweld/commit/dbf427f3a68a713e4521b400d5068e8e403f8ebd))
+* 🤖 **mcp:** keep a single-value relationship field to one link when MCP updates race on Workers ([#1783](https://github.com/bobbyquantum/inkweld/issues/1783)) ([dbf427f](https://github.com/bobbyquantum/inkweld/commit/dbf427f3a68a713e4521b400d5068e8e403f8ebd))
 
 
 ### Performance Improvements
