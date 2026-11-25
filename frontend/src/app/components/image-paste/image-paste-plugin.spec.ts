@@ -815,7 +815,11 @@ describe('Plugin Integration', () => {
       });
 
       // Mock posAtCoords since JSDOM doesn't support layout
-      vi.spyOn(view, 'posAtCoords').mockReturnValue({ pos: 1, inside: -1 });
+      vi.spyOn(view, 'posAtCoords').mockReturnValue({
+        pos: 1,
+        inside: -1,
+        affinity: 0,
+      });
 
       const dropEvent = {
         dataTransfer: {
