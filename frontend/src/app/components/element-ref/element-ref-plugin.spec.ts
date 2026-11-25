@@ -1342,7 +1342,7 @@ describe('Plugin Props Handlers', () => {
 
       const view = {
         state,
-        posAtCoords: vi.fn(() => ({ pos: 7, inside: -1 })),
+        posAtCoords: vi.fn(() => ({ pos: 7, inside: -1, affinity: 0 })),
       } as unknown as EditorView;
 
       const result = contextmenuHandler(view, event as unknown as PointerEvent);
@@ -1368,7 +1368,7 @@ describe('Plugin Props Handlers', () => {
 
       const view = {
         state,
-        posAtCoords: vi.fn(() => ({ pos: 3, inside: -1 })),
+        posAtCoords: vi.fn(() => ({ pos: 3, inside: -1, affinity: 0 })),
       } as unknown as EditorView;
 
       const result = contextmenuHandler(view, event as unknown as PointerEvent);
@@ -1407,7 +1407,7 @@ describe('Plugin Props Handlers', () => {
 
       const view = {
         state,
-        posAtCoords: vi.fn(() => ({ pos: 7, inside: -1 })),
+        posAtCoords: vi.fn(() => ({ pos: 7, inside: -1, affinity: 0 })),
         dom,
       } as unknown as EditorView;
 
@@ -1445,7 +1445,7 @@ describe('Plugin Props Handlers', () => {
 
       const view = {
         state,
-        posAtCoords: vi.fn(() => ({ pos: 7, inside: -1 })),
+        posAtCoords: vi.fn(() => ({ pos: 7, inside: -1, affinity: 0 })),
         dom,
       } as unknown as EditorView;
 
@@ -1476,7 +1476,7 @@ describe('Plugin Props Handlers', () => {
 
       const view = {
         state,
-        posAtCoords: vi.fn(() => ({ pos: 7, inside: -1 })),
+        posAtCoords: vi.fn(() => ({ pos: 7, inside: -1, affinity: 0 })),
         dom,
       } as unknown as EditorView;
 
@@ -1505,7 +1505,7 @@ describe('Plugin Props Handlers', () => {
 
       const view = {
         state,
-        posAtCoords: vi.fn(() => ({ pos: 3, inside: -1 })),
+        posAtCoords: vi.fn(() => ({ pos: 3, inside: -1, affinity: 0 })),
         dom,
       } as unknown as EditorView;
 
